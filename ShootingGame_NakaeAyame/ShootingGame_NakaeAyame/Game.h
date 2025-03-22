@@ -3,9 +3,8 @@
 
 #include "Camera.h"
 #include "Input.h"
-
-
 #include "TitleScene.h"
+#include "Object.h"
 
 enum SceneName
 {
@@ -43,21 +42,21 @@ public:
 
 	void ChangeScene(SceneName sName); // シーンを変更
 	Camera& GetCamera(); // カメラ取得
-	//void DeleteObject(Object* pt); // オブジェクトを削除する
+	void DeleteObject(Object* pt); // オブジェクトを削除する
 	void DeleteAllObject(); // オブジェクトをすべて削除する
 
 
 	// オブジェクトを追加する(※テンプレート関数なのでここに直接記述)
-	/*template<class T> T* AddObject()
+	template<class T> T* AddObject()
 	{
 		T* pt = new T(m_Camera.get());
 		m_Instance->m_Objects.emplace_back(pt);
 		pt->Init(); // 初期化
 		return pt;
-	}*/
+	}
 
 	// オブジェクトを取得する(※テンプレート関数なのでここに直接記述)
-	/*template<class T> std::vector<T*> GetObjects()
+	template<class T> std::vector<T*> GetObjects()
 	{
 		std::vector<T*> res;
 		for (auto& o : m_Instance->m_Objects) {
@@ -67,7 +66,7 @@ public:
 			}
 		}
 		return res;
-	}*/
+	}
 
 	//------------
 	//関数

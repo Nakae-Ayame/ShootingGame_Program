@@ -6,8 +6,8 @@ Game* Game::m_Instance;
 // コンストラクタ
 Game::Game()
 {
-	//m_Input = std::make_unique<Input>(); //入力処理を作成
-	//m_Camera = std::make_unique<Camera>(); //カメラを作成
+	m_Input = std::make_unique<Input>(); //入力処理を作成
+	m_Camera = std::make_unique<Camera>(); //カメラを作成
 }
 
 // デストラクタ
@@ -26,7 +26,7 @@ void Game::Init()
 	Renderer::Init();
 
 	// カメラ初期化
-	//m_Instance->m_Camera->Init();
+	m_Instance->m_Camera->Init();
 
 	m_Instance->m_Scene = new TitleScene; //メモリを確保
 
@@ -36,19 +36,19 @@ void Game::Init()
 void Game::Update()
 {
 	// シーン更新
-	//m_Instance->m_Scene->Update();
+	m_Instance->m_Scene->Update();
 
 	// カメラ更新
 	m_Instance->m_Camera->Update();
 
-	/*// 入力処理更新
+	// 入力処理更新
 	m_Instance->m_Input->Update();
 
 	// オブジェクト更新
 	for (auto& o : m_Instance->m_Objects)
 	{
 		o->Update();
-	}*/
+	}
 }
 
 // 描画
@@ -61,10 +61,10 @@ void Game::Draw()
 	m_Instance->m_Camera->Draw();
 
 	// オブジェクト描画
-	/*for (auto& o : m_Instance->m_Objects)
+	for (auto& o : m_Instance->m_Objects)
 	{
 		o->Draw();
-	}*/
+	}
 
 	// 描画後処理
 	Renderer::End();
@@ -128,7 +128,7 @@ void Game::ChangeScene(SceneName sName)
 }
 
 // オブジェクトを削除する
-/*void Game::DeleteObject(Object* pt)
+void Game::DeleteObject(Object* pt)
 {
 	if (pt == NULL) return;
 
@@ -142,7 +142,7 @@ void Game::ChangeScene(SceneName sName)
 			[pt](const std::unique_ptr<Object>& element) {return element.get() == pt; }),
 		m_Instance->m_Objects.end());
 	m_Instance->m_Objects.shrink_to_fit();
-}*/
+}
 
 // オブジェクトをすべて削除する
 void Game::DeleteAllObject()

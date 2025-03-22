@@ -61,16 +61,16 @@ void Renderer::Init()
 	// デプスステンシルバッファ作成
 	ID3D11Texture2D* depthStencile{};
 	D3D11_TEXTURE2D_DESC textureDesc{};
-	textureDesc.Width = swapChainDesc.BufferDesc.Width;   //バッファの幅をスワップチェーンに合わせる
-	textureDesc.Height = swapChainDesc.BufferDesc.Height; //バッファの高さをスワップチェーンに合わせる
-	textureDesc.MipLevels = 1;                            //ミップレベルは1（ミップマップは使用しない）
-	textureDesc.ArraySize = 1;                            //テクスチャの配列サイズ（通常1）
-	textureDesc.Format = DXGI_FORMAT_D16_UNORM;           //フォーマットは16ビットの深度バッファを使用
-	textureDesc.SampleDesc = swapChainDesc.SampleDesc;    //スワップチェーンと同じサンプル設定
-	textureDesc.Usage = D3D11_USAGE_DEFAULT;              //使用方法はデフォルト（GPUで使用）
-	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;     //深度ステンシルバッファとして使用
-	textureDesc.CPUAccessFlags = 0;                       //CPUからのアクセスは不要
-	textureDesc.MiscFlags = 0;                            //その他のフラグは設定なし
+	textureDesc.Width = swapChainDesc.BufferDesc.Width;   // バッファの幅をスワップチェーンに合わせる
+	textureDesc.Height = swapChainDesc.BufferDesc.Height; // バッファの高さをスワップチェーンに合わせる
+	textureDesc.MipLevels = 1;                            // ミップレベルは1（ミップマップは使用しない）
+	textureDesc.ArraySize = 1;                            // テクスチャの配列サイズ（通常1）
+	textureDesc.Format = DXGI_FORMAT_D16_UNORM;           // フォーマットは16ビットの深度バッファを使用
+	textureDesc.SampleDesc = swapChainDesc.SampleDesc;    // スワップチェーンと同じサンプル設定
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;              // 使用方法はデフォルト（GPUで使用）
+	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;     // 深度ステンシルバッファとして使用
+	textureDesc.CPUAccessFlags = 0;                       // CPUからのアクセスは不要
+	textureDesc.MiscFlags = 0;                            // その他のフラグは設定なし
 
 	hr = m_Device->CreateTexture2D(&textureDesc, NULL, &depthStencile);
 	if (FAILED(hr)) return;
@@ -323,8 +323,10 @@ void Renderer::SetWorldViewProjection2D()
 	m_DeviceContext->UpdateSubresource(m_ViewBuffer, 0, NULL, &view, 0, 0);
 
 	// 2D描画を左上原点にする
-	Matrix projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f,static_cast<float>(Application::GetWidth()),	// ビューボリュームの最小Ｘ
-	static_cast<float>(Application::GetHeight()),	// ビューボリュームの最小Ｙ
+	Matrix projection = DirectX::XMMatrixOrthographicOffCenterLH(
+		0.0f,
+		static_cast<float>(Application::GetWidth()),	// ビューボリュームの最小Ｘ
+		static_cast<float>(Application::GetHeight()),	// ビューボリュームの最小Ｙ
 		0.0f,											// ビューボリュームの最大Ｙ
 		0.0f,
 		1.0f);

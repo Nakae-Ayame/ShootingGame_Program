@@ -13,7 +13,7 @@ using namespace std;
 //=======================================
 void Camera::Init()
 {
-	m_Position = Vector3(0.0f, 20.0f, -130.0f);
+	m_Position = Vector3(0.0f, 20.0f, 0.0f);
 	m_Target = Vector3(0.0f, 0.0f, 0.0f);
 	m_CameraDirection = 3.14f;
 }
@@ -24,29 +24,9 @@ void Camera::Init()
 //=======================================
 void Camera::Update()
 {
-	//左右キーでカメラ回転
-	if (Input::GetKeyPress(VK_LEFT))
-	{ 
-		m_CameraDirection += 0.02f;
-	} 
-	if (Input::GetKeyPress(VK_RIGHT)) 
-	{ 
-		m_CameraDirection -= 0.02f; 
-	}
-
-	//vector<GolfBall*> ballpt = Game::GetInstance()->GetObjects<GolfBall>();
-	/*if (ballpt.size() > 0)
-	{
-		Vector3 ballPos = ballpt[0]->GetPosition();
-
-		//カメラの位置を更新
-		m_Position.x = ballPos.x + sin(m_CameraDirection) * 50;
-		m_Position.y = ballPos.y + 20;
-		m_Position.z = ballPos.z - cos(m_CameraDirection) * 50;
-
-		//カメラの注視点を更新
-		m_Target = ballPos;
-	}*/
+	m_Position.y += 0.2f; // 回転速度
+	//m_Position.z += 0.7f; // 回転速度
+	//SetPosition(m_Position.x, m_Position.y, m_Position.z);
 }
 
 //=======================================
@@ -71,8 +51,8 @@ void Camera::SetCamera(int mode)
 	{
 		// ビュー変換後列作成
 		Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
-		m_ViewMatrix = DirectX::XMMatrixLookAtLH(m_Position, m_Target, up); // 左手系にした　20230511 by suzuki.tomoki
-		// DIRECTXTKのメソッドは右手系　20230511 by suzuki.tomoki
+		m_ViewMatrix = DirectX::XMMatrixLookAtLH(m_Position, m_Target, up); // 左手系にした
+		// DIRECTXTKのメソッドは右手系
 		// 右手系にすると３角形頂点が反時計回りになるので描画されなくなるので注意
 		// このコードは確認テストのために残す
 		// m_ViewMatrix = m_ViewMatrix.CreateLookAt(m_Position, m_Target, up);					
@@ -91,9 +71,9 @@ void Camera::SetCamera(int mode)
 	else if (mode == 1)
 	{
 		//ビュー変換行列制作
-		Vector3 pos = { 0.0f,0.0f,-10.0f};
-		Vector3 tgt = { 0.0f,0.0f,1.0f };
-		Vector3 up  = Vector3{ 0.0f,1.0f,0.0f };
+		Vector3 pos = { 0.0f, 20.0f, -130.0f };
+		Vector3 tgt = { 0.0f, 0.0f, 0.0f };
+		Vector3 up = { 0.0f, 1.0f, 0.0f };
 		m_ViewMatrix = DirectX::XMMatrixLookAtLH(pos, tgt, up);
 		Renderer::SetViewMatrix(&m_ViewMatrix);
 
