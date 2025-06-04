@@ -25,7 +25,7 @@ public:
 	static void RegisterScene(const std::string& name, std::unique_ptr<IScene> scene);
 
 	//Œ»İ‚ÌƒV[ƒ“‚ğİ’è‚·‚éŠÖ”(string‚Éİ’è‚µ‚½‚¢Scene–¼‚ğ“ü‚ê‚é)
-	static void SetCurrentScene(std::string);
+	static void SetCurrentScene(const std::string& name);
 
 	static std::string GetCurrentSceneName();
 

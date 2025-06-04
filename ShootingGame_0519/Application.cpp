@@ -2,8 +2,8 @@
 #include "renderer.h"
 #include <chrono>
 
-constexpr auto ClassName  = TEXT("2025 就職作品 中江文瞳");         //ウィンドウクラス名.
-constexpr auto WindowName = TEXT("2025 就職作品 中江文瞳");        //ウィンドウ名.
+constexpr auto ClassName  = TEXT("2025 就職作品 ");         //ウィンドウクラス名.
+constexpr auto WindowName = TEXT("2025 就職作品 ");        //ウィンドウ名.
 
 //-----------------------------------------------------------------------------
 // Class Static
