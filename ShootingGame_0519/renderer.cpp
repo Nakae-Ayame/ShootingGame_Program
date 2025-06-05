@@ -7,8 +7,10 @@
  */
 
 #include <stdexcept>
+#include <d3dcompiler.h>
 #include "renderer.h"
 #include "Application.h"
+
 
 //------------------------------------------------------------------------------
 // スタティックメンバ変数の初期化
@@ -33,6 +35,12 @@ ComPtr<ID3D11DepthStencilState> Renderer::m_DepthStateDisable;
 
 ComPtr<ID3D11BlendState> Renderer::m_BlendState[MAX_BLENDSTATE];
 ComPtr<ID3D11BlendState> Renderer::m_BlendStateATC;
+
+ComPtr<ID3D11VertexShader> Renderer::m_VertexShader;
+ComPtr<ID3D11PixelShader>  Renderer::m_PixelShader;
+ComPtr<ID3D11InputLayout>  Renderer::m_InputLayout;
+
+
 
 //------------------------------------------------------------------------------
 // Renderer クラスの各関数の実装
@@ -128,7 +136,7 @@ void Renderer::Init()
     m_Device->CreateRasterizerState(&rasterizerDesc, rs.GetAddressOf());
     m_DeviceContext->RSSetState(rs.Get());
 
-    // --- ブレンドステートの生成 ---
+    //-----------------------ブレンドステートの生成-----------------------
     D3D11_BLEND_DESC BlendDesc{};
     BlendDesc.AlphaToCoverageEnable = FALSE;
     BlendDesc.IndependentBlendEnable = TRUE;
@@ -154,7 +162,7 @@ void Renderer::Init()
 
     SetBlendState(BS_ALPHABLEND);
 
-    // --- 深度ステンシルステートの設定 ---
+    //-----------------------深度ステンシルステートの設定-----------------------
     D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
     depthStencilDesc.DepthEnable = TRUE;
     depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -169,7 +177,7 @@ void Renderer::Init()
 
     m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable.Get(), 0);
 
-    // --- サンプラーステート設定 ---
+    //-----------------------サンプラーステート設定-----------------------
     D3D11_SAMPLER_DESC samplerDesc{};
     samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -182,7 +190,7 @@ void Renderer::Init()
     m_Device->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
     m_DeviceContext->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 
-    // --- 定数バッファ生成 ---
+    //-----------------------定数バッファ生成-----------------------
     D3D11_BUFFER_DESC bufferDesc{};
     bufferDesc.ByteWidth = sizeof(Matrix4x4);
     bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -209,6 +217,55 @@ void Renderer::Init()
     m_Device->CreateBuffer(&bufferDesc, nullptr, m_LightBuffer.GetAddressOf());
     m_DeviceContext->VSSetConstantBuffers(4, 1, m_LightBuffer.GetAddressOf());
     m_DeviceContext->PSSetConstantBuffers(4, 1, m_LightBuffer.GetAddressOf());
+
+    //-----------------------シェーダーのコンパイル-----------------------
+    ComPtr<ID3DBlob> vsBlob;
+    ComPtr<ID3DBlob> psBlob;
+    ComPtr<ID3DBlob> errBlob;
+
+    // 頂点シェーダーをコンパイル
+    hr = D3DCompileFromFile(
+        L"BasicVertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        "VSMain", "vs_5_0", D3DCOMPILE_DEBUG, 0,
+        vsBlob.GetAddressOf(), errBlob.GetAddressOf());
+    if (FAILED(hr)) {
+        if (errBlob) {
+            OutputDebugStringA((char*)errBlob->GetBufferPointer());
+        }
+        throw std::runtime_error("頂点シェーダーのコンパイルに失敗");
+    }
+    // ピクセルシェーダーをコンパイル
+    hr = D3DCompileFromFile(
+        L"BasicPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        "PSMain", "ps_5_0", D3DCOMPILE_DEBUG, 0,
+        psBlob.GetAddressOf(), errBlob.GetAddressOf());
+    if (FAILED(hr)) {
+        if (errBlob) {
+            OutputDebugStringA((char*)errBlob->GetBufferPointer());
+        }
+        throw std::runtime_error("ピクセルシェーダーのコンパイルに失敗");
+    }
+
+    //-----------------------シェーダーオブジェクト作成-----------------------
+    m_Device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_VertexShader.GetAddressOf());
+    m_Device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_PixelShader.GetAddressOf());
+
+    //-----------------------頂点レイアウトを作成-----------------------
+    // BasicVertexShader.hlsl の VS_Input に合わせて
+    D3D11_INPUT_ELEMENT_DESC layoutDesc[] = {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VERTEX_3D, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VERTEX_3D, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VERTEX_3D, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+    m_Device->CreateInputLayout(
+        layoutDesc, _countof(layoutDesc),
+        vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
+        m_InputLayout.GetAddressOf());
+
+    //-----------------------最後にシェーダー／レイアウトをセット-----------------------
+    m_DeviceContext->IASetInputLayout(m_InputLayout.Get());
+    m_DeviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0);
+    m_DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0);
 }
 
 /**
