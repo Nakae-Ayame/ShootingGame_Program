@@ -1,7 +1,6 @@
 #include <Windows.h> 
 #include "SceneManager.h"
-#include "TitleScene.h"
-#include "TestScene.h"
+#include "GameScene.h"
 #include "Application.h" 
        
 
@@ -50,10 +49,10 @@ void SceneManager::Init()
     //-------------------------------------------------------------
  /*   RegisterScene("TitleScene", std::make_unique<TitleScene>());
     m_scenes["TitleScene"]->Init();*/
-    RegisterScene("TestScene", std::make_unique<TestScene>());
-    m_scenes["TestScene"]->Init();
+    RegisterScene("GameScene", std::make_unique<GameScene>());
+    m_scenes["GameScene"]->Init();
     //‰ŠúƒV[ƒ“‚ÉTitleScene‚ğİ’è
-    m_currentSceneName = "TestScene";
+    m_currentSceneName = "GameScene";
 }
 
 void SceneManager::Update(uint64_t deltatime)

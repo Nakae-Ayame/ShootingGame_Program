@@ -39,6 +39,7 @@ ComPtr<ID3D11BlendState> Renderer::m_BlendStateATC;
 ComPtr<ID3D11VertexShader> Renderer::m_VertexShader;
 ComPtr<ID3D11PixelShader>  Renderer::m_PixelShader;
 ComPtr<ID3D11InputLayout>  Renderer::m_InputLayout;
+ComPtr<ID3D11InputLayout>  Renderer::m_AxisInputLayout;
 
 
 
@@ -252,15 +253,29 @@ void Renderer::Init()
 
     //-----------------------頂点レイアウトを作成-----------------------
     // BasicVertexShader.hlsl の VS_Input に合わせて
-    D3D11_INPUT_ELEMENT_DESC layoutDesc[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VERTEX_3D, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VERTEX_3D, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VERTEX_3D, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    D3D11_INPUT_ELEMENT_DESC layoutDesc[] = 
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, sizeof(Vector3),                  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, offsetof(VERTEX_3D, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
-    m_Device->CreateInputLayout(
-        layoutDesc, _countof(layoutDesc),
-        vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
-        m_InputLayout.GetAddressOf());
+   /*D3D11_INPUT_ELEMENT_DESC layout[] = {
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                           D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, sizeof(Vector3),             D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };*/
+    m_Device->CreateInputLayout(layoutDesc, _countof(layoutDesc),vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),m_InputLayout.GetAddressOf());
+
+    // AxisVertex 構造体に対応する InputLayout
+   ///* D3D11_INPUT_ELEMENT_DESC axisLayout[] =
+   // {
+   //     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                        D3D11_INPUT_PER_VERTEX_DATA, 0 },
+   //     { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, sizeof(Vector3),          D3D11_INPUT_PER_VERTEX_DATA, 0 },
+   // };
+
+   //  軸用InputLayoutの生成（軸用シェーダーバイナリ vsBlob を使う）
+   // m_Device->CreateInputLayout(axisLayout, ARRAYSIZE(axisLayout),vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),m_AxisInputLayout.GetAddressOf());*/
+
 
     //-----------------------最後にシェーダー／レイアウトをセット-----------------------
     m_DeviceContext->IASetInputLayout(m_InputLayout.Get());

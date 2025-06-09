@@ -1,3 +1,4 @@
+// 定数バッファ
 cbuffer WorldBuffer : register(b0)
 {
     matrix gWorld;
@@ -11,27 +12,31 @@ cbuffer ProjBuffer : register(b2)
     matrix gProj;
 }
 
-struct VS_Input
+// 頂点シェーダー入力：位置 + 頂点カラー
+struct VSInput
 {
-    float3 Position : POSITION;
-    float3 Normal : NORMAL;
-    float2 TexCoord : TEXCOORD0;
+    float3 pos : POSITION;
+    float4 col : COLOR;
 };
 
-struct PS_Input
+// ピクセルシェーダー入力：クリップ座標 + 頂点カラー
+struct PSInput
 {
-    float4 PosH : SV_POSITION;
-    float3 Normal : NORMAL;
-    float2 TexCoord : TEXCOORD0;
+    float4 posH : SV_POSITION;
+    float4 col : COLOR;
 };
 
-PS_Input VSMain(VS_Input input)
+PSInput VSMain(VSInput input)
 {
-    PS_Input output;
-    float4 worldPos = mul(float4(input.Position, 1.0f), gWorld);
+    PSInput output;
+
+    // ワールド→ビュー→プロジェクション変換
+    float4 worldPos = mul(float4(input.pos, 1.0f), gWorld);
     float4 viewPos = mul(worldPos, gView);
-    output.PosH = mul(viewPos, gProj);
-    output.Normal = input.Normal; // 簡易的に平行移動だけ考える
-    output.TexCoord = input.TexCoord;
+    output.posH = mul(viewPos, gProj);
+
+    // 頂点カラーをそのまま渡す
+    output.col = input.col;
     return output;
 }
+

@@ -162,4 +162,5 @@ public:
     static ComPtr<ID3D11VertexShader> m_VertexShader;
     static ComPtr<ID3D11PixelShader>  m_PixelShader;
     static ComPtr<ID3D11InputLayout>  m_InputLayout;
+    static ComPtr<ID3D11InputLayout>  m_AxisInputLayout;
 };

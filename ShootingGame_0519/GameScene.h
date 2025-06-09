@@ -5,6 +5,7 @@
 //---------------------------------
 class GameScene : public IScene
 {
+public:
 	explicit GameScene() {};
 	void Update(uint64_t deltatime) override;
 	void Draw(uint64_t deltatime) override;

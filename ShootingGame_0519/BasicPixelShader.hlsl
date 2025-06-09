@@ -1,14 +1,12 @@
-struct PS_Input
+// ピクセルシェーダー入力：クリップ座標 + 頂点カラー
+struct PSInput
 {
-    float4 PosH : SV_POSITION;
-    float3 Normal : NORMAL;
-    float2 TexCoord : TEXCOORD0;
+    float4 posH : SV_POSITION;
+    float4 col : COLOR;
 };
 
-float4 PSMain(PS_Input input) : SV_TARGET
+float4 PSMain(PSInput input) : SV_TARGET
 {
-    // 法線をカラーにして適当に色を出す
-    float3 n = normalize(input.Normal);
-    float3 col = abs(n);
-    return float4(col, 1.0f);
+    // 頂点カラーをそのまま出力
+    return input.col;
 }
