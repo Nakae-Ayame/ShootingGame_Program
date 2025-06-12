@@ -2,49 +2,41 @@
 #include "BaseCamera.h"
 #include "Input.h"
 
-//      
-//FreeCamera (6/4実装開始)
-//
-class FreeCamera :public BaseCamera
+class FreeCamera : public BaseCamera
 {
 public:
+    FreeCamera(); //コンストラクタ
 
-    FreeCamera(float aspect)
-    {
-        m_AspectRatio = aspect;
-        m_Position = { 0,0,-5 };
-        m_Yaw = 0;
-        m_Pitch = 0;
-        UpdateViewVectors();
-    }
+    void Init() override;         //初期化関数
+    void Update(uint64_t delta) override;   //更新関数
+    void Draw(uint64_t delta) override;     //描画関連関数
 
-    void Update(uint64_t delta) override;
-    //-----------------------------ゲッター関数-----------------------------
-    DirectX::XMMATRIX GetViewMatrix() const override;
-    DirectX::XMMATRIX GetProjectionMatrix() const override;
-    DirectX::XMFLOAT3 GetPosition() const override { return m_Position; }
-    DirectX::XMFLOAT3 GetForward()  const override { return m_Forward; }
-    //-----------------------------セッター関数-----------------------------
-    void SetPosition(const DirectX::XMFLOAT3& pos) { m_Position = pos; }
+    XMMATRIX GetViewMatrix() const override { return m_viewmtx; }
+    XMMATRIX GetProjectionMatrix() const override { return m_projmtx; }
 
-private: 
-    //ビューベクトルを更新する関数
-    void UpdateViewVectors();
+    const DirectX::SimpleMath::Vector3& GetPosition() const { return m_position; }
 
-    XMFLOAT3 m_Position;  //カメラの位置
-    float m_Yaw;		  //カメラの水平方向(左右)の回転角度
-    float m_Pitch;		  //カメラの垂直方向(上下)の回転角度
+    void SetPosition(const DirectX::SimpleMath::Vector3& pos) override { m_position = pos; }
+    void SetLookat(const DirectX::SimpleMath::Vector3& lookat) override { m_target = lookat; }
 
-    //-----------------------------方向ベクトル-----------------------------
-    DirectX::XMFLOAT3 m_Forward = { 0, 0, 1 };  //カメラの前方向ベクトル
-    DirectX::XMFLOAT3 m_Right   = { 1, 0, 0 };  //カメラの右方向ベクトル
-    DirectX::XMFLOAT3 m_Up      = { 0, 1, 0 };  //カメラの上方向ベクトル
+private:
+    void UpdateViewMatrix();
+    void UpdateProjectionMatrix();
+    void HandleInput(float deltaTime);
 
-    //プロジェクション
-    float m_AspectRatio;
-    float m_FOV = DirectX::XMConvertToRadians(60.0f);
-    float m_Near = 0.1f;
-    float m_Far = 1000.0f;
+    // 状態
+    DirectX::SimpleMath::Vector3 m_position;
+    DirectX::SimpleMath::Vector3 m_target;
+    float m_alpha;
+    float m_beta;
+    float m_radius;
 
-   
+    // 入力による移動速度
+    float m_moveSpeed = 5.0f;
+    float m_rotateSpeed = 0.005f;
+    float m_zoomSpeed = 2.0f;
+
+    // 行列
+    DirectX::SimpleMath::Matrix m_viewmtx;
+    DirectX::SimpleMath::Matrix m_projmtx;
 };

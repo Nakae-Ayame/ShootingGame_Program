@@ -1,70 +1,125 @@
+#include <iostream>
+#include <algorithm>
 #include "FreeCamera.h"
-#include <algorithm>  // std::clamp 
+#include "Application.h"
+#include "renderer.h"
+
+using namespace DirectX;
+using namespace DirectX::SimpleMath;
+
+FreeCamera::FreeCamera():m_position(0, 0, -3),m_target(0, 0, 0),m_alpha(0.0f),m_beta(XM_PIDIV2),m_radius(5.0f)
+{
+
+
+}
+
+void FreeCamera::Init() 
+{
+
+}
 
 void FreeCamera::Update(uint64_t delta)
 {
+    float deltaTime = static_cast<float>(delta) / 1000.0f;
     Input::Update();
 
-    // マウスで視線回転
-    POINT d = Input::GetMouseDelta();
-    m_Yaw += d.x * 0.002f;
-    m_Pitch += d.y * 0.002f;
-    m_Pitch = std::clamp(m_Pitch, -XM_PIDIV2 + 0.1f, +XM_PIDIV2 - 0.1f);
+    HandleInput(deltaTime);
 
-    // キーで移動
-    XMVECTOR pos = XMLoadFloat3(&m_Position);
-    XMVECTOR fwd = XMLoadFloat3(&m_Forward);
-    XMVECTOR rt = XMLoadFloat3(&m_Right);
-
-    float speed = 5.0f * (delta / 1000.0f);
-    if (Input::IsKeyDown('W')) pos += fwd * speed;
-    if (Input::IsKeyDown('S')) pos -= fwd * speed;
-    if (Input::IsKeyDown('A')) pos -= rt * speed;
-    if (Input::IsKeyDown('D')) pos += rt * speed;
-    XMStoreFloat3(&m_Position, pos);
-
-    UpdateViewVectors();
-
-    // デバッグ出力
-    char buf[128];
-    sprintf_s(buf, "Cam Pos: %.2f, %.2f, %.2f  YawPitch: %.2f, %.2f\n",
-        m_Position.x, m_Position.y, m_Position.z,
-        XMConvertToDegrees(m_Yaw), XMConvertToDegrees(m_Pitch));
-    OutputDebugStringA(buf);
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
 }
 
-void FreeCamera::UpdateViewVectors()
+void FreeCamera::Draw(uint64_t) 
 {
-    // 前方向
-    XMVECTOR fwd = XMVectorSet(
-        cosf(m_Pitch) * sinf(m_Yaw),
-        sinf(m_Pitch),
-        cosf(m_Pitch) * cosf(m_Yaw),
-        0);
-    fwd = XMVector3Normalize(fwd);
-    XMStoreFloat3(&m_Forward, fwd);
 
-    // 右方向
-    XMVECTOR upRef = XMVectorSet(0, 1, 0, 0);
-    XMVECTOR rt = XMVector3Normalize(XMVector3Cross(upRef, fwd));
-    XMStoreFloat3(&m_Right, rt);
-
-    // 真の上方向
-    XMVECTOR upv = XMVector3Cross(fwd, rt);
-    XMStoreFloat3(&m_Up, upv);
 }
 
-XMMATRIX FreeCamera::GetViewMatrix() const
+void FreeCamera::UpdateViewMatrix()
 {
-    return XMMatrixLookToLH(
-        XMLoadFloat3(&m_Position),
-        XMLoadFloat3(&m_Forward),
-        XMLoadFloat3(&m_Up));
+    float x = m_radius * sinf(m_beta) * cosf(m_alpha);
+    float y = m_radius * cosf(m_beta);
+    float z = m_radius * sinf(m_beta) * sinf(m_alpha);
+    m_position = m_target + Vector3(x, y, z);
+
+    m_viewmtx = Matrix::CreateLookAt(m_position, m_target, Vector3::Up);
+
+    // 2. 行列を取得してRendererに渡す
+    Renderer::SetViewMatrix(m_viewmtx);
 }
 
-XMMATRIX FreeCamera::GetProjectionMatrix() const
+void FreeCamera::UpdateProjectionMatrix()
 {
-    return XMMatrixPerspectiveFovLH(m_FOV, m_AspectRatio, m_Near, m_Far);
+    constexpr float fov = XMConvertToRadians(60.0f);
+    float aspect = static_cast<float>(Application::GetWidth()) / Application::GetHeight();
+    m_projmtx = Matrix::CreatePerspectiveFieldOfView(PI / 4, aspect, 0.1f, 100.0f);
+
+    Renderer::SetProjectionMatrix(m_projmtx);
 }
 
+void FreeCamera::HandleInput(float deltaTime)
+{
+    // 方向キーで視点回転
+    if (Input::IsKeyDown('J'))
+    {
+        std::cout << "Jが押されました\n";
+        m_alpha -= m_rotateSpeed * deltaTime;
+    }
+    if (Input::IsKeyDown('L'))
+    {
+        m_alpha += m_rotateSpeed * deltaTime;
+    }
+    if (Input::IsKeyDown('I'))
+    {
+        m_beta -= m_rotateSpeed * deltaTime;
+        if (m_beta < 0.01f) m_beta = 0.01f; // 直上は避ける
+    }
+    if (Input::IsKeyDown('K'))
+    {
+        m_beta += m_rotateSpeed * deltaTime;
+        if (m_beta > XM_PI - 0.01f) m_beta = XM_PI - 0.01f; // 直下も避ける
+    }
 
+    // 視点回転（右ドラッグ or 矢印キー）
+    if (Input::IsMouseLeftDown())
+    {
+        //std::cout << "カメラ側でQキー押せています\n";
+        POINT delta = Input::GetMouseDelta();
+        m_alpha += delta.x * m_rotateSpeed;
+        m_beta  += delta.y * m_rotateSpeed;
+        m_beta   = std::clamp(m_beta, 0.1f, XM_PI - 0.1f);
+    }
+
+    // ズームイン/アウト
+    if (Input::IsKeyDown('Q'))
+    {
+        std::cout << "カメラ側でQキー押せています\n";
+        m_radius -= m_zoomSpeed * deltaTime;
+    }
+    if (Input::IsKeyDown('E'))
+    {
+        std::cout << "カメラ側でEキー押せています\n";
+        m_radius += m_zoomSpeed * deltaTime;
+    }
+    m_radius = std::clamp(m_radius, 1.0f, 100.0f);
+
+    // 平行移動（WASD）
+    Vector3 forward = (m_target - m_position);
+    forward.y = 0;
+    forward.Normalize();
+    Vector3 right = forward.Cross(Vector3::Up);
+
+    Vector3 move{};
+    if (Input::IsKeyDown('W')) move += forward;
+    if (Input::IsKeyDown('S')) move -= forward;
+    if (Input::IsKeyDown('A')) move -= right;
+    if (Input::IsKeyDown('D')) move += right;
+    if (Input::IsKeyDown(VK_SPACE)) move += Vector3::Up;
+    if (Input::IsKeyDown(VK_CONTROL)) move -= Vector3::Up;
+
+    if (move.LengthSquared() > 0.0f)
+    {
+        move.Normalize();
+        Vector3 delta = move * m_moveSpeed * deltaTime;
+        m_target += delta;
+    }
+}

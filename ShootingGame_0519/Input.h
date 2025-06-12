@@ -8,14 +8,24 @@ public:
 
     // キーボード
     static bool IsKeyDown(unsigned char key);
-    static bool IsKeyPressed(unsigned char key); //前フレームとの差分を見る
+    static bool IsKeyPressed(int keyCode); // ← charでもintでもOK //前フレームとの差分を見る
 
     //---------------------------マウス系処理---------------------------
     //マウスの移動量を計算する関数
     static POINT GetMouseDelta();
     //現在の位置を取得する関数
     static POINT GetMousePosition();
-    //
+
+    //マウスの右クリックを押しているか
+    static bool IsMouseRightDown();
+
+    static bool IsMouseRightPressed();
+
+    //マウスの左クリックを押しているか
+    static bool IsMouseLeftDown();
+
+    static bool IsMouseLeftPressed();
+    
     //static void  SetMouseCenter(HWND hwnd);
 
     //------------------------コントローラー系処理-----------------------
@@ -31,6 +41,9 @@ private:
 
     static POINT m_CurrentMousePos;   //現在のフレームのマウスの座標
     static POINT m_PreviousMousePos;  //前のフレームのマウスの座標
+
+    static BYTE m_CurrentMouseButtons[3];  //現在のフレームのマウスのクリック状況
+    static BYTE m_PreviousMouseButtons[3]; //前のフレームのマウスのクリック状況
 
     static float m_MouseSensitivity;//マウス感度
 };

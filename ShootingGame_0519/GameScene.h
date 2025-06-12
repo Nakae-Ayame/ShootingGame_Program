@@ -1,5 +1,10 @@
 #pragma once
+#include <vector>
+#include <d3d11.h>
 #include "IScene.h"
+#include "FreeCamera.h"
+#include "renderer.h"
+
 //---------------------------------
 //ISceneÇåpè≥ÇµÇΩGameScene
 //---------------------------------
@@ -11,4 +16,9 @@ public:
 	void Draw(uint64_t deltatime) override;
 	void Init() override;
 	void Uninit() override;
+private:
+	ComPtr<ID3D11Buffer> m_VB; 
+	ComPtr<ID3D11Buffer> m_IB;
+	UINT m_IndexCount = 0;
+	FreeCamera m_FreeCamera;
 };

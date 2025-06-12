@@ -402,9 +402,9 @@ void Renderer::SetWorldMatrix(Matrix4x4* WorldMatrix)
  * @brief 任意のビュー行列をシェーダーにセットします。
  * @param ViewMatrix ビュー行列へのポインタ
  */
-void Renderer::SetViewMatrix(Matrix4x4* ViewMatrix)
+void Renderer::SetViewMatrix(SimpleMath::Matrix ViewMatrix)
 {
-    Matrix4x4 mat = ViewMatrix->Transpose();
+    SimpleMath::Matrix mat = ViewMatrix.Transpose();
     m_DeviceContext->UpdateSubresource(m_ViewBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
 
@@ -412,9 +412,9 @@ void Renderer::SetViewMatrix(Matrix4x4* ViewMatrix)
  * @brief 任意のプロジェクション行列をシェーダーにセットします。
  * @param ProjectionMatrix 射影行列へのポインタ
  */
-void Renderer::SetProjectionMatrix(Matrix4x4* ProjectionMatrix)
+void Renderer::SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix)
 {
-    Matrix4x4 mat = ProjectionMatrix->Transpose();
+    SimpleMath::Matrix mat = ProjectionMatrix.Transpose();
     m_DeviceContext->UpdateSubresource(m_ProjectionBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
 

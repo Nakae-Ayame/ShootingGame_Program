@@ -1,13 +1,15 @@
 #pragma once
 //DirectXレンダリングで使用する各種構造体とRendererクラスの宣言
-#include "CommonTypes.h"
-#include "Transform.h"
-//#include "NonCopyable.h"
 #include <d3d11.h>
 #include <io.h>
 #include <string>
 #include <vector>
 #include <wrl/client.h>
+#include <SimpleMath.h>
+#include "CommonTypes.h"
+#include "Transform.h"
+//#include "NonCopyable.h"
+using namespace DirectX;
 
  // リンクすべき外部ライブラリ
 #pragma comment(lib,"directxtk.lib")
@@ -140,8 +142,8 @@ public:
     static void SetATCEnable(bool Enable);
     static void SetWorldViewProjection2D();
     static void SetWorldMatrix(Matrix4x4* WorldMatrix);
-    static void SetViewMatrix(Matrix4x4* ViewMatrix);
-    static void SetProjectionMatrix(Matrix4x4* ProjectionMatrix);
+    static void SetViewMatrix(SimpleMath::Matrix ViewMatrix);
+    static void SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix);
     static void SetMaterial(MATERIAL Material);
     static void SetLight(LIGHT Light);
     static ID3D11Device* GetDevice(void) { return m_Device.Get(); }

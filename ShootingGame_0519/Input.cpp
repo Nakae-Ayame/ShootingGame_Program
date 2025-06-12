@@ -6,6 +6,9 @@ BYTE Input::m_PreviousKeys[256];
 POINT Input::m_CurrentMousePos;   //現在のフレームのマウスの座標
 POINT Input::m_PreviousMousePos;  //前のフレームのマウスの座標
 
+BYTE Input::m_CurrentMouseButtons[3];   //現在のフレームのマウスの座標
+BYTE Input::m_PreviousMouseButtons[3];  //前のフレームのマウスの座標
+
 float Input::m_MouseSensitivity = 0.005f;   //マウス感度
 
 void Input::Update()
@@ -26,6 +29,12 @@ void Input::Update()
     {
         OutputDebugStringA("GetCursorPos() Failed\n");
     }
+
+    memcpy(m_PreviousMouseButtons, m_CurrentMouseButtons, sizeof(m_CurrentMouseButtons));
+
+    m_CurrentMouseButtons[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) ? 1 : 0;
+    m_CurrentMouseButtons[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) ? 1 : 0;
+    m_CurrentMouseButtons[2] = (GetAsyncKeyState(VK_MBUTTON) & 0x8000) ? 1 : 0;
 }
 
 bool Input::IsKeyDown(unsigned char key)
@@ -33,9 +42,10 @@ bool Input::IsKeyDown(unsigned char key)
     return (m_CurrentKeys[key] & 0x80) != 0;
 }
 
-bool Input::IsKeyPressed(unsigned char key)
+// Input.cpp
+bool Input::IsKeyPressed(int keyCode)
 {
-    return (m_CurrentKeys[key] & 0x80) != 0 && (m_PreviousKeys[key] & 0x80) == 0;
+    return (GetAsyncKeyState(keyCode) & 0x8000) != 0;
 }
 
 POINT Input::GetMouseDelta()
@@ -51,4 +61,24 @@ POINT Input::GetMouseDelta()
 POINT Input::GetMousePosition()
 {
     return m_CurrentMousePos;
+}
+
+bool Input::IsMouseRightDown()
+{
+    return m_CurrentMouseButtons[1] != 0;
+}
+
+bool Input::IsMouseRightPressed()
+{
+    return m_CurrentMouseButtons[1] != 0 && m_PreviousMouseButtons[1] == 0;
+}
+
+bool Input::IsMouseLeftDown()
+{
+    return m_CurrentMouseButtons[0] != 0;
+}
+
+bool Input::IsMouseLeftPressed()
+{
+    return m_CurrentMouseButtons[0] != 0 && m_PreviousMouseButtons[0] == 0;
 }
