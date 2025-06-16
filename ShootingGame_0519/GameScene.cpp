@@ -6,8 +6,19 @@
 
 void GameScene::Init()
 {
-    
-    std::vector<VERTEX_3D> vertices;
+    // レンダラー初期化はアプリケーション側で済んでいる想定
+    m_FreeCamera.Init();
+
+    // Model のロード
+    m_Model = std::make_unique<Model>();
+    if (!m_Model->LoadFromFile("asset/Model/rabbit.fbx"))
+    {
+        // 読み込み失敗時はログ出力など
+        std::cout << "モデル読み込みに失敗しました\n";
+        OutputDebugStringA("モデル読み込みに失敗しました：Assets/ship.obj\n");
+    }
+
+    /*std::vector<VERTEX_3D> vertices;
     std::vector<UINT> indices;
 
     // Z=+1 の平面（XZ面をY軸方向に広げる）
@@ -50,7 +61,7 @@ void GameScene::Init()
     iData.pSysMem = indices.data();
     Renderer::GetDevice()->CreateBuffer(&ibd, &iData, m_IB.GetAddressOf());
 
-    m_IndexCount = (UINT)indices.size();
+    m_IndexCount = (UINT)indices.size();*/
 }
 
 void GameScene::Update(uint64_t deltatime)
@@ -58,21 +69,27 @@ void GameScene::Update(uint64_t deltatime)
 
 	Input::Update();
 
-	if (Input::IsMouseRightPressed())
+	/*if (Input::IsMouseRightPressed())
 	{
 		std::cout << "右クリックできています\n";
-	}
+	}*/
 	
 	m_FreeCamera.Update(deltatime);
 
     // カメラの位置を表示
-    const Vector3& pos = m_FreeCamera.GetPosition();
-    std::cout << "カメラ位置: (" << pos.x << ", " << pos.y << ", " << pos.z << ")\n";
+    /*const Vector3& pos = m_FreeCamera.GetPosition();
+    std::cout << "カメラ位置: (" << pos.x << ", " << pos.y << ", " << pos.z << ")\n";*/
 }
 
 void GameScene::Draw(uint64_t deltatime)
 {
-    auto dc = Renderer::GetDeviceContext();
+    SRT tr;
+    tr.pos = { 0.0f, 0.0f, 5.0f };          // Z＝5 の位置に配置
+    tr.rot = { 0.0f, XMConvertToRadians(180.0f), 0.0f }; // Yaw 180°
+    tr.scale = { 2.0f, 2.0f, 2.0f };          // 等倍
+
+    m_Model->Draw(tr);
+    /*auto dc = Renderer::GetDeviceContext();
 
     Matrix4x4 world = Matrix4x4::Identity;
     world = world.Transpose();
@@ -86,7 +103,7 @@ void GameScene::Draw(uint64_t deltatime)
 
     float aspect = static_cast<float>(Application::GetWidth()) / Application::GetHeight();
     Matrix4x4 proj = Matrix4x4::CreatePerspectiveFieldOfView(PI / 4, aspect, 0.1f, 100.0f).Transpose();
-    dc->UpdateSubresource(Renderer::GetProjectionBuffer(), 0, nullptr, &proj, 0, 0);*/
+    dc->UpdateSubresource(Renderer::GetProjectionBuffer(), 0, nullptr, &proj, 0, 0);
 
     UINT stride = sizeof(VERTEX_3D);
     UINT offset = 0;
@@ -94,10 +111,11 @@ void GameScene::Draw(uint64_t deltatime)
     dc->IASetIndexBuffer(m_IB.Get(), DXGI_FORMAT_R32_UINT, 0);
     dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    dc->DrawIndexed(m_IndexCount, 0, 0);
+    dc->DrawIndexed(m_IndexCount, 0, 0);*/
 }
 
 void GameScene::Uninit()
 {
-
+    // 特に解放するものがあれば
+    m_Model.reset();
 }

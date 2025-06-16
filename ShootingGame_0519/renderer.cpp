@@ -47,13 +47,11 @@ ComPtr<ID3D11InputLayout>  Renderer::m_AxisInputLayout;
 // Renderer クラスの各関数の実装
 //------------------------------------------------------------------------------
 
-/**
- * @brief Renderer の初期化処理を行います。
- *
- * Direct3D デバイスとスワップチェーンの作成、レンダーターゲットビュー、デプスステンシルビュー、
- * ビューポート、ラスタライザ、ブレンドステート、深度ステンシルステート、サンプラーステート、
- * 定数バッファの生成、初期ライトおよびマテリアルの設定などを実施します。
- */
+
+ //Direct3D デバイスとスワップチェーンの作成、レンダーターゲットビュー、デプスステンシルビュー、
+ //ビューポート、ラスタライザ、ブレンドステート、深度ステンシルステート、サンプラーステート、
+ //定数バッファの生成、初期ライトおよびマテリアルの設定などを実施します。
+
 void Renderer::Init()
 {
     HRESULT hr = S_OK;
@@ -283,13 +281,9 @@ void Renderer::Init()
     m_DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0);
 }
 
-/**
- * @brief 使用していたリソースを全て解放します。
- *
- * @details
- * Direct3Dのリソースは明示的に解放しないとメモリリークが発生するため、
- * ComPtr::Reset()で安全にリソースを開放しています。
- */
+
+//Direct3Dのリソースは明示的に解放しないとメモリリークが発生するため、
+//ComPtr::Reset()で安全にリソースを開放しています。
 void Renderer::Uninit()
 {
     for (auto& bs : m_BlendState)
@@ -310,15 +304,11 @@ void Renderer::Uninit()
     m_Device.Reset();
 }
 
-/**
- * @brief 1フレームの描画を開始します。
- *
- * @details
- * - 画面を指定色（青色）でクリア
- * - 深度バッファも初期化
- *
- * 毎フレーム必ず呼び出して、前のフレームの残像を消します。
- */
+
+ //画面を指定色（青色）でクリア
+ //深度バッファも初期化
+ //毎フレーム必ず呼び出して、前のフレームの残像を消します。
+ 
 void Renderer::Begin()
 {
     float clearColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
@@ -326,23 +316,18 @@ void Renderer::Begin()
     m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
-/**
- * @brief 描画を終了して、画面に表示します。
- *
- * @details
- * Presentでバックバッファとフロントバッファを入れ替えます。
- */
+
+//Presentでバックバッファとフロントバッファを入れ替えます。
+ 
 void Renderer::End()
 {
     m_SwapChain->Present(1, 0);
 }
 
-/**
- * @brief 深度テスト（Zバッファ）の有効/無効を切り替えます。
- * @param Enable trueなら有効、falseなら無効
- * @details
- * 深度テストは、奥にあるものを正しく手前のものの裏に描画するための機能です。
- */
+//深度テスト（Zバッファ）の有効/無効を切り替えます。
+//trueなら有効、falseなら無効
+//深度テストは、奥にあるものを正しく手前のものの裏に描画するための機能です。
+
 void Renderer::SetDepthEnable(bool Enable)
 {
     m_DeviceContext->OMSetDepthStencilState(

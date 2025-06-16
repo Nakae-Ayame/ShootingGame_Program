@@ -4,6 +4,7 @@
 #include "IScene.h"
 #include "FreeCamera.h"
 #include "renderer.h"
+#include "Model.h"
 
 //---------------------------------
 //ISceneを継承したGameScene
@@ -17,8 +18,9 @@ public:
 	void Init() override;
 	void Uninit() override;
 private:
-	ComPtr<ID3D11Buffer> m_VB; 
+	/*ComPtr<ID3D11Buffer> m_VB; 
 	ComPtr<ID3D11Buffer> m_IB;
-	UINT m_IndexCount = 0;
+	UINT m_IndexCount = 0;*/
 	FreeCamera m_FreeCamera;
+	std::unique_ptr<Model> m_Model;   // モデル保持用ポインタ
 };
