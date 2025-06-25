@@ -1,71 +1,129 @@
-#include "Model.h"
+ï»¿#include "Model.h"
+#include <WICTextureLoader.h> 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include "renderer.h"
+#include <filesystem>
+#include <iostream>
 
 bool Model::LoadFromFile(const std::string& path)
 {
+    // ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‹ã‚‰ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªéƒ¨åˆ†ã‚’æŠœãå‡ºã—ã¦ä¿æŒ
+    size_t pos = path.find_last_of("/\\");
+    if (pos != std::string::npos) {
+        modelDirectory_ = path.substr(0, pos + 1);
+    }
+    else {
+        modelDirectory_.clear();
+    }
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path,
         aiProcess_Triangulate |
-        aiProcess_JoinIdenticalVertices |
-        aiProcess_CalcTangentSpace |
-        aiProcess_FlipUVs);
-    if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode)
+        aiProcess_GenSmoothNormals |
+        aiProcess_FlipUVs |
+        aiProcess_FlipWindingOrder   // â† ã“ã‚Œã‚’è¿½åŠ 
+    );
+    if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode) 
     {
-        // “Ç‚İ‚İ¸”s
         return false;
     }
-    // ƒ‹[ƒgƒm[ƒh‚©‚çÄ‹Aˆ—
+
     ProcessNode(scene->mRootNode, scene);
     return true;
-
 }
 
 void Model::ProcessNode(aiNode* node, const aiScene* scene)
 {
-    // ƒm[ƒh“à‚ÌŠeƒƒbƒVƒ…‚ğˆ—
+    // ãƒãƒ¼ãƒ‰å†…ã®å„ãƒ¡ãƒƒã‚·ãƒ¥ã‚’å‡¦ç†
     for (UINT i = 0; i < node->mNumMeshes; ++i)
     {
         aiMesh* am = scene->mMeshes[node->mMeshes[i]];
-        meshes_.push_back(ProcessMesh(am));
+        meshes_.push_back(ProcessMesh(am, scene));
     }
-    // qƒm[ƒh‚àÄ‹A
+    // å­ãƒãƒ¼ãƒ‰ã‚‚å†å¸°
     for (UINT i = 0; i < node->mNumChildren; ++i)
     {
         ProcessNode(node->mChildren[i], scene);
     }
 }
 
-MeshPart Model::ProcessMesh(aiMesh* mesh)
+MeshPart Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
+    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+    // â€”â€” ã“ã“ã‹ã‚‰ãƒ­ã‚°å‡ºåŠ›ã‚³ãƒ¼ãƒ‰ â€”â€”
+    std::vector<aiTextureType> types = {
+        aiTextureType_DIFFUSE,
+        aiTextureType_AMBIENT,
+        aiTextureType_EMISSIVE,
+        aiTextureType_BASE_COLOR, // PBRç”¨
+        aiTextureType_SPECULAR,
+        aiTextureType_NORMALS
+    };
+
+    for (auto t : types) {
+        unsigned count = material->GetTextureCount(t);
+        if (count > 0) {
+            aiString path;
+            material->GetTexture(t, 0, &path);
+            std::cout << "TextureType " << t
+                << " count=" << count
+                << " path=" << path.C_Str() << "\n";
+        }
+        else {
+            std::cout << "TextureType " << t << " count=0\n";
+        }
+    }
+
     std::vector<VERTEX_3D> verts(mesh->mNumVertices);
     std::vector<UINT> indices;
     indices.reserve(mesh->mNumFaces * 3);
 
-    // ’¸“_î•ñ‚ğ“]‘—
-    for (UINT i = 0; i < mesh->mNumVertices; ++i)
+    // ãƒãƒ†ãƒªã‚¢ãƒ«å–å¾—
+    //aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+    aiColor4D c;
+    material->Get(AI_MATKEY_COLOR_DIFFUSE, c);
+    Vector4 diffuseColor(c.r, c.g, c.b, c.a);
+
+    // ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹å–å¾—
+    aiString texPath;
+    bool hasTexture = false;
+    if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
+    {
+        hasTexture = true;
+    }
+    // PBRå¯¾å¿œï¼šBaseColorãƒ†ã‚¯ã‚¹ãƒãƒ£
+    else if (material->GetTextureCount(aiTextureType_BASE_COLOR) > 0 && material->GetTexture(aiTextureType_BASE_COLOR, 0, &texPath) == AI_SUCCESS)
+    {
+        hasTexture = true;
+    }
+
+    // é ‚ç‚¹æƒ…å ±è»¢é€
+    for (UINT i = 0; i < mesh->mNumVertices; ++i) 
     {
         verts[i].Position = { mesh->mVertices[i].x,
                               mesh->mVertices[i].y,
                               mesh->mVertices[i].z };
         verts[i].Normal = { mesh->mNormals[i].x,
-                              mesh->mNormals[i].y,
-                              mesh->mNormals[i].z };
+                            mesh->mNormals[i].y,
+                            mesh->mNormals[i].z };
         if (mesh->mTextureCoords[0]) {
             verts[i].TexCoord = { mesh->mTextureCoords[0][i].x,
                                   mesh->mTextureCoords[0][i].y };
         }
-        verts[i].Diffuse = { 1,1,1,1 }; // ƒfƒtƒHƒ‹ƒg”’
+        else 
+        {
+            verts[i].TexCoord = { 0,0 };
+        }
+        // ãƒãƒ†ãƒªã‚¢ãƒ«ã®Diffuseè‰²ã‚’è¨­å®š
+        verts[i].Diffuse = diffuseColor;
     }
-    // ƒCƒ“ƒfƒbƒNƒXî•ñ‚ğ“WŠJ (OŠpŒ`‚Ì‚İ)
-    for (UINT f = 0; f < mesh->mNumFaces; ++f)
-    {
-        aiFace& face = mesh->mFaces[f];
-        indices.push_back(face.mIndices[0]);
-        indices.push_back(face.mIndices[1]);
-        indices.push_back(face.mIndices[2]);
+
+    // ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
+    for (UINT f = 0; f < mesh->mNumFaces; ++f) {
+        const aiFace& face = mesh->mFaces[f];
+        indices.insert(indices.end(), face.mIndices, face.mIndices + 3);
     }
 
     MeshPart part;
@@ -73,37 +131,68 @@ MeshPart Model::ProcessMesh(aiMesh* mesh)
     D3D11_BUFFER_DESC bd{};
     D3D11_SUBRESOURCE_DATA sd{};
 
-    // ’¸“_ƒoƒbƒtƒ@ì¬
+    // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     bd.ByteWidth = UINT(sizeof(VERTEX_3D) * verts.size());
     sd.pSysMem = verts.data();
     device->CreateBuffer(&bd, &sd, part.vb.GetAddressOf());
 
-    // ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@ì¬
+    // ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡
     bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
     bd.ByteWidth = UINT(sizeof(UINT) * indices.size());
     sd.pSysMem = indices.data();
     device->CreateBuffer(&bd, &sd, part.ib.GetAddressOf());
-
     part.indexCount = UINT(indices.size());
+
+    // ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
+    if (hasTexture)
+    {
+        // ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹ã‚’ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚©ãƒ«ãƒ€ä»˜ãã§çµ¶å¯¾ãƒ‘ã‚¹åŒ–
+        std::string fullTexPath = modelDirectory_ + texPath.C_Str();
+        if (std::filesystem::path(texPath.C_Str()).is_absolute()) 
+        {
+            fullTexPath = texPath.C_Str();
+        }
+
+        // ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã«å¤‰æ›
+        int len = MultiByteToWideChar(CP_UTF8, 0, fullTexPath.c_str(), -1, nullptr, 0);
+        std::wstring wpath(len, L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, fullTexPath.c_str(), -1, &wpath[0], len);
+
+        // SRVã‚’ç”Ÿæˆ
+        HRESULT hr = DirectX::CreateWICTextureFromFile(
+            device, Renderer::GetDeviceContext(),
+            wpath.c_str(), nullptr,
+            part.textureSRV.ReleaseAndGetAddressOf());
+
+        if (FAILED(hr))
+        {
+            OutputDebugStringA(("ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿å¤±æ•—: " + fullTexPath + "\n").c_str());
+        }
+    }
     return part;
 }
 
+
 void Model::Draw(const SRT& transform)
 {
-    // ƒ[ƒ‹ƒhs—ñ‚ğXV
     Matrix4x4 world = transform.GetMatrix().Transpose();
     Renderer::GetDeviceContext()->UpdateSubresource(
         Renderer::GetWorldBuffer(), 0, nullptr, &world, 0, 0);
 
     auto dc = Renderer::GetDeviceContext();
     UINT stride = sizeof(VERTEX_3D), offset = 0;
-    for (auto& mesh : meshes_)
-    {
+    for (auto& mesh : meshes_) {
         dc->IASetVertexBuffers(0, 1, mesh.vb.GetAddressOf(), &stride, &offset);
         dc->IASetIndexBuffer(mesh.ib.Get(), DXGI_FORMAT_R32_UINT, 0);
+
         dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        if (mesh.textureSRV)
+        {
+            dc->PSSetShaderResources(0, 1, mesh.textureSRV.GetAddressOf());
+        }
         dc->DrawIndexed(mesh.indexCount, 0, 0);
     }
 }

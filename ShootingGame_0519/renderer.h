@@ -47,8 +47,8 @@ struct VERTEX_3D
     Vector2 TexCoord;            //テクスチャ座標
     int BoneIndex[4];            //ボーンインデックス（最大4つ） 20231225
     float BoneWeight[4];         //各ボーンのウェイト値 20231225
-    std::string BoneName[4];     //各ボーンの名前 20231226
-    int bonecnt = 0;             //影響を与えるボーン数 20231226
+    //std::string BoneName[4];     //各ボーンの名前 20231226
+    //int bonecnt = 0;             //影響を与えるボーン数 20231226
 };
 
 
@@ -130,7 +130,6 @@ private:
     static ComPtr<ID3D11BlendState> m_BlendStateATC;
 
     static int m_IndexCount;
-   
 
 public:
     static void Init();

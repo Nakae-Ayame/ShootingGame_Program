@@ -251,13 +251,14 @@ void Renderer::Init()
 
     //-----------------------頂点レイアウトを作成-----------------------
     // BasicVertexShader.hlsl の VS_Input に合わせて
-    D3D11_INPUT_ELEMENT_DESC layoutDesc[] = 
+    D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, sizeof(Vector3),                  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(VERTEX_3D, Diffuse),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, offsetof(VERTEX_3D, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
+
    /*D3D11_INPUT_ELEMENT_DESC layout[] = {
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                           D3D11_INPUT_PER_VERTEX_DATA, 0 },
     { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, sizeof(Vector3),             D3D11_INPUT_PER_VERTEX_DATA, 0 },

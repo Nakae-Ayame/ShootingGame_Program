@@ -1,4 +1,21 @@
-// 定数バッファ
+// VS の入力
+struct VSInput
+{
+    float3 pos      : POSITION;
+    float4 col      : COLOR;
+    float3 normal   : NORMAL;
+    float2 texcoord : TEXCOORD;
+};
+
+// VS から PS への出力
+struct VSOutput
+{
+    float4 posH     : SV_POSITION;
+    float4 col      : COLOR;
+    float3 normal   : NORMAL;
+    float2 texcoord : TEXCOORD;
+};
+
 cbuffer WorldBuffer : register(b0)
 {
     matrix gWorld;
@@ -12,31 +29,17 @@ cbuffer ProjBuffer : register(b2)
     matrix gProj;
 }
 
-// 頂点シェーダー入力：位置 + 頂点カラー
-struct VSInput
+VSOutput VSMain(VSInput vin)
 {
-    float3 pos : POSITION;
-    float4 col : COLOR;
-};
-
-// ピクセルシェーダー入力：クリップ座標 + 頂点カラー
-struct PSInput
-{
-    float4 posH : SV_POSITION;
-    float4 col : COLOR;
-};
-
-PSInput VSMain(VSInput input)
-{
-    PSInput output;
-
-    // ワールド→ビュー→プロジェクション変換
-    float4 worldPos = mul(float4(input.pos, 1.0f), gWorld);
+    VSOutput output;
+    float4 worldPos = mul(float4(vin.pos, 1), gWorld);
     float4 viewPos = mul(worldPos, gView);
     output.posH = mul(viewPos, gProj);
 
-    // 頂点カラーをそのまま渡す
-    output.col = input.col;
+    output.col = vin.col;
+    output.normal = normalize(mul(vin.normal, (float3x3) gWorld)); // ワールド空間法線
+    output.texcoord = vin.texcoord;
     return output;
 }
+
 

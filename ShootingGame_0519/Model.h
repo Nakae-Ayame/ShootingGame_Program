@@ -12,13 +12,21 @@ using Microsoft::WRL::ComPtr;
 //-------------------------------------------
 //1つのメッシュに必要なものを固めた構造体
 //-------------------------------------------
-struct MeshPart
+struct MeshPart 
 {
-    ComPtr<ID3D11Buffer> vb;   //モデルの座標データ(頂点)
-    ComPtr<ID3D11Buffer> ib;   //モデルのインデックスデータ(どことどこを繋ぐのかどうか)
-    UINT indexCount = 0;       //このメッシュに対して何インデックス分描くかという数
+    ComPtr<ID3D11Buffer> vb;
+    ComPtr<ID3D11Buffer> ib;
+    UINT indexCount = 0;
+
+    ComPtr<ID3D11ShaderResourceView> textureSRV;
 };
 
+//------------------------------------------------------------------
+//Modelクラス
+//3Dモデルの読み込み・保持・描画をしてる
+//fbx や objをAssimpライブラリを使って読み込んでいる
+// テクスチャ付きモデルも対応できる…はず
+//------------------------------------------------------------------
 class Model
 {
 public:
@@ -33,6 +41,8 @@ public:
 
 private:
     std::vector<MeshPart> meshes_;
+
+    std::string modelDirectory_;
     void ProcessNode(aiNode* node, const aiScene* scene);
-    MeshPart ProcessMesh(aiMesh* mesh);
+    MeshPart ProcessMesh(aiMesh* mesh, const aiScene* scene);
 };
