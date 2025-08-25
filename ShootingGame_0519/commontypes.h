@@ -18,3 +18,4 @@ using Quaternion = DirectX::SimpleMath::Quaternion;
 using Microsoft::WRL::ComPtr;
 
 constexpr float PI = std::numbers::pi_v<float>;
+

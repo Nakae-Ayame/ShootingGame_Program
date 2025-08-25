@@ -2,6 +2,7 @@
 #pragma comment(lib, "winmm.lib")
 #include <Windows.h>
 #include <cstdint>
+#include "DebugRenderer.h"
 #include "Game.h"
 
 class Application
@@ -41,6 +42,9 @@ public:
     {
         return m_hInst;
     }
+
+    static void HideCursorAndClip();   // マウスカーソルを非表示＆固定
+    static void ShowCursorAndRelease(); // マウスカーソルを表示＆固定解除
 
 private:
     static HINSTANCE   m_hInst;    //インスタンスハンドル

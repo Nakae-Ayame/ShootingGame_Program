@@ -3,7 +3,8 @@
 #include "ModelComponent.h"
 #include "MoveComponent.h"
 #include "ShootingComponent.h"
-
+#include "AABBColliderComponent.h"
+#include "OBBColliderComponent.h"
 
 class Player : public GameObject
 {
@@ -13,4 +14,7 @@ public:
 
     void Initialize() override;
     void Update() override;
+private:
+    std::shared_ptr<OBBColliderComponent> m_Collider;
 };
+

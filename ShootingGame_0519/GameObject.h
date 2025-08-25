@@ -18,18 +18,42 @@ public:
     virtual void Update();
     virtual void Draw();
 
+    template<typename T, typename... Args>
+    std::shared_ptr<T> AddComponent(Args&&... args)
+    {
+        auto comp = std::make_shared<T>(std::forward<Args>(args)...);
+        comp->SetOwner(this);
+        m_components.push_back(comp);
+        return comp;
+    }
+
     void AddComponent(std::shared_ptr<Component> comp);
 
     // Transform関連のGetter / Setter
-    void SetPosition(const Vector3& pos) { m_transform.pos = pos; }
+    void SetPosition(const Vector3& pos) { m_transform.pos = pos;}
     void SetRotation(const Vector3& rot) { m_transform.rot = rot; }
     void SetScale(const Vector3& scl) { m_transform.scale = scl; }
 
     const Vector3& GetPosition() { return m_transform.pos; }
     const Vector3& GetRotation() { return m_transform.rot; }
-    const Vector3& GetScale()    { return m_transform.scale; }
+    const Vector3& GetScale()    { return m_transform.scale;}
+    const Vector3& GetWorldPosition()
+    {
+        if (m_parent)
+        {
+            return m_parent->GetWorldPosition() + m_transform.pos;
+        }
+        else
+        {
+            return m_transform.pos;
+        }
+            
+    }
 
     const SRT& GetTransform() const { return m_transform; }
+
+    //衝突通知
+    virtual void OnCollision(GameObject* other) {}
 
     template<typename T>
     std::shared_ptr<T> GetComponent() const
@@ -49,4 +73,6 @@ public:
 private:
     std::vector<std::shared_ptr<Component>> m_components;
     SRT m_transform;
+    Vector3 m_localPosition; // 現在ある位置
+    GameObject* m_parent = nullptr; // 親オブジェクト（親がいない場合は nullptr）
 };

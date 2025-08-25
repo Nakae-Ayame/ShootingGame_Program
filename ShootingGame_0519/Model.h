@@ -18,8 +18,23 @@ struct MeshPart
     ComPtr<ID3D11Buffer> ib;
     UINT indexCount = 0;
 
-    ComPtr<ID3D11ShaderResourceView> textureSRV;
+    int materialIndex = -1; // マテリアル参照用
 };
+
+struct Material
+{
+    Vector4 diffuseColor = { 1, 1, 1, 1 };
+    std::string name;                   //マテリアル名
+
+    std::string texPath_Diffuse;        //拡散テクスチャのファイルパス
+    std::string texPath_Normal;         //法線マップのファイルパス
+    std::string texPath_Specular;       //スペキュラ鏡面反射テクスチャのファイルパス。
+
+    ComPtr<ID3D11ShaderResourceView> texSRV_Diffuse;        //拡散テクスチャのシェーダーリソースビュー
+    ComPtr<ID3D11ShaderResourceView> texSRV_Normal;         //法線マップのシェーダーリソースビュー
+    ComPtr<ID3D11ShaderResourceView> texSRV_Specular;       //スペキュラテクスチャのシェーダーリソースビュー
+};
+
 
 //------------------------------------------------------------------
 //Modelクラス
@@ -36,11 +51,14 @@ public:
     //ファイルからモデルを読み込む関数
     bool LoadFromFile(const std::string& path);
 
+    Material LoadMaterial(aiMaterial* aimat);
+
     //Transformを渡して描画する関数
-    void Draw(const SRT& transform);
+    void Draw(const DirectX::XMMATRIX& worldMatrix);
 
 private:
     std::vector<MeshPart> meshes_;
+    std::vector<Material> materials_;
 
     std::string modelDirectory_;
     void ProcessNode(aiNode* node, const aiScene* scene);

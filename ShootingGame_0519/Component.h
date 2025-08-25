@@ -29,8 +29,6 @@ public:
         return m_owner;
     }
 
-
-
 protected:
     //‘®‚µ‚Ä‚¢‚éGameObject‚Ìƒ|ƒCƒ“ƒ^‚ğ•Û‚·‚é•Ï”
     GameObject* m_owner = nullptr;

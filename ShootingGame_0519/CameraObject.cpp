@@ -1,10 +1,5 @@
 #include "CameraObject.h"
 
-//CameraObject::CameraObject()
-//{
-// 
-//}
-
 void CameraObject::Initialize()
 {
     // FollowCameraComponent‚ğ¶¬•’Ç‰Á

@@ -44,6 +44,11 @@ ComPtr<ID3D11InputLayout>  Renderer::m_AxisInputLayout;
 ComPtr<ID3D11VertexShader> Renderer::m_GridVertexShader;
 ComPtr<ID3D11PixelShader>  Renderer::m_GridPixelShader;
 
+//テクスチャ描画用のシェーダーとレイアウト
+ComPtr<ID3D11VertexShader> Renderer::m_TextureVertexShader;
+ComPtr<ID3D11PixelShader>  Renderer::m_TexturePixelShader;
+ComPtr<ID3D11InputLayout>  Renderer::m_TextureInputLayout;
+
 
 
 //------------------------------------------------------------------------------
@@ -143,7 +148,7 @@ void Renderer::Init()
     // --- ラスタライザステート設定 ---
     D3D11_RASTERIZER_DESC rasterizerDesc{};
     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-    rasterizerDesc.CullMode = D3D11_CULL_BACK;
+    rasterizerDesc.CullMode = D3D11_CULL_NONE;
     rasterizerDesc.DepthClipEnable = TRUE;
 
     ComPtr<ID3D11RasterizerState> rs;
@@ -272,6 +277,8 @@ void Renderer::Init()
         { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(VERTEX_3D, Diffuse),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, offsetof(VERTEX_3D, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, offsetof(VERTEX_3D, BoneIndex), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(VERTEX_3D, BoneWeight), D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     m_Device->CreateInputLayout(layoutDesc, _countof(layoutDesc),vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),m_InputLayout.GetAddressOf());
@@ -306,6 +313,7 @@ void Renderer::Init()
     // シェーダーオブジェクト作成
     m_Device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_GridVertexShader.GetAddressOf());
     m_Device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_GridPixelShader.GetAddressOf());
+
 }
 
 
@@ -527,8 +535,69 @@ void Renderer::SetDepthAllwaysWrite()
     }
 }
 
-void Renderer::BindGridShader()
+/**
+ * @brief テクスチャを画面上の指定位置・サイズに描画します。
+ * @param texture 描画対象のテクスチャ（ShaderResourceView）
+ * @param position 画面上の左上位置（ピクセル座標）
+ * @param size 描画するサイズ（幅と高さのピクセル単位）
+ */
+void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size)
 {
-    m_DeviceContext->VSSetShader(m_GridVertexShader.Get(), nullptr, 0);
-    m_DeviceContext->PSSetShader(m_GridPixelShader.Get(), nullptr, 0);
+    // 頂点データ定義（左上原点の2D）
+    struct Vertex
+    {
+        Vector3 pos;
+        Vector2 uv;
+    };
+
+    float x = position.x;
+    float y = position.y;
+    float w = size.x;
+    float h = size.y;
+
+    Vertex vertices[6] =
+    {
+        {{x,     y,     0.0f}, {0.0f, 0.0f}},
+        {{x + w, y,     0.0f}, {1.0f, 0.0f}},
+        {{x,     y + h, 0.0f}, {0.0f, 1.0f}},
+
+        {{x + w, y,     0.0f}, {1.0f, 0.0f}},
+        {{x + w, y + h, 0.0f}, {1.0f, 1.0f}},
+        {{x,     y + h, 0.0f}, {0.0f, 1.0f}},
+    };
+
+    // 頂点バッファ作成
+    D3D11_BUFFER_DESC vbDesc = {};
+    vbDesc.Usage = D3D11_USAGE_DEFAULT;
+    vbDesc.ByteWidth = sizeof(vertices);
+    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = vertices;
+
+    ComPtr<ID3D11Buffer> vertexBuffer;
+    m_Device->CreateBuffer(&vbDesc, &initData, vertexBuffer.GetAddressOf());
+
+    // シェーダー・レイアウト設定
+    m_DeviceContext->IASetInputLayout(m_TextureInputLayout.Get());
+    m_DeviceContext->VSSetShader(m_TextureVertexShader.Get(), nullptr, 0);
+    m_DeviceContext->PSSetShader(m_TexturePixelShader.Get(), nullptr, 0);
+
+    // 2D用のビュー・プロジェクション行列設定
+    SetWorldViewProjection2D();
+
+    // 頂点バッファ設定
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    m_DeviceContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+    m_DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // テクスチャをバインド
+    m_DeviceContext->PSSetShaderResources(0, 1, &texture);
+
+    // 描画実行
+    m_DeviceContext->Draw(6, 0);
 }
+
+
+

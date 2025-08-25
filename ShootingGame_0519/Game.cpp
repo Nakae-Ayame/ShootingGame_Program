@@ -2,33 +2,37 @@
 #include "Game.h"
 #include "renderer.h"
 #include "SceneManager.h"
+#include "Application.h"
 
 void Game::GameInit()
 {
-    // DirectXのレンダラーを初期化
+    //カーソル非表示＆固定
+    Application::HideCursorAndClip(); 
+
+    //DirectXのレンダラーを初期化
     Renderer::Init();
 
-    SceneManager::Init(); // シーンマネージャーの初期化
+    SceneManager::Init(); //シーンマネージャーの初期化
 }
 
 void Game::GameUninit()
 {
-    SceneManager::Uninit(); // シーンマネージャーの終了処理
+    SceneManager::Uninit(); //シーンマネージャーの終了処理
 }
 
 void Game::GameUpdate(uint64_t deltaTime)
 {
-    SceneManager::Update(deltaTime); // シーンマネージャーの終了処理
+    SceneManager::Update(deltaTime); //シーンマネージャーの終了処理
 }
 
 void Game::GameDraw(uint64_t deltaTime)
 {    
-    // フレームの開始
+    //フレームの開始
     Renderer::Begin();
 
-    SceneManager::Draw(deltaTime); // シーンマネージャーの描画処理
+    SceneManager::Draw(deltaTime); //シーンマネージャーの描画処理
 
-    // フレームの終了
+    //フレームの終了
     Renderer::End();
 }
 
@@ -43,7 +47,7 @@ void Game::GameLoop()
         uint64_t deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
 
-        GameUpdate(deltaTime); // ゲームの更新処理
-        GameDraw(deltaTime);   // ゲームの描画処理
+        GameUpdate(deltaTime); //ゲームの更新処理
+        GameDraw(deltaTime);   //ゲームの描画処理
     }
 }

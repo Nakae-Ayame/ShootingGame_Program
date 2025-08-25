@@ -4,62 +4,55 @@
 #include "GameObject.h"
 #include "SpringVector3.h"
 #include "ICameraViewProvider.h"
+#include <DirectXMath.h>
+#include <SimpleMath.h>
 
-//カメラのベクトルを使ってPlayerの動く方向が決まるのでそれを渡せるように
-//インターフェイスを継承
-class FollowCameraComponent : public Component,public ICameraViewProvider
+using namespace DirectX;
+using namespace DirectX::SimpleMath;
+
+class FollowCameraComponent : public Component, public ICameraViewProvider
 {
 public:
     FollowCameraComponent();
     void Update() override;
 
-    //Playerなどの追尾する対称のセット関数
-    void SetTarget(GameObject* target)
-    {
-        m_Target = target;
-        if (target)
-        {
-            Vector3 initial = target->GetPosition() + Vector3(0, m_Height, -m_Distance);
-            m_Spring.Reset(initial);
-        }
-    }
+    void SetTarget(GameObject* target);
 
-    //追尾対象との前後の距離のセット関数
-    void SetDistance(float dist) { m_Distance = dist; }
-    //カメラの高さのセット関数
-    void SetHeight(float h) { m_Height = h; }
+    void SetDistance(float dist) { m_DefaultDistance = dist; }
+    void SetHeight(float h) { m_DefaultHeight = h; }
 
-    //--------------------インターフェイス分の関数宣言--------------------
-    Vector3 GetForward() const override
-    {
-        //ビュー行列の逆から前方向
-        return m_ViewMatrix.Invert().Forward(); 
-    }
+    void SetSensitivity(float s) { m_Sensitivity = s; }
+    float GetSensitivity() const { return m_Sensitivity; }
 
-    Vector3 GetRight() const override
-    {
-        // ビュー行列の逆から右方向
-        return m_ViewMatrix.Invert().Right(); 
-    }
-    //---------------------------------------------------------------------
+    Matrix GetView() const { return m_ViewMatrix; }
+    Matrix GetProj() const { return m_ProjectionMatrix; }
 
+    Vector3 GetForward() const override;
+    Vector3 GetRight() const override;
 
 private:
-    //追尾対象保存変数
+    void UpdateCameraPosition();
+
     GameObject* m_Target = nullptr;
 
-    //追尾対象との距離を示す変数
-    float m_Distance = 20.0f;
+    float m_DefaultDistance = 30.0f;
+    float m_DefaultHeight = 2.5f;
 
-    //カメラの高さを示す変数
-    float m_Height = 10.0f;
+    float m_AimDistance = 20.0f;
+    float m_AimHeight = 1.8f;
 
-    Matrix4x4 m_ViewMatrix;
-    Matrix4x4 m_ProjectionMatrix;
+    bool m_IsAiming = false;
 
-    SpringVector3 m_Spring; //バネ追尾にしよい
+    float m_Yaw = 0.0f;
+    float m_Pitch = 0.0f;
+    float m_Sensitivity = 0.01f;
 
-    float m_Yaw = 0.0f;   //左右方向の回転角(ラジアン)
-    float m_Pitch = 0.0f; //上下方向の回転角(ラジアン)
+    float m_PitchLimitMin = XMConvertToRadians(-15.0f);
+    float m_PitchLimitMax = XMConvertToRadians(45.0f);
+    float m_YawLimit = XMConvertToRadians(120.0f);
+
+    Matrix m_ViewMatrix;
+    Matrix m_ProjectionMatrix;
+
+    SpringVector3 m_Spring;
 };
-

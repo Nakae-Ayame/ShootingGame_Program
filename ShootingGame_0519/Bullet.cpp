@@ -8,7 +8,7 @@ void Bullet::Initialize()
         auto bullet = std::make_shared<BulletComponent>();
         bullet->Initialize();
 
-        AddComponent(model);
+        //AddComponent(model);
         AddComponent(bullet);
 }
 

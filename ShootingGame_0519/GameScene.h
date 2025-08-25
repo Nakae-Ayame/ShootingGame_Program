@@ -5,7 +5,7 @@
 #include "FreeCamera.h"
 #include "Player.h"
 #include "CameraObject.h"
-#include "GridFloor.h"
+#include "Enemy.h"
 
 //---------------------------------
 //ISceneÇåpè≥ÇµÇΩGameScene
@@ -22,7 +22,8 @@ public:
 
 private:
 	std::shared_ptr<Player> m_player;
+	std::shared_ptr<Enemy> m_enemy;
 	std::shared_ptr<CameraObject> m_FollowCamera;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
-	std::shared_ptr<GridFloor> m_GridFloor;
+	//std::shared_ptr<GridFloor> m_GridFloor;
 };

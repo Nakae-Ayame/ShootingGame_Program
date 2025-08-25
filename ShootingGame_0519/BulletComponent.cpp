@@ -17,7 +17,6 @@ void BulletComponent::Initialize()
     {
         m_velocity = Vector3::Forward; // フォールバック（万が一）
     }
-
     m_speed = 20.0f;
 }
 
@@ -25,8 +24,8 @@ void BulletComponent::Update()
 {
     if (auto owner = GetOwner())
     {
-        auto pos = owner->GetPosition();
-        pos += m_velocity * m_speed * 0.016f; // フレームレートに依存しないよう補正
+        Vector3 pos = owner->GetPosition();
+        pos += m_velocity * m_speed * 0.016f; // 固定60FPSならこのまま
         owner->SetPosition(pos);
     }
 }

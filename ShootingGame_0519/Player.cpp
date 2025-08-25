@@ -14,6 +14,11 @@ void Player::Initialize()
     //弾発射コンポーネントの生成
     auto shootComp = std::make_shared<ShootingComponent>();
 
+    //コライダーコンポーネントの生成
+    m_Collider  = std::make_shared<OBBColliderComponent>();
+    m_Collider -> SetSize({ 12.0f, 4.0f, 30.0f }); // モデルに合わせて調整
+ 
+
     //モデルの読み込み（失敗時に備えログなども可）
     modelComp->LoadModel("Asset/Model/Robot/12211_Robot_l2.obj");
 
@@ -23,7 +28,11 @@ void Player::Initialize()
     AddComponent(modelComp);
     AddComponent(moveComp);
     AddComponent(shootComp);
+    AddComponent(m_Collider);
   //----------------------------------------------
+
+     //初期回転(ラジアンでの設定)
+    SetRotation(DirectX::SimpleMath::Vector3(0.0f, 0.0f, 0.0f));
 }
 
 void Player::Update()

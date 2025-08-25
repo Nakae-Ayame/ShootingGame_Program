@@ -1,0 +1,32 @@
+#pragma once
+#include <vector>
+#include <memory>
+#include "ColliderComponent.h"
+#include "DebugRenderer.h"
+
+class DebugRenderer;
+
+class CollisionManager
+{
+public:
+
+    //当たり判定したいコライダーを今フレームのリストに追加
+    static void RegisterCollider(ColliderComponent* collider);
+
+    //前フレームまでに登録されていた
+    //コライダーのリスト(m_Colliders)を空にする
+    static void Clear();
+
+    //m_Colliders に登録されたコライダーの全組み合わせを判定する関数
+    //判定が成功したらOnCollisionを呼び出す
+    static void CheckCollisions();
+
+    static void DebugDrawAllColliders(DebugRenderer& dr);
+
+private:
+
+    //当たり判定を行いたいオブジェクトのリスト
+    static std::vector<ColliderComponent*> m_Colliders;
+    static bool m_hitThisFrame;
+};
+

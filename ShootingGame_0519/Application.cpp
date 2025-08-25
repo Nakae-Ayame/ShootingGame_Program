@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "renderer.h"
 #include <chrono>
+#include "DebugGlobals.h"
 
 constexpr auto ClassName  = TEXT("2025 就職作品 ");         //ウィンドウクラス名.
 constexpr auto WindowName = TEXT("2025 就職作品 ");        //ウィンドウ名.
@@ -51,6 +52,11 @@ void Application::MainLoop()
 
     // ゲームの初期化
     Game::GameInit();
+
+
+    // --- DebugRendererの初期化（必ず Renderer::Init() の後） ---
+    gDebug.Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext(),
+        L"DebugLineVS.cso", L"DebugLinePS.cso");
 
     // メインループ
     auto previousTime = std::chrono::steady_clock::now();
@@ -164,6 +170,39 @@ void Application::UninitWnd()
     //解放ミスを防ぐためにnullptrを入れておく
     m_hInst = nullptr;      //インスタンスハンドルにnullptrを入れる
     m_hWnd = nullptr;       //ウィンドウハンドルにnullptrを入れる
+}
+
+void Application::HideCursorAndClip()
+{
+    // カーソルを非表示に
+    ::ShowCursor(FALSE);
+
+    // ウィンドウ内にカーソルを固定
+    RECT rect;
+    GetClientRect(m_hWnd, &rect);         // クライアント領域サイズ取得
+    POINT ul = { rect.left, rect.top };
+    POINT lr = { rect.right, rect.bottom };
+    ClientToScreen(m_hWnd, &ul);          // スクリーン座標に変換
+    ClientToScreen(m_hWnd, &lr);
+    rect.left = ul.x;
+    rect.top = ul.y;
+    rect.right = lr.x;
+    rect.bottom = lr.y;
+    ClipCursor(&rect);                    // カーソルをこの範囲内に固定
+
+    // カーソルを中央に移動
+    int centerX = (ul.x + lr.x) / 2;
+    int centerY = (ul.y + lr.y) / 2;
+    SetCursorPos(centerX, centerY);
+}
+
+void Application::ShowCursorAndRelease()
+{
+    // カーソルを表示
+    ::ShowCursor(TRUE);
+
+    // カーソルの固定を解除
+    ClipCursor(nullptr);
 }
 
 // ウィンドウプロシージャ

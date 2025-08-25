@@ -145,6 +145,7 @@ public:
     static void SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix);
     static void SetMaterial(MATERIAL Material);
     static void SetLight(LIGHT Light);
+    static void SetTexture(ID3D11ShaderResourceView* texture){m_DeviceContext->PSSetShaderResources(0, 1, &texture);}
     static ID3D11Device* GetDevice(void) { return m_Device.Get(); }
     static ID3D11DeviceContext* GetDeviceContext(void) { return m_DeviceContext.Get(); }
     static void SetBlendState(int nBlendState);
@@ -160,12 +161,20 @@ public:
     static ID3D11Buffer* GetWorldBuffer(){ return m_WorldBuffer.Get(); }
     static ID3D11Buffer* GetProjectionBuffer(){ return m_ProjectionBuffer.Get(); }
     
-    static void BindGridShader();
+    //static void BindGridShader();
+
+    static void DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size);
 
     static ComPtr<ID3D11VertexShader> m_VertexShader;
     static ComPtr<ID3D11PixelShader>  m_PixelShader;
     static ComPtr<ID3D11InputLayout>  m_InputLayout;
     static ComPtr<ID3D11InputLayout>  m_AxisInputLayout;
+
+    //テクスチャ描画用のシェーダーとレイアウト
+    static ComPtr<ID3D11VertexShader> m_TextureVertexShader;
+    static ComPtr<ID3D11PixelShader>  m_TexturePixelShader;
+    static ComPtr<ID3D11InputLayout>  m_TextureInputLayout;
+
 
     // Grid専用のシェーダー
     static ComPtr<ID3D11VertexShader> m_GridVertexShader;

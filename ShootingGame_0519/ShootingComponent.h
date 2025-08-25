@@ -3,24 +3,22 @@
 #include "Bullet.h"
 #include "Input.h"
 #include "IScene.h"
+#include "ICameraViewProvider.h"
 
 class ShootingComponent : public Component
 {
 public:
     void Update() override;
 
-    void SetScene(IScene* scene)
-    {
-        if (scene != nullptr)
-        {
-            m_scene = scene;
-        }
-    }
+    void SetScene(IScene* scene) { m_scene = scene; }
+    void SetCamera(ICameraViewProvider* camera) { m_camera = camera; } // ←追加！
 
 private:
     IScene* m_scene = nullptr;
+    ICameraViewProvider* m_camera = nullptr;
 
-    float m_cooldown = 0.3f;    // クールタイム（秒）
-    float m_timer = 0.0f;       // 経過時間（秒）
+    float m_cooldown = 0.3f;
+    float m_timer = 0.0f;
 };
+
 
