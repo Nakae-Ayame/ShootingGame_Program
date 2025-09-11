@@ -273,13 +273,14 @@ void Renderer::Init()
     // BasicVertexShader.hlsl ‚Ì VS_Input ‚É‡‚í‚¹‚Ä
     D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(VERTEX_3D, Diffuse),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(VERTEX_3D, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, offsetof(VERTEX_3D, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, offsetof(VERTEX_3D, BoneIndex), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(VERTEX_3D, BoneWeight), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,      0, offsetof(VERTEX_3D, Position),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT,      0, offsetof(VERTEX_3D, Normal),     D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",     0, DXGI_FORMAT_R32G32B32A32_FLOAT,   0, offsetof(VERTEX_3D, Diffuse),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,         0, offsetof(VERTEX_3D, TexCoord),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT,    0, offsetof(VERTEX_3D, BoneIndex),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "BONEWEIGHT",0, DXGI_FORMAT_R32G32B32A32_FLOAT,   0, offsetof(VERTEX_3D, BoneWeight), D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
+
 
     m_Device->CreateInputLayout(layoutDesc, _countof(layoutDesc),vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),m_InputLayout.GetAddressOf());
 

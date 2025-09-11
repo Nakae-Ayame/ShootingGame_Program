@@ -15,6 +15,7 @@ class FollowCameraComponent : public Component, public ICameraViewProvider
 {
 public:
     FollowCameraComponent();
+    void Initialize() override {};
     void Update(float dt) override;
 
     //カメラが追う対象をセットする関数
@@ -35,27 +36,27 @@ public:
     //レティクルのスクリーン位置を外部（GameScene）から毎フレーム渡すための関数
     void SetReticleScreenPos(const Vector2& screenPos) { m_ReticleScreen = screenPos; }
 
-    // ICameraViewProvider で追加したメソッドの実装を宣言
+    //ICameraViewProvider で追加したメソッドの実装を宣言
     Vector3 GetAimPoint() const override { return m_AimPoint; }
 
     Vector3 GetPosition() const { return m_Spring.GetPosition();}
 
 private:
-    void UpdateCameraPosition();
+    void UpdateCameraPosition(float dt);
 
     GameObject* m_Target = nullptr;   //カメラが追従する対象(プレイヤーなど)のポインタ
 
     float m_DefaultDistance = 30.0f;  //追従対象の後方にどのぐらいにカメラがいるのか
-    float m_DefaultHeight = 2.5f;     //追従対象からどのぐらい高い所にカメラがいるのか
+    float m_DefaultHeight = 3.5f;     //追従対象からどのぐらい高い所にカメラがいるのか
 
     float m_AimDistance = 20.0f;      //エイムしたときの後方どのあたりにカメラがいるのか
-    float m_AimHeight = 1.8f;         //エイムしたとき追従対象からどのぐらい高い所にカメラがいるのか
+    float m_AimHeight = 2.8f;         //エイムしたとき追従対象からどのぐらい高い所にカメラがいるのか
 
     bool m_IsAiming = false;          //今エイムしているかどうかのbool型
 
     float m_Yaw = 0.0f;               //マウス操作で積み上げていく回転角(ヨー)
     float m_Pitch = 0.0f;             //マウス操作で積み上げていく回転角(ピッチ)
-    float m_Sensitivity = 0.01f;      //m_Sensitivity は小さいほど「ゆっくり回る」
+    float m_Sensitivity = 0.001f;     //m_Sensitivity は小さいほど「ゆっくり回る」
 
     float m_PitchLimitMin = XMConvertToRadians(-15.0f); //ピッチ(上下)の制限値(最小)
     float m_PitchLimitMax = XMConvertToRadians(45.0f);  //ピッチ(上下)の制限値(最大)

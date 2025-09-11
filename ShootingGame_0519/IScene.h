@@ -28,4 +28,9 @@ public:
 	//---------------他からオブジェクトの追加を行う関数--------------
 	virtual void AddObject(std::shared_ptr<class GameObject> obj) = 0;
 
+	//------------他からオブジェクトの削除の登録を行う関数---------------
+	virtual void RemoveObject(std::shared_ptr<GameObject> obj) = 0;
+
+	//---------------他からオブジェクトの削除を行う関数------------------
+	virtual void FinishFrameCleanup() = 0;
 };

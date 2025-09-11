@@ -1,4 +1,5 @@
 ﻿#include <DirectXMath.h>
+#include <iostream>
 #include "FollowCameraComponent.h"
 #include "Renderer.h"
 #include "Application.h"
@@ -6,6 +7,7 @@
 
 using namespace DirectX;
 
+//
 FollowCameraComponent::FollowCameraComponent()
 {
     // スプリング設定
@@ -43,35 +45,42 @@ void FollowCameraComponent::Update(float dt)
 
     //マウスによる視点制御
     POINT delta = Input::GetMouseDelta();
-    m_Yaw += delta.x * m_Sensitivity;
+    
+    //そのまま使うと死ぬほど早く回るので、補正をかける
+    m_Yaw   += delta.x * m_Sensitivity;       
     m_Pitch += delta.y * m_Sensitivity;
 
     //角度制限（ラジアン）
-    m_Pitch = std::clamp(m_Pitch, m_PitchLimitMin, m_PitchLimitMax);
-    m_Yaw = std::clamp(m_Yaw, -m_YawLimit, m_YawLimit);
+    m_Pitch = std::clamp(m_Pitch, m_PitchLimitMin, m_PitchLimitMax); //m_Pitchをm_PitchLimitMin以上、m_PitchLimitMax以内に収める
+    m_Yaw   = std::clamp(m_Yaw, -m_YawLimit, m_YawLimit);              //m_Yawを-m_YawLimit以上、m_YawLimit以内に収める
+
 
     //カメラ位置（プレイヤーの背後）をスプリングに与える
     //UpdateCameraPosition() 内で m_Spring.Update(desiredPos, dt) を呼ぶようにしてください
-    UpdateCameraPosition();
+    UpdateCameraPosition(dt);
 
     //カメラの現在位置（スプリングから取得）
     Vector3 cameraPos = m_Spring.GetPosition();
     Vector3 targetPos = m_Target->GetPosition();
 
-    //Unproject を使ってレティクルのワールド点を計算
-    float screenW = static_cast<float>(Application::GetWidth());
-    float screenH = static_cast<float>(Application::GetHeight());
-    float sx = m_ReticleScreen.x;
+    //Unprojectを使ってレティクルのワールド点を計算
+    float screenW = static_cast<float>(Application::GetWidth());    //画面の幅
+    float screenH = static_cast<float>(Application::GetHeight());   //画面の高さ
+
+    //
+    float sx = m_ReticleScreen.x;   
     float sy = m_ReticleScreen.y;
 
+    //画面空間からオブジェクト空間に落とし込んで場所を仮で決める
     Matrix provisionalView = Matrix::CreateLookAt(cameraPos, targetPos, Vector3::Up);
 
+    //XMVectorSet((カーソルの位置のX),(カーソルの位置のY), … , … )
     XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
-    XMVECTOR farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
+    XMVECTOR farScreen  = XMVectorSet(sx, sy, 1.0f, 1.0f);
 
     // Convert SimpleMath::Matrix to XMMATRIX
-    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
-    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
+    XMMATRIX projXM  = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
+    XMMATRIX viewXM  = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
     XMMATRIX worldXM = XMMatrixIdentity();
 
     XMVECTOR nearWorldV = XMVector3Unproject(
@@ -145,27 +154,35 @@ void FollowCameraComponent::Update(float dt)
 
 
 
-void FollowCameraComponent::UpdateCameraPosition()
+void FollowCameraComponent::UpdateCameraPosition(float dt)
 {
-    float dt = Application::GetDeltaTime();
-
     // 距離と高さはエイムでのみ変化（右クリック）
-    float dist = m_IsAiming ? m_AimDistance : m_DefaultDistance;
-    float height = m_IsAiming ? m_AimHeight : m_DefaultHeight;
+    float dist;
+    float height;
+    if (m_IsAiming)//エイム中か
+    {
+        dist   = m_AimDistance;
+        height = m_AimHeight;
+    }
+    else   //エイム中じゃないか
+    {
+        dist   = m_DefaultDistance;
+        height = m_DefaultHeight;
+    }
 
-    // --- カメラ位置は「プレイヤーの背後」に置く（プレイヤーの yaw に合わせる）
-    // プレイヤーの向きに合わせて behind に配置しておく（首だけ回す設計）
-    Vector3 targetPos = m_Target->GetPosition();
-    Vector3 targetRot = m_Target->GetRotation(); // rot.y = yaw を想定
-    float playerYaw = targetRot.y;
+    //カメラ位置をプレイヤーの背後に置く
+    //プレイヤーの向きに合わせて behind に配置しておく(首だけ回す設計)
+    Vector3 targetPos = m_Target->GetPosition(); //Playerのポジションを取ってくる
+    Vector3 targetRot = m_Target->GetRotation(); //Playerの回転を取ってくる
+    float playerYaw = targetRot.y;          //(rot.y = yaw を想定)
 
-    Matrix playerRot = Matrix::CreateRotationY(playerYaw);
-    Vector3 baseOffset = Vector3(0.0f, 0.0f, -dist);
-    Vector3 rotatedOffset = Vector3::Transform(baseOffset, playerRot);
+    Matrix  playerRot     = Matrix::CreateRotationY(playerYaw); //Y軸(上方向)周りに回転行列を作る
+    Vector3 baseOffset    = Vector3(0.0f, 0.0f, -dist);         //プレイヤーのローカル座標系で見た時のカメラの位置
+    Vector3 rotatedOffset = Vector3::Transform(baseOffset, playerRot);  //回転座標をカメラに設定する
 
-    Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);
+    Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);       //
 
-    // スプリングで位置を滑らかに追従（距離はここで固定される）
+    //スプリングで位置を滑らかに追従させる(距離はここで固定される)
     m_Spring.Update(desiredPos, dt);
 }
 

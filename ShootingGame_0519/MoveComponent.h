@@ -29,4 +29,8 @@ private:
     float m_rotateSpeed = 7.5f; // rad/s: 調整可（2.5〜4.0 を推奨）
 
     float m_currentRoll = 0.0f; // 現在のロール（member に変更）
+
+    float m_pitchSpeed = 3.5f;   // rad/s: ピッチ（上下）の回転速度（調整）
+
+    float m_currentPitch = 0.0f; // 現在のピッチ（member に保持してスムーズに）
 };

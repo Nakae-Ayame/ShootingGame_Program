@@ -16,8 +16,7 @@ void Player::Initialize()
 
     //コライダーコンポーネントの生成
     m_Collider  = std::make_shared<OBBColliderComponent>();
-    m_Collider -> SetSize({ 12.0f, 4.0f, 30.0f }); // モデルに合わせて調整
- 
+    m_Collider -> SetSize({ 12.0f, 10.0f, 30.0f }); // モデルに合わせて調整
 
     //モデルの読み込み（失敗時に備えログなども可）
     modelComp->LoadModel("Asset/Model/Robot/12211_Robot_l2.obj");

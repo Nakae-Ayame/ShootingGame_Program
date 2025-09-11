@@ -8,6 +8,7 @@
 #include "Enemy.h"
 #include "TextureComponent.h"
 #include "Reticle.h"
+#include "SkyDome.h"
 
 //---------------------------------
 //ISceneを継承したGameScene
@@ -21,12 +22,20 @@ public:
 	void Init() override;
 	void Uninit() override;
 	void AddObject(std::shared_ptr<GameObject> obj) override;
+	
+	void RemoveObject(std::shared_ptr<GameObject>) override;
+	void RemoveObject(GameObject* obj);
+	void FinishFrameCleanup() override;
 
 private:
 	std::shared_ptr<Player> m_player;
 	std::shared_ptr<Enemy> m_enemy;
 	std::shared_ptr<CameraObject> m_FollowCamera;
+	std::shared_ptr<SkyDome> m_SkyDome;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
+	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
+	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
+	
 	//std::shared_ptr<GridFloor> m_GridFloor;
 	 // --- レティクル関係 ---
 	std::shared_ptr<GameObject> m_reticleObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
@@ -37,7 +46,7 @@ private:
 
 	float m_reticleW = 64.0f;       // レティクル幅（px）
 	float m_reticleH = 64.0f;       // レティクル高さ（px）
-
+	void SetSceneObject();
 	void SetReticleByCenter(const POINT& screenPos)
 	{
 		if (!m_reticleTex) return;

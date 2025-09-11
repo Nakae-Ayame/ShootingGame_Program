@@ -163,8 +163,10 @@
     <ClCompile Include="ShootingComponent.cpp" />
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="SkyDomeComponent.cpp" />
+    <ClCompile Include="SphereComponent.cpp" />
     <ClCompile Include="TextureComponent.cpp" />
     <ClCompile Include="TextureManager.cpp" />
+    <ClCompile Include="TitleBackGround.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AABBColliderComponent.h" />
@@ -203,9 +205,11 @@
     <ClInclude Include="ShootingComponent.h" />
     <ClInclude Include="SkyDome.h" />
     <ClInclude Include="SkyDomeComponent.h" />
+    <ClInclude Include="SphereComponent.h" />
     <ClInclude Include="SpringVector3.h" />
     <ClInclude Include="TextureComponent.h" />
     <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="TitleBackGround.h" />
     <ClInclude Include="transform.h" />
   </ItemGroup>
   <ItemGroup>
@@ -215,6 +219,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PSMain</EntryPointName>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="BasicVertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

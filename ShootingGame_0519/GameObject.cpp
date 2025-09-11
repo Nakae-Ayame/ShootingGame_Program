@@ -31,3 +31,4 @@ void GameObject::AddComponent(std::shared_ptr<Component> comp)
     comp->SetOwner(this);
     m_components.push_back(comp);
 }
+

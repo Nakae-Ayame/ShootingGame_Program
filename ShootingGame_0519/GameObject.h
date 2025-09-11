@@ -5,6 +5,7 @@
 #include "commontypes.h" 
 #include "Model.h"       
 #include "Component.h"
+#include "IScene.h"
 
 class Component;
 
@@ -49,6 +50,9 @@ public:
             
     }
 
+    void SetScene(IScene* s) { m_scene = s; }
+    IScene* GetScene() const { return m_scene; }
+
     const SRT& GetTransform() const { return m_transform; }
 
     //衝突通知
@@ -75,4 +79,6 @@ private:
     Vector3 m_localPosition; // 現在ある位置
     GameObject* m_parent = nullptr; // 親オブジェクト（親がいない場合は nullptr）]
     SRT m_prevTransform; // ← 補間用に追加
+
+    IScene* m_scene = nullptr;
 };

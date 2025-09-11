@@ -77,7 +77,7 @@ void Application::MainLoop()
             m_DeltaTime = delta.count(); //秒単位で保持
             previousTime = currentTime;
 
-            std::cout << "デルタタイム : " << m_DeltaTime << std::endl;
+            //std::cout << "デルタタイム : " << m_DeltaTime << std::endl;
 
             //更新・描画
             Game::GameUpdate(m_DeltaTime);

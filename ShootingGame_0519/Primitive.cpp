@@ -96,10 +96,21 @@ void Primitive::CreateBuffers(ID3D11Device* device)
     initData.pSysMem = indices.data();
 
     device->CreateBuffer(&bufferDesc, &initData, &indexBuffer);
+
+    char buf[256];
+    sprintf_s(buf, "Primitive buffers: verts=%zu idx=%zu vb=%p ib=%p\n",
+        vertices.size(), indices.size(), vertexBuffer, indexBuffer);
+    OutputDebugStringA(buf);
 }
 
 void Primitive::Draw(ID3D11DeviceContext* context)
 {
+    if (!vertexBuffer || !indexBuffer)
+    {
+        OutputDebugStringA("Primitive::Draw - missing VB or IB\n");
+        return;
+    }
+
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);

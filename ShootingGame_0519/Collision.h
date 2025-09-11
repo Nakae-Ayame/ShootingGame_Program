@@ -56,7 +56,7 @@ namespace Collision
     }
 
     // ----------------------------------------------------
-    // OBB vs OBB（SAT）… 生データ版（中心/軸/半サイズで判定）
+    // OBB vs OBB（SAT）生データ版（中心/軸/半サイズで判定）
     // ----------------------------------------------------
     inline bool IsOBBHit(
         const Vector3& centerA, const Vector3* axesA, const Vector3& halfSizeA,

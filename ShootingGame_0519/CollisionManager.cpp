@@ -22,7 +22,7 @@ void CollisionManager::Clear()
 
 void CollisionManager::CheckCollisions()
 {
-    // まず全コライダーを未ヒット状態に
+    //全コライダーを未ヒット状態に
     for (auto col : m_Colliders)
         col->SetHitThisFrame(false);
 
@@ -81,15 +81,8 @@ void CollisionManager::CheckCollisions()
                 Vector3 axesA[3] = { rotA.Right(), rotA.Up(), rotA.Forward() };
                 Vector3 axesB[3] = { rotB.Right(), rotB.Up(), rotB.Forward() };
 
-                // 軸ベクトルの長さチェック（デバッグ用）
-                //for (int i = 0; i < 3; i++) {
-                //    std::cout << "AxisA[" << i << "] length: " << axesA[i].Length() << std::endl;
-                //    std::cout << "AxisB[" << i << "] length: " << axesB[i].Length() << std::endl;
-                //}
-
                 // 判定関数に渡す
-                hit = Collision::IsOBBHit(a->GetCenter(), axesA, a->GetSize() * 0.5f,
-                    b->GetCenter(), axesB, b->GetSize() * 0.5f);
+                hit = Collision::IsOBBHit(a->GetCenter(), axesA, a->GetSize() * 0.5f, b->GetCenter(), axesB, b->GetSize() * 0.5f);
             }
 
             //-----------------------------------------
@@ -97,8 +90,26 @@ void CollisionManager::CheckCollisions()
             //-----------------------------------------
             else
             {
-                auto aabb = (typeA == ColliderType::AABB) ? colA : colB;
-                auto obb = (typeA == ColliderType::OBB) ? colA : colB;
+                decltype(colA) aabb;
+                decltype(colA) obb;
+
+                if (typeA == ColliderType::AABB)
+                {
+                    aabb = colA;
+                }
+                else
+                {
+                    aabb = colB;
+                }
+
+                if (typeA == ColliderType::OBB)
+                {
+                    obb = colA;
+                }
+                else
+                {
+                    obb = colB;
+                }
 
                 auto a = static_cast<AABBColliderComponent*>(aabb);
                 auto b = static_cast<OBBColliderComponent*>(obb);
@@ -147,7 +158,7 @@ void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)
             Vector3 size = (mx - mn);
             dr.AddBox(center, size, Matrix::Identity, color);
         }
-        else // OBB
+        else //OBB
         {
             auto* o = static_cast<OBBColliderComponent*>(col);
             dr.AddBox(o->GetCenter(), o->GetSize(), o->GetRotationMatrix(), color);

@@ -1,34 +1,85 @@
 ﻿#include "ShootingComponent.h"
-#include <Windows.h>
+#include "Bullet.h"
+#include "Input.h"
+#include <Windows.h> // VK_SPACE
+
+using namespace DirectX::SimpleMath;
 
 void ShootingComponent::Update(float dt)
 {
-    float deltaTime = 1.0f / 60.0f;
-    m_timer += deltaTime;
+    // タイマー更新
+    m_timer += dt;
 
-    if (Input::IsKeyDown(VK_SPACE) && m_timer >= m_cooldown)
+    if (!GetOwner()) return;
+
+    //クールダウン中ではなくスペースキーで発射
+    //(IsKeyDown は押しっぱなし判定)
+    if (m_timer >= m_cooldown && Input::IsKeyDown(VK_SPACE))
     {
-        m_timer = 0.0f;
-
-        auto owner = GetOwner();
-        if (!owner || !m_camera) return;
-
-        //メラの向いてる方向を使う！
-        Vector3 forward = m_camera->GetForward();
-        forward.Normalize();
-
-        // 弾生成
-        auto bullet = std::make_shared<Bullet>();
-        bullet->SetPosition(owner->GetPosition() + forward * 1.5f); // ちょっと前から出す
-        bullet->Initialize();
-
-        auto bulletComp = bullet->GetComponent<BulletComponent>();
-        if (bulletComp)
-        {
-            bulletComp->SetVelocity(forward);
-            bulletComp->SetSpeed(20.0f);
+        //カメラやシーンがセットされていないときは発射出来ない
+        if (!m_camera || !m_scene)
+        {  
+            m_timer = 0.0f; // あるいはリセットしないで次フレーム試す選択もある
+            return;
         }
 
-        if (m_scene) m_scene->AddObject(bullet);
+        // カメラの前方ベクトルを取得（ワールド空間）
+        Vector3 forward = m_camera->GetForward();
+        if (forward.LengthSquared() < 1e-6f)
+        {
+            forward = Vector3::UnitZ; // フォールバック
+        }
+
+        //正規化
+        forward.Normalize();
+
+        //弾の発生位置：所有者の位置 + forward * offset
+        Vector3 spawnPos = GetOwner()->GetPosition() + forward * m_spawnOffset;
+
+        //弾を作ってシーンに登録
+        auto bulletObj = CreateBullet(spawnPos, forward);
+
+        if (bulletObj)
+        {
+            m_scene->AddObject(bulletObj);
+        }
+
+        //タイマーをゼロにして
+        //クールダウン中は出ないようにする
+        m_timer = 0.0f;
     }
+}
+
+std::shared_ptr<GameObject> ShootingComponent::CreateBullet(const Vector3& pos, const Vector3& dir)
+{
+    //GameObjectを継承したBulletを生成
+    auto bullet = std::make_shared<Bullet>();
+
+    //初期位置・回転
+    bullet->SetPosition(pos);
+
+    //Initializeしてコンポーネントを構築（Bullet::Initialize 内で Component を追加している想定）
+    bullet->Initialize();
+
+    //BulletComponentを取得して初期速度を与える
+    auto bc = bullet->GetComponent<BulletComponent>();
+
+    //BulletComponentクラスがあったら
+    if (bc)
+    {
+        Vector3 d = dir;
+        if (d.LengthSquared() < 1e-6f)
+        {
+            d = Vector3::UnitZ;
+        }
+        d.Normalize();
+        bc->SetVelocity(d);
+        bc->SetSpeed(m_bulletSpeed);
+
+    }
+
+    // ここでビジュアルコンポーネント（ModelComponent など）やコライダーの追加は
+    // Bullet::Initialize 内で完結している想定です。
+
+    return bullet;
 }
