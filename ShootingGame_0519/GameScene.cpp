@@ -22,6 +22,9 @@ void GameScene::Init()
     m_player->Initialize();
     auto moveComp = m_player->GetComponent<MoveComponent>();
 
+    //m_bullet = std::make_shared<Bullet>();
+    //m_bullet->Initialize();
+
     //--------------------------エネミー作成---------------------------------
     m_enemy = std::make_shared<Enemy>();
     m_enemy->SetPosition({ 10.0f, 0.0f, 0.0f });
@@ -72,6 +75,7 @@ void GameScene::Init()
 
     //m_GameObjects.push_back(m_SkyDome);
     m_GameObjects.push_back(m_player);
+    //m_GameObjects.push_back(m_bullet);
     //m_GameObjects.push_back(m_enemy);
     m_GameObjects.push_back(m_FollowCamera);
     m_GameObjects.push_back(m_reticle);

@@ -1,7 +1,7 @@
 #pragma once
 #include "GameObject.h"
 #include "BulletComponent.h"
-#include "SphereComponent.h"
+#include "Primitive.h"
 #include <memory>
 #include <SimpleMath.h>
 
@@ -24,9 +24,12 @@ public:
     //void SetLifeTime(float s){};
 
 private:
-    float m_radius = 1.0f;
+    float m_radius = 3.0f;
+
+    Primitive m_primitive;
+
     std::shared_ptr<OBBColliderComponent> m_collider;
-    std::shared_ptr<SphereComponent> m_bullet;
+    //std::shared_ptr<SphereComponent> m_bullet;
 };
 
 

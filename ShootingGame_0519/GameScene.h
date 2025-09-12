@@ -9,6 +9,7 @@
 #include "TextureComponent.h"
 #include "Reticle.h"
 #include "SkyDome.h"
+#include "Bullet.h"
 
 //---------------------------------
 //ISceneÇåpè≥ÇµÇΩGameScene
@@ -30,6 +31,7 @@ public:
 private:
 	std::shared_ptr<Player> m_player;
 	std::shared_ptr<Enemy> m_enemy;
+	std::shared_ptr<Bullet> m_bullet;
 	std::shared_ptr<CameraObject> m_FollowCamera;
 	std::shared_ptr<SkyDome> m_SkyDome;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;

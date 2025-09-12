@@ -24,5 +24,7 @@ public:
 
     // ワールド座標（カメラ位置）
     virtual SMS::Vector3 GetPosition() const = 0;
+
+    virtual SMS::Vector3 GetAimDirectionFromReticle() const = 0;
 };
 

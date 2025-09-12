@@ -1,7 +1,7 @@
 #include "BulletComponent.h"
 #include "GameObject.h"
 #include "IScene.h"
-#include <iostream> // ログ用（任意）
+#include <iostream>
 
 using namespace DirectX::SimpleMath;
 
@@ -27,6 +27,15 @@ void BulletComponent::Initialize()
 
 void BulletComponent::Update(float dt)
 {
+    static int c = 0;
+    if ((++c % 60) == 0)
+    { // 1秒に1回くらい
+        Vector3 v = GetOwner()->GetPosition();
+        char buf[256];
+        sprintf_s(buf, "BulletComponent::Update ownerPos=(%f,%f,%f)\n", v.x, v.y, v.z);
+        OutputDebugStringA(buf);
+    }
+
     //装着しているオブジェクトがないなら更新は終了
     if (!GetOwner()) return;
 
@@ -45,5 +54,12 @@ void BulletComponent::Update(float dt)
         Vector3 pos = GetOwner()->GetPosition();
         pos += m_velocity * m_speed * dt; // dt 秒だけ移動
         GetOwner()->SetPosition(pos);
+        static int s_frameCounter = 0;
+        if (++s_frameCounter % 60 == 0
+            ) {
+            char buf[256];
+            sprintf_s(buf, "BULLET POS: x=%f y=%f z=%f\n", pos.x, pos.y, pos.z);
+            OutputDebugStringA(buf);
+        }
     }
 }

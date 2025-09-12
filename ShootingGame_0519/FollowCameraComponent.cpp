@@ -4,10 +4,11 @@
 #include "Renderer.h"
 #include "Application.h"
 #include "Input.h"
+#include <memory>
+#include <SimpleMath.h>
 
 using namespace DirectX;
 
-//
 FollowCameraComponent::FollowCameraComponent()
 {
     // スプリング設定
@@ -150,6 +151,8 @@ void FollowCameraComponent::Update(float dt)
     // レンダラへセット
     Renderer::SetViewMatrix(m_ViewMatrix);
     Renderer::SetProjectionMatrix(m_ProjectionMatrix);
+
+    
 }
 
 
@@ -182,6 +185,10 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
 
     Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);       //
 
+    char buf[512];
+    sprintf_s(buf, "DBG CAMERA: CameraPos=(%f,%f,%f) CameraFollowd=(%f,%f,%f)\n",
+        desiredPos.x, desiredPos.y, desiredPos.z,GetForward().x, GetForward().y, GetForward().z);
+    OutputDebugStringA(buf);
     //スプリングで位置を滑らかに追従させる(距離はここで固定される)
     m_Spring.Update(desiredPos, dt);
 }

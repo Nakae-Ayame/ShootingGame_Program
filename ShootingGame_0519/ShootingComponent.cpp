@@ -2,6 +2,7 @@
 #include "Bullet.h"
 #include "Input.h"
 #include <Windows.h> // VK_SPACE
+#include <iostream>
 
 using namespace DirectX::SimpleMath;
 
@@ -41,12 +42,27 @@ void ShootingComponent::Update(float dt)
 
         if (bulletObj)
         {
+            {
+                char buf[128];
+                sprintf_s(buf, "Update: before AddObject use_count=%lu\n", (unsigned long)bulletObj.use_count());
+                OutputDebugStringA(buf);
+            }
+
             m_scene->AddObject(bulletObj);
+
+            // Add 後ログ
+            {
+                char buf[128];
+                sprintf_s(buf, "Update: after AddObject use_count=%lu\n", (unsigned long)bulletObj.use_count());
+                OutputDebugStringA(buf);
+            }
         }
 
         //タイマーをゼロにして
         //クールダウン中は出ないようにする
         m_timer = 0.0f;
+
+        //std::cout << "ログ出力(spawPos):" << spawnPos.x << " , " << spawnPos.y << " , " << spawnPos.z << std::endl;
     }
 }
 
@@ -57,9 +73,11 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(const Vector3& pos, 
 
     //初期位置・回転
     bullet->SetPosition(pos);
+    OutputDebugStringA("CreateBullet: after SetPosition\n");
 
     //Initializeしてコンポーネントを構築（Bullet::Initialize 内で Component を追加している想定）
     bullet->Initialize();
+    OutputDebugStringA("CreateBullet: after Initialize\n");
 
     //BulletComponentを取得して初期速度を与える
     auto bc = bullet->GetComponent<BulletComponent>();
@@ -77,9 +95,5 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(const Vector3& pos, 
         bc->SetSpeed(m_bulletSpeed);
 
     }
-
-    // ここでビジュアルコンポーネント（ModelComponent など）やコライダーの追加は
-    // Bullet::Initialize 内で完結している想定です。
-
     return bullet;
 }

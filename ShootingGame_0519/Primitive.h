@@ -34,6 +34,8 @@ public:
     //
     void Draw(ID3D11DeviceContext* context);
 
+    
+
 private:
     std::vector<Vertex> vertices;   //頂点情報を保持する動的配列
     std::vector<uint32_t> indices;  //インデックス情報（頂点の接続順）
