@@ -1,6 +1,10 @@
 #include <Windows.h> 
+#include <iostream>
 #include "SceneManager.h"
+#include "TransitionManager.h"
 #include "GameScene.h"
+#include "TitleScene.h"
+#include "CollisionManager.h"
 #include "Application.h" 
        
 std::unordered_map<std::string, std::unique_ptr<IScene>> SceneManager::m_scenes;
@@ -14,6 +18,8 @@ void SceneManager::RegisterScene(const std::string& name, std::unique_ptr<IScene
 
 void SceneManager::SetCurrentScene(const std::string& name)
 {
+    std::cout << "[SC] SetCurrentScene -> " << name << std::endl;
+
     // 変更前のシーンがあれば一度 Uninit
     if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
     {
@@ -48,23 +54,64 @@ void SceneManager::Init()
     //-------------------------------------------------------------
  /*   RegisterScene("TitleScene", std::make_unique<TitleScene>());
     m_scenes["TitleScene"]->Init();*/
+    RegisterScene("TitleScene", std::make_unique<TitleScene>());
+    //m_scenes["TitleScene"]->Init();
     RegisterScene("GameScene", std::make_unique<GameScene>());
-    m_scenes["GameScene"]->Init();
+    //m_scenes["GameScene"]->Init();
     //初期シーンにTitleSceneを設定
-    m_currentSceneName = "GameScene";
+    m_currentSceneName = "TitleScene";
+    m_scenes[m_currentSceneName]->Init();
+
 }
 
 void SceneManager::Update(float deltatime)
 {
-    //現在選択中のSceneクラスのUpdateをかける
-    m_scenes[m_currentSceneName]->Update(deltatime);
+    // 0) 入力等
+    Input::Update();
+
+    // 1) フレーム先頭で前フレームのコライダーをクリア
+    CollisionManager::Clear();
+
+    // 2) トランジション更新（そのまま）
+    TransitionManager::Update(deltatime);
+
+    if (!TransitionManager::IsActive())
+    {
+        // 3) SceneのUpdate（ここで Scene 内が RegisterCollider を呼ぶ）
+        if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
+        {
+            m_scenes[m_currentSceneName]->Update(deltatime);
+        }
+
+        // 4) 判定を実行（Scene がコライダーを登録し終えた後で）
+        CollisionManager::CheckCollisions();
+
+        // 5) 削除や追加の反映（安全なタイミング）
+        if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
+        {
+            m_scenes[m_currentSceneName]->FinishFrameCleanup();
+        }
+    }
+    else
+    {
+        // 遷移中の扱い（従来通り）
+    }
 }
+
+
 
 void SceneManager::Draw(float deltatime)
 {
-    //現在選択中のSceneクラスのDrawをかける
-    m_scenes[m_currentSceneName]->Draw(deltatime);
+    // 1) 現在シーンを描画
+    if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
+    {
+        m_scenes[m_currentSceneName]->Draw(deltatime);
+    }
+
+    // 2) 遷移オーバーレイを上に重ねる（例：フェード）
+    TransitionManager::Draw(deltatime);
 }
+
 
 void SceneManager::Uninit()
 {

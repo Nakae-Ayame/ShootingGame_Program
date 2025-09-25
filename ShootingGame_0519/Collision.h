@@ -181,35 +181,20 @@ namespace Collision
         const Matrix& obbRot,
         const Vector3& obbHalfSize)
     {
-        // AABB の中心と半径
         Vector3 aabbCenter = (aabbMin + aabbMax) * 0.5f;
         Vector3 aabbHalfSize = (aabbMax - aabbMin) * 0.5f;
 
-        // OBB のローカル軸（回転行列から抽出）
-        Vector3 obbAxis[3] = {
-            Vector3(obbRot._11, obbRot._12, obbRot._13), // X軸
-            Vector3(obbRot._21, obbRot._22, obbRot._23), // Y軸
-            Vector3(obbRot._31, obbRot._32, obbRot._33)  // Z軸
+        Vector3 axesA[3] = {
+            Vector3(1,0,0),
+            Vector3(0,1,0),
+            Vector3(0,0,1)
         };
 
-        // 中心差
-        Vector3 t = obbCenter - aabbCenter;
+        Vector3 axesB[3];
+        ExtractAxesFromMatrix(obbRot, axesB); // Ensure this function exists and normalizes
 
-        // 回転行列の絶対値（軸間のクロスを考慮）
-        float R[3][3], AbsR[3][3];
-        for (int i = 0; i < 3; ++i)
-        {
-            for (int j = 0; j < 3; ++j)
-            {
-                R[i][j] = obbAxis[i].Dot(Vector3((j == 0), (j == 1), (j == 2))); // 基底ベクトルとのドット
-                AbsR[i][j] = fabs(R[i][j]) + 1e-6f; // 丸め誤差防止
-            }
-        }
-
-        // 以下 SAT 判定（全15軸でチェック）
-        // [詳細コードは後で実装。まずはシグネチャだけ作る]
-
-        return true; // TODO: 実際は分離軸が見つかったら false
+        return IsOBBHit(aabbCenter, axesA, aabbHalfSize, obbCenter, axesB, obbHalfSize);
     }
+
 
 }

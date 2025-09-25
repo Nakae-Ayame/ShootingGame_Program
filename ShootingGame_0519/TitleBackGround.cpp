@@ -26,7 +26,7 @@ void TitleBackGround::Initialize()
     {
         OutputDebugStringA("Reticle: テクスチャ読み込み失敗\n");
     }
-    m_texture->SetSize(m_size, m_size);
+    m_texture->SetSize(1280, 720);
 
     // 初期位置：ウィンドウ中央
     RECT rc{};
@@ -51,7 +51,7 @@ void TitleBackGround::Draw(float alpha)
 
     // Renderer::DrawReticle は中心座標の POINT を期待する実装を想定
     POINT center{ static_cast<LONG>(m_pos.x), static_cast<LONG>(m_pos.y) };
-    Vector2 size(m_size, m_size);
+    Vector2 size(1280, 720);
 
     // DrawReticle 内で深度・ブレンドの切り替えを行い、
     // DrawTexture 側で SRV のアンバインドとシェーダ復帰を行うことを期待

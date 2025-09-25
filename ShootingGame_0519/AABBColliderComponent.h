@@ -16,34 +16,19 @@ public:
     void SetSize(const Vector3& size) { m_Size = size; }
 
     //GameObjectの位置のゲット関数
-    Vector3 GetCenter() const override
-    {
-        return GetOwner()->GetPosition();
-    }
+    Vector3 GetCenter() const override;
 
     //当たり判定用のサイズのゲット関数(m_Size)
-    Vector3 GetSize() const override
-    {
-        return m_Size;
-    }
+    Vector3 GetSize() const override;
 
     //AABBは回転を考慮しないのでIdentity(回転なし)にしておく
-    DirectX::SimpleMath::Matrix GetRotationMatrix() const override
-    {
-        return DirectX::SimpleMath::Matrix::Identity;
-    }
+    DirectX::SimpleMath::Matrix GetRotationMatrix() const override;
 
     //中央から半分のサイズを引いて最小座標を出す
-    Vector3 GetMin() const
-    {
-        return GetCenter() - m_Size * 0.5f;
-    }
+    Vector3 GetMin() const;
 
     //中央から半分のサイズを引いて最大座標を出す
-    Vector3 GetMax() const
-    {
-        return GetCenter() + m_Size * 0.5f;
-    }
+    Vector3 GetMax() const;
 
 private:
 

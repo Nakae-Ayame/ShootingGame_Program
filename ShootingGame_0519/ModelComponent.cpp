@@ -29,6 +29,7 @@
 //}
 #include "ModelComponent.h"
 #include "Renderer.h"
+#include "GameObject.h"   
 #include "Application.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>

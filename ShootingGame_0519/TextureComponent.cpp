@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include <WICTextureLoader.h>
 #include "Application.h"
+#include <iostream>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -27,5 +28,7 @@ void TextureComponent::Draw(float alpha)
 {
     if (!m_TextureSRV) return;
 
+    std::cout << "[TextureComp] Draw start SRV=" << m_TextureSRV.Get() << std::endl;
     Renderer::DrawTexture(m_TextureSRV.Get(), m_Position, m_Size);
+    std::cout << "[TextureComp] Draw end\n";
 }

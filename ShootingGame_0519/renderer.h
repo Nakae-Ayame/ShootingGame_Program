@@ -132,6 +132,7 @@ private:
     static int m_IndexCount;
 
 public:
+    static Renderer& Get();
     static void Init();
     static void Uninit();
     static void Begin();
@@ -164,7 +165,12 @@ public:
     //レティクル用の関数
     static void DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size);
 
-    
+    //static void BeginOverlay();
+    //static void DrawFullScreenQuad(const Color& color);
+    //static void EndOverlay();
+
+    // 黒／任意色の全画面四角形をアルファ a で上書き描画する
+    ///static void DrawFullScreenQuad(float r, float g, float b, float a);
     //static void BindGridShader();
 
     static void DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size);
@@ -183,4 +189,8 @@ public:
     // Grid専用のシェーダー
     static ComPtr<ID3D11VertexShader> m_GridVertexShader;
     static ComPtr<ID3D11PixelShader>  m_GridPixelShader;
+
+    static ComPtr<ID3D11DeviceContext>  m_pContext; // 初期化済みのデバイスコンテキスト
+    static ComPtr<ID3D11BlendState>     m_pBlendState; // アルファブレンド用
+    static ComPtr<ID3D11Buffer>         m_pVertexBuffer; // フルスクリーン用頂点バッファ
 };

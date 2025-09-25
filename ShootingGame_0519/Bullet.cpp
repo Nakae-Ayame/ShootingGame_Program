@@ -1,4 +1,5 @@
 #include "Bullet.h"
+#include "Enemy.h"
 #include "OBBColliderComponent.h"
 #include "CollisionManager.h"
 #include "SphereComponent.h"
@@ -7,8 +8,6 @@
 
 void Bullet::Initialize()
 {
-    OutputDebugStringA("Bullet::Initialize called\n");
-
     //BulletComponentを追加して運動を担当させる
     auto m_bulletComp = std::make_shared<BulletComponent>();
     if (m_bulletComp)
@@ -27,9 +26,6 @@ void Bullet::Initialize()
     {
         // OBBColliderComponent::SetSize() は全体サイズ（幅・高さ・奥行き）を期待する想定
         m_collider->SetSize(Vector3(m_radius * 2.0f, m_radius * 2.0f, m_radius * 2.0f));
-
-        // CollisionManager に登録する（フレーム毎に登録/クリアする実装なら不要）
-        CollisionManager::RegisterCollider(m_collider.get());
     }
 
     ID3D11Device* dev = Renderer::GetDevice();
@@ -37,49 +33,105 @@ void Bullet::Initialize()
 }
 
 void Bullet::Update(float dt)
-{
-    // 基底のコンポーネント Update を呼ぶ（GameObject::Update がコンポーネント群を回す実装をしている想定）
-    GameObject::Update(dt); // もし GameObject::Update(float) に変えたならそちらを呼んでください
-
-    // Bullet 個別のロジックがあればここに書く（現状はBulletComponentが移動を担当）
+{   
+    GameObject::Update(dt); 
 }
 
 void Bullet::Draw(float alpha)
 {
-
-    //1) ワールド行列をセット
+    // world 行列セット
     Matrix4x4 world = GetTransform().GetMatrix();
     Renderer::SetWorldMatrix(&world);
 
-    //2) 深度テストやカリングはデフォルト（表側のみ描画）でOK
     Renderer::SetDepthEnable(true);
     Renderer::DisableCulling(false);
 
-    //3) 単色を渡すための定数バッファ更新例
-    struct ColorCB { DirectX::XMFLOAT4 color; };
-    static ID3D11Buffer* colorCB = nullptr;
-    if (!colorCB)
-    {
-        // 一度だけ定数バッファを作成
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = sizeof(ColorCB);
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        Renderer::GetDevice()->CreateBuffer(&desc, nullptr, &colorCB);
-    }
-    // 好きな色を指定（赤い弾丸など）
-    ColorCB cbData{ {1.0f, 0.0f, 0.0f, 1.0f} };
-    Renderer::GetDeviceContext()->PSSetConstantBuffers(0, 1, &colorCB);
-    Renderer::GetDeviceContext()->UpdateSubresource(colorCB, 0, nullptr, &cbData, 0, 0);
+    //保存: 現在 PS にバインドされている CB(slot3) を取得しておく ---
+    ID3D11Buffer* prevPSCB = nullptr;
+    Renderer::GetDeviceContext()->PSGetConstantBuffers(3, 1, &prevPSCB);
 
-    // 4) プリミティブの描画
+    // --- 2) マテリアルをセット（slot 3 を使う設計に合わせる） ---
+    MATERIAL mat{};
+    mat.Diffuse = Color(1.0f, 0.0f, 0.0f, 1.0f); // 赤
+    Renderer::SetMaterial(mat);
+
+    // --- 3) (オプションだが安全) 1x1 の赤テクスチャを作成して t0 にバインド ---
+    // static にして一度だけ作る
+    static ComPtr<ID3D11ShaderResourceView> s_redSRV;
+    if (!s_redSRV)
+    {
+        ID3D11Device* dev = Renderer::GetDevice();
+        ID3D11DeviceContext* ctx = Renderer::GetDeviceContext();
+
+        // 1x1 RGBA8 の赤ピクセル
+        D3D11_TEXTURE2D_DESC td{};
+        td.Width = 1; td.Height = 1; td.MipLevels = 1; td.ArraySize = 1;
+        td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        td.SampleDesc.Count = 1;
+        td.Usage = D3D11_USAGE_DEFAULT;
+        td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+        uint32_t pixel = 0xFF0000FF; // BGRA or RGBA? R=255,G=0,B=0,A=255 -> DirectX expects little endian: 0xFF0000FF gives (B=0,R=255?) 
+        // safer: use byte array
+        uint8_t texData[4] = { 0x00, 0x00, 0xFF, 0xFF }; // B,G,R,A => (R=255) depending on format, but DXGI_FORMAT_R8G8B8A8_UNORM expects RGBA in memory.
+        // So use RGBA: {255,0,0,255}
+        uint8_t texRGBA[4] = { 255, 0, 0, 255 };
+
+        D3D11_SUBRESOURCE_DATA sd{};
+        sd.pSysMem = texRGBA;
+        sd.SysMemPitch = 4;
+
+        ComPtr<ID3D11Texture2D> tex;
+        HRESULT hr = dev->CreateTexture2D(&td, &sd, tex.GetAddressOf());
+        if (SUCCEEDED(hr))
+        {
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvd{};
+            srvd.Format = td.Format;
+            srvd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvd.Texture2D.MipLevels = 1;
+            dev->CreateShaderResourceView(tex.Get(), &srvd, s_redSRV.GetAddressOf());
+        }
+        else
+        {
+            std::cout << "[Bullet] Failed to create 1x1 red texture\n";
+        }
+    }
+
+    // 保存されている PS SRV を取り出して復元できるようにしておく
+    ID3D11ShaderResourceView* prevSRV = nullptr;
+    Renderer::GetDeviceContext()->PSGetShaderResources(0, 1, &prevSRV);
+
+    // Bind red SRV to slot 0 (t0)
+    if (s_redSRV) Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, s_redSRV.GetAddressOf());
+
+    // --- 4) 描画 ---
+    std::cout << "[Bullet] Drawing primitive (red)\n";
     m_primitive.Draw(Renderer::GetDeviceContext());
 
-    // 5) 後片づけ（PS レジスタを戻す）
-    ID3D11Buffer* nullCB = nullptr;
-    Renderer::GetDeviceContext()->PSSetConstantBuffers(0, 1, &nullCB);
+    // --- 5) 復元: PS SRV & PS CB を元に戻す ---
+    Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, &prevSRV);
+    if (prevSRV) prevSRV->Release();
 
-    //std::cout << "Bullet::Drawを実行終了しました。" << std::endl;
+    Renderer::GetDeviceContext()->PSSetConstantBuffers(3, 1, &prevPSCB);
+    if (prevPSCB) prevPSCB->Release();
+
+    // 終了
 }
 
+void Bullet::OnCollision(GameObject* other)
+{
+    if (!other) return;
+
+    // Enemy に衝突したら両方消す（他の弾やプレイヤーとは別扱いに）
+    if (dynamic_cast<Enemy*>(other))
+    {
+        IScene* scene = GetScene();
+        if (scene)
+        {
+            std::cout << "Enemyに衝突したためBulletを削除します " << std::endl;
+            scene->RemoveObject(this);
+            scene->RemoveObject(other);
+        }
+    }
+}
 

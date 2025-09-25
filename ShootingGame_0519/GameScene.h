@@ -10,6 +10,7 @@
 #include "Reticle.h"
 #include "SkyDome.h"
 #include "Bullet.h"
+#include "TitleBackGround.h"
 
 //---------------------------------
 //ISceneÇåpè≥ÇµÇΩGameScene
@@ -24,15 +25,20 @@ public:
 	void Uninit() override;
 	void AddObject(std::shared_ptr<GameObject> obj) override;
 	
-	void RemoveObject(std::shared_ptr<GameObject>) override;
+	void RemoveObject(std::shared_ptr<GameObject>) override {};
 	void RemoveObject(GameObject* obj);
 	void FinishFrameCleanup() override;
 
 private:
 	std::shared_ptr<Player> m_player;
-	std::shared_ptr<Enemy> m_enemy;
+	std::shared_ptr<Enemy> m_enemy01;
+	std::shared_ptr<Enemy> m_enemy02;
+	std::shared_ptr<Enemy> m_enemy03;
+	std::shared_ptr<Enemy> m_enemy04;
+	std::shared_ptr<Enemy> m_enemy05;
 	std::shared_ptr<Bullet> m_bullet;
 	std::shared_ptr<CameraObject> m_FollowCamera;
+	std::shared_ptr<TitleBackGround> m_background;
 	std::shared_ptr<SkyDome> m_SkyDome;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;

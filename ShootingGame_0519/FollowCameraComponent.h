@@ -14,6 +14,9 @@ using namespace DirectX::SimpleMath;
 class FollowCameraComponent : public Component, public ICameraViewProvider
 {
 public:
+
+    void SetReticleObject(class Reticle* r) { m_pReticle = r; }
+
     FollowCameraComponent();
     void Initialize() override {};
     void Update(float dt) override;
@@ -41,7 +44,10 @@ public:
 
     Vector3 GetPosition() const { return m_Spring.GetPosition();}
 
+    DirectX::SimpleMath::Vector3 GetAimDirectionFromReticle() const;
 private:
+    class Reticle* m_pReticle = nullptr;
+
     void UpdateCameraPosition(float dt);
 
     GameObject* m_Target = nullptr;   //カメラが追従する対象(プレイヤーなど)のポインタ

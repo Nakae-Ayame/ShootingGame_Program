@@ -3,6 +3,8 @@
 #include "CollisionManager.h"
 #include "Collision.h" // IsAABBHit, IsOBBHit, IsAABBvsOBB
 #include "DebugGlobals.h"
+#include "renderer.h"
+#include "GameObject.h"
 
 using namespace DirectX;
 
@@ -12,7 +14,22 @@ bool CollisionManager::m_hitThisFrame = false;
 
 void CollisionManager::RegisterCollider(ColliderComponent* collider)
 {
-    m_Colliders.push_back(collider);
+    if (!collider) return;
+    //重複防止
+    if (std::find(m_Colliders.begin(), m_Colliders.end(), collider) == m_Colliders.end())
+    {
+        m_Colliders.push_back(collider);
+    }
+}
+
+void CollisionManager::UnregisterCollider(ColliderComponent* collider)
+{
+    if (!collider) return;
+    auto it = std::find(m_Colliders.begin(), m_Colliders.end(), collider);
+    if (it != m_Colliders.end())
+    {
+        m_Colliders.erase(it);
+    }
 }
 
 void CollisionManager::Clear()
@@ -123,8 +140,8 @@ void CollisionManager::CheckCollisions()
             //-----------------------------------------
             if (hit)
             {
-                // ✅ 当たっている場合のログ
-                //std::cout << "当たっています" << std::endl;
+                //当たっている場合のログ
+                std::cout << "当たっています" << std::endl;
 
                 // コリジョンイベント通知
                 colA->SetHitThisFrame(true);
@@ -134,18 +151,30 @@ void CollisionManager::CheckCollisions()
             }
             else
             {
-                // ✅ 当たっていない場合のログ（デバッグ時のみ有効にするといい）
-                //std::cout << "当たっていません "<< std::endl;
+                //当たっていない場合のログ（デバッグ時のみ有効にするといい）
+                std::cout << "当たっていません "<< std::endl;
             }
         }
     }
 
 }
 
-void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr) 
+void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)
 {
+    if (m_Colliders.empty()) 
+    {
+        std::cout << "コライダーに何も登録されていません " << std::endl;
+        return;
+    }
+
+    // 深度オフにして両面描画で見やすく
+    //m_DeviceContextBackup... // （もし保存できるなら保存、無ければ Renderer 関数で切り替え）
+    Renderer::SetDepthEnable(false);
+    Renderer::DisableCulling(false);
+
     for (auto* col : m_Colliders)
     {
+        if (!col) continue;
         bool hit = col->IsHitThisFrame();
         Vector4 color = hit ? Vector4(1, 0, 0, 1) : Vector4(0, 1, 0, 0.7f);
 
@@ -155,15 +184,87 @@ void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)
             Vector3 mn = a->GetMin();
             Vector3 mx = a->GetMax();
             Vector3 center = (mn + mx) * 0.5f;
-            Vector3 size = (mx - mn);
-            dr.AddBox(center, size, Matrix::Identity, color);
+            Vector3 fullSize = (mx - mn);
+            Vector3 halfSize = fullSize * 0.5f;
+
+            char buf[256];
+            sprintf_s(buf, "DBG: AABB center=(%f,%f,%f) fullSize=(%f,%f,%f)\n",
+                center.x, center.y, center.z, fullSize.x, fullSize.y, fullSize.z);
+            OutputDebugStringA(buf);
+
+            dr.AddBox(center, halfSize, Matrix::Identity, color);
         }
-        else //OBB
+        else // OBB
         {
             auto* o = static_cast<OBBColliderComponent*>(col);
-            dr.AddBox(o->GetCenter(), o->GetSize(), o->GetRotationMatrix(), color);
+            Vector3 center = o->GetCenter();
+            Vector3 fullSize = o->GetSize();
+            Vector3 halfSize = fullSize * 0.5f;
+            Matrix rot = o->GetRotationMatrix();
+
+            char buf[256];
+            sprintf_s(buf, "DBG: OBB center=(%f,%f,%f) fullSize=(%f,%f,%f)\n",
+                center.x, center.y, center.z, fullSize.x, fullSize.y, fullSize.z);
+            OutputDebugStringA(buf);
+
+            dr.AddBox(center, halfSize, rot, color);
         }
     }
+
+    // 元に戻す
+    Renderer::SetDepthEnable(true);
+    Renderer::DisableCulling(true);
 }
+
+
+//void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)
+//{
+//    // 見えやすく一時的にデプスオフ、カリングオフ
+//    Renderer::SetDepthEnable(false);
+//    Renderer::DisableCulling(false);
+//
+//    for (auto* col : m_Colliders)
+//    {
+//        bool hit = col->IsHitThisFrame();
+//        Vector4 color = hit ? Vector4(1, 0, 0, 1) : Vector4(0, 1, 0, 0.7f);
+//
+//        if (col->GetColliderType() == ColliderType::AABB)
+//        {
+//            auto* a = static_cast<AABBColliderComponent*>(col);
+//            Vector3 mn = a->GetMin();
+//            Vector3 mx = a->GetMax();
+//            Vector3 center = (mn + mx) * 0.5f;
+//            Vector3 fullSize = (mx - mn);
+//            Vector3 halfSize = fullSize * 0.5f;
+//
+//            char buf[256];
+//            sprintf_s(buf, "DBG: AABB center=(%f,%f,%f) fullSize=(%f,%f,%f)\n",
+//                center.x, center.y, center.z, fullSize.x, fullSize.y, fullSize.z);
+//            OutputDebugStringA(buf);
+//
+//            dr.AddBox(center, halfSize, Matrix::Identity, color);
+//        }
+//        else // OBB
+//        {
+//            auto* o = static_cast<OBBColliderComponent*>(col);
+//            Vector3 center = o->GetCenter();
+//            Vector3 fullSize = o->GetSize();
+//            Vector3 halfSize = fullSize * 0.5f;
+//            Matrix rot = o->GetRotationMatrix();
+//
+//            char buf[256];
+//            sprintf_s(buf, "DBG: OBB center=(%f,%f,%f) fullSize=(%f,%f,%f)\n",
+//                center.x, center.y, center.z, fullSize.x, fullSize.y, fullSize.z);
+//            OutputDebugStringA(buf);
+//
+//            dr.AddBox(center, halfSize, rot, color);
+//        }
+//    }
+//
+//    // restore
+//    Renderer::SetDepthEnable(true);
+//    Renderer::DisableCulling(true);
+//}
+
 
 

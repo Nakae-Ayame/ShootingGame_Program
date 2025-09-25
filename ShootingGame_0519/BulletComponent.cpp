@@ -27,15 +27,6 @@ void BulletComponent::Initialize()
 
 void BulletComponent::Update(float dt)
 {
-    static int c = 0;
-    if ((++c % 60) == 0)
-    { // 1秒に1回くらい
-        Vector3 v = GetOwner()->GetPosition();
-        char buf[256];
-        sprintf_s(buf, "BulletComponent::Update ownerPos=(%f,%f,%f)\n", v.x, v.y, v.z);
-        OutputDebugStringA(buf);
-    }
-
     //装着しているオブジェクトがないなら更新は終了
     if (!GetOwner()) return;
 
@@ -45,10 +36,20 @@ void BulletComponent::Update(float dt)
     //生存時間が寿命を超えていたら
     if (m_age >= m_lifetime)
     {
-       //消す処理
+        GameObject* owner = GetOwner();
+        if (owner)
+        {
+            IScene* s = owner->GetScene();
+            if (s)
+            {
+                s->RemoveObject(owner);//オブジェクト削除候補の配列に入れる
+                std::cout << "弾の稼働時間が終了したため削除します " << std::endl;
+            }
+        }
+        return; // 以降の更新はしない
     }
 
-    // 速度ベクトルで移動（m_velocity は方向、m_speed は速さ）
+     //　速度ベクトルで移動（m_velocity は方向、m_speed は速さ）
     if (m_velocity.LengthSquared() > 0.0f)
     {
         Vector3 pos = GetOwner()->GetPosition();

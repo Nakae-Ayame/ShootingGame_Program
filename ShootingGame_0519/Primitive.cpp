@@ -18,7 +18,7 @@ void Primitive::CreateSphere(ID3D11Device* device, float radius, int sliceCount,
             float x = r * cosf(theta);
             float z = r * sinf(theta);
 
-            vertices.push_back({ XMFLOAT3(x, y, z), XMFLOAT3(x, y, z), XMFLOAT2((float)j / sliceCount, (float)i / stackCount) });
+            vertices.push_back({ XMFLOAT3(x, y, z), XMFLOAT3(x, y, z), XMFLOAT4(1,1,1,1), XMFLOAT2((float)j / sliceCount, (float)i / stackCount) });
         }
     }
 
@@ -69,7 +69,8 @@ void Primitive::CreateBox(ID3D11Device* device, float width, float height, float
 
     for (int i = 0; i < 8; ++i)
     {
-        vertices.push_back({ positions[i], XMFLOAT3(0, 0, -1), XMFLOAT2(0, 0) });
+        vertices.push_back({ positions[i], XMFLOAT3(0,0,-1), XMFLOAT4(1,1,1,1), XMFLOAT2(0,0) });
+
     }
 
     indices.assign(boxIndices, boxIndices + sizeof(boxIndices) / sizeof(uint32_t));

@@ -13,6 +13,9 @@ public:
     //当たり判定したいコライダーを今フレームのリストに追加
     static void RegisterCollider(ColliderComponent* collider);
 
+    //当たり判定を登録していた物をリストから削除する
+    static void UnregisterCollider(ColliderComponent* collider);
+
     //前フレームまでに登録されていた
     //コライダーのリスト(m_Colliders)を空にする
     static void Clear();
@@ -24,7 +27,6 @@ public:
     static void DebugDrawAllColliders(DebugRenderer& dr);
 
 private:
-
     //当たり判定を行いたいオブジェクトのリスト
     static std::vector<ColliderComponent*> m_Colliders;
     static bool m_hitThisFrame;

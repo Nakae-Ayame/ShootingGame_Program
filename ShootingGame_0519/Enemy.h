@@ -12,8 +12,9 @@ public:
     Enemy() = default;
     ~Enemy() override = default;
 
-    void Initialize() override;
-    void Update(float dt) override;
+    void Initialize() override;         //‰Šú‰»
+    void Update(float dt) override;     //XV
+    void OnCollision(GameObject* other) override;     //“–‚½‚Á‚½‚Ìˆ—
 private:
     std::shared_ptr<OBBColliderComponent> m_Collider;
 };

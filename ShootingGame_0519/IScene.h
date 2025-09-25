@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "SceneManager.h"
 //------------------------ISceneクラス-------------------------
 //Sceneを作る際などに使うインターフェースとしてのクラス
 //-------------------------------------------------------------
@@ -31,6 +32,7 @@ public:
 	//------------他からオブジェクトの削除の登録を行う関数---------------
 	virtual void RemoveObject(std::shared_ptr<GameObject> obj) = 0;
 
+	virtual void RemoveObject(GameObject* obj) = 0;
 	//---------------他からオブジェクトの削除を行う関数------------------
 	virtual void FinishFrameCleanup() = 0;
 };

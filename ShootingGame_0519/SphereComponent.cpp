@@ -1,5 +1,6 @@
 #include "SphereComponent.h"
 #include "Renderer.h"
+#include "GameObject.h"   
 #include <cassert>
 
 using namespace DirectX::SimpleMath;

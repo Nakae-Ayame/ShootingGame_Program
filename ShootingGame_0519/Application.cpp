@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "renderer.h"
 #include "DebugGlobals.h"
+#include "TransitionManager.h"
 
 constexpr auto ClassName  = TEXT("2025 就職作品 ");         //ウィンドウクラス名.
 constexpr auto WindowName = TEXT("2025 就職作品 ");        //ウィンドウ名.
@@ -36,6 +37,9 @@ bool Application::InitApp()
     {
         return false;
     }
+
+    // トランジション管理初期化
+    //TransitionManager::Initialize();
 
     // 正常終了.
     return true;
@@ -81,12 +85,16 @@ void Application::MainLoop()
 
             //更新・描画
             Game::GameUpdate(m_DeltaTime);
+            //TransitionManager::Update(m_DeltaTime);
             Game::GameDraw(m_DeltaTime);
+
+            // フェードオーバーレイ
+            //TransitionManager::Draw();
         }
     }
 
     //ゲーム終了処理
-    Game::GameUninit();
+    //Game::GameUninit();
 }
 
 bool Application::InitWnd()

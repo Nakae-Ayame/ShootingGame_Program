@@ -37,7 +37,7 @@ private:
 
     float m_cooldown = 0.25f;   // 発射間隔（秒）
     float m_timer = 0.0f;
-    float m_bulletSpeed = 60.0f;
+    float m_bulletSpeed = 180.0f;
     float m_spawnOffset = 1.5f; // プレイヤー前方に出現させるオフセット
 };
 

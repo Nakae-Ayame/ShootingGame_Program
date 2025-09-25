@@ -3,6 +3,7 @@
 #include "renderer.h"
 #include "SceneManager.h"
 #include "Application.h"
+#include "TransitionManager.h"
 
 void Game::GameInit()
 {
@@ -11,6 +12,8 @@ void Game::GameInit()
 
     //DirectXのレンダラーを初期化
     Renderer::Init();
+
+    TransitionManager::Init();
 
     SceneManager::Init(); //シーンマネージャーの初期化
 }

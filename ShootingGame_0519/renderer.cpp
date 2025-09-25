@@ -8,6 +8,7 @@
 
 #include <stdexcept>
 #include <d3dcompiler.h>
+#include <iostream>
 #include "renderer.h"
 #include "Application.h"
 
@@ -49,7 +50,9 @@ ComPtr<ID3D11VertexShader> Renderer::m_TextureVertexShader;
 ComPtr<ID3D11PixelShader>  Renderer::m_TexturePixelShader;
 ComPtr<ID3D11InputLayout>  Renderer::m_TextureInputLayout;
 
-
+ComPtr<ID3D11DeviceContext> Renderer::m_pContext; // 初期化済みのデバイスコンテキスト
+ComPtr<ID3D11BlendState> Renderer::m_pBlendState; // アルファブレンド用
+ComPtr<ID3D11Buffer> Renderer::m_pVertexBuffer; // フルスクリーン用頂点バッファ
 
 //------------------------------------------------------------------------------
 // Renderer クラスの各関数の実装
@@ -60,8 +63,18 @@ ComPtr<ID3D11InputLayout>  Renderer::m_TextureInputLayout;
  //ビューポート、ラスタライザ、ブレンドステート、深度ステンシルステート、サンプラーステート、
  //定数バッファの生成、初期ライトおよびマテリアルの設定などを実施します。
 
+// ヘルパー：CSO から ID3DBlob をロード
+//static ComPtr<ID3DBlob> LoadCSO(const wchar_t* path)
+//{
+//    ComPtr<ID3DBlob> blob;
+//    HRESULT hr = D3DReadFileToBlob(path, blob.GetAddressOf());
+//    assert(SUCCEEDED(hr) && "CSO load failed");
+//    return blob;
+//}
+
 void Renderer::Init()
 {
+
     HRESULT hr = S_OK;
 
     //スワップチェインを作成する
@@ -226,7 +239,7 @@ void Renderer::Init()
 
     m_Device->CreateBuffer(&bufferDesc, nullptr, m_ProjectionBuffer.GetAddressOf());
     m_DeviceContext->VSSetConstantBuffers(2, 1, m_ProjectionBuffer.GetAddressOf());
-
+    
     bufferDesc.ByteWidth = sizeof(MATERIAL);
     m_Device->CreateBuffer(&bufferDesc, nullptr, m_MaterialBuffer.GetAddressOf());
     m_DeviceContext->VSSetConstantBuffers(3, 1, m_MaterialBuffer.GetAddressOf());
@@ -354,6 +367,7 @@ void Renderer::Init()
     m_Device->CreateInputLayout(texLayoutDesc, _countof(texLayoutDesc),
         texVsBlob->GetBufferPointer(), texVsBlob->GetBufferSize(), m_TextureInputLayout.GetAddressOf());
 
+
 }
 
 
@@ -376,6 +390,12 @@ void Renderer::Uninit()
     m_RenderTargetView.Reset();
     m_SwapChain.Reset();
     m_DeviceContext.Reset();
+    m_Device.Reset();
+
+    char buf[256];
+    sprintf_s(buf, "Uninit: device=%p context=%p\n", m_Device.Get(), m_pContext.Get());
+    OutputDebugStringA(buf);
+    m_pContext.Reset();
     m_Device.Reset();
 }
 
@@ -583,18 +603,48 @@ void Renderer::SetDepthAllwaysWrite()
  */
 void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size)
 {
-    // 頂点データ定義（左上原点の2D）
-    struct Vertex
-    {
-        Vector3 pos;
-        Vector2 uv;
-    };
+    //std::cout << "[Renderer] DrawTexture start texture=" << texture << " pos=(" << position.x << "," << position.y << ") size=(" << size.x << "," << size.y << ")\n";
+       
+    if (!texture) { OutputDebugStringA("DBG: DrawTexture - texture null\n"); return; }
 
+    // -------- Save GPU state we'll change --------
+    ID3D11VertexShader* prevVS = nullptr;
+    ID3D11PixelShader* prevPS = nullptr;
+    ID3D11InputLayout* prevIL = nullptr;
+    ID3D11Buffer* prevVSCB[1] = { nullptr };
+    ID3D11Buffer* prevPSCB[1] = { nullptr };
+    ID3D11BlendState* prevBlend = nullptr;
+    FLOAT prevBlendFactor[4] = { 0,0,0,0 };
+    UINT prevSampleMask = 0xFFFFFFFF;
+    ID3D11DepthStencilState* prevDSS = nullptr;
+    UINT prevStencilRef = 0;
+    ID3D11RasterizerState* prevRS = nullptr;
+    D3D11_PRIMITIVE_TOPOLOGY prevTopo = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    ID3D11Buffer* prevVBs[1] = { nullptr };
+    UINT prevStrides[1] = { 0 };
+    UINT prevOffsets[1] = { 0 };
+    ID3D11ShaderResourceView* prevPSRV[1] = { nullptr };
+    ID3D11SamplerState* prevSampler[1] = { nullptr };
+
+    m_DeviceContext->VSGetShader(&prevVS, nullptr, nullptr);
+    m_DeviceContext->PSGetShader(&prevPS, nullptr, nullptr);
+    m_DeviceContext->IAGetInputLayout(&prevIL);
+    m_DeviceContext->VSGetConstantBuffers(0, 1, prevVSCB);
+    m_DeviceContext->PSGetConstantBuffers(0, 1, prevPSCB);
+    m_DeviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_DeviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+    m_DeviceContext->RSGetState(&prevRS);
+    m_DeviceContext->IAGetPrimitiveTopology(&prevTopo);
+    m_DeviceContext->IAGetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_DeviceContext->PSGetShaderResources(0, 1, prevPSRV);
+    m_DeviceContext->PSGetSamplers(0, 1, prevSampler);
+
+    // -------- Build vertices (left-top origin) --------
+    struct Vertex { Vector3 pos; Vector2 uv; };
     float x = position.x;
     float y = position.y;
     float w = size.x;
     float h = size.y;
-
     Vertex vertices[6] =
     {
         {{x,     y,     0.0f}, {0.0f, 0.0f}},
@@ -606,81 +656,136 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
         {{x,     y + h, 0.0f}, {0.0f, 1.0f}},
     };
 
-    // 頂点バッファ作成
+    // create ephemeral VB (ComPtr to auto-release)
+    ComPtr<ID3D11Buffer> vb;
     D3D11_BUFFER_DESC vbDesc = {};
     vbDesc.Usage = D3D11_USAGE_DEFAULT;
-    vbDesc.ByteWidth = sizeof(vertices);
+    vbDesc.ByteWidth = UINT(sizeof(vertices));
     vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
     D3D11_SUBRESOURCE_DATA initData = {};
     initData.pSysMem = vertices;
+    HRESULT hr = m_Device->CreateBuffer(&vbDesc, &initData, vb.GetAddressOf());
+    if (FAILED(hr))
+    {
+        // failed to create VB -> restore and return
+        // restore below (we'll restore minimal pieces)
+        if (prevVS) prevVS->Release();
+        if (prevPS) prevPS->Release();
+        if (prevIL) prevIL->Release();
+        if (prevVSCB[0]) prevVSCB[0]->Release();
+        if (prevPSCB[0]) prevPSCB[0]->Release();
+        if (prevBlend) prevBlend->Release();
+        if (prevDSS) prevDSS->Release();
+        if (prevRS) prevRS->Release();
+        if (prevVBs[0]) prevVBs[0]->Release();
+        if (prevPSRV[0]) prevPSRV[0]->Release();
+        if (prevSampler[0]) prevSampler[0]->Release();
+        return;
+    }
 
-    ComPtr<ID3D11Buffer> vertexBuffer;
-    m_Device->CreateBuffer(&vbDesc, &initData, vertexBuffer.GetAddressOf());
-
-    // シェーダー・レイアウト設定
+    // -------- Bind 2D shaders / input layout and vertices --------
     m_DeviceContext->IASetInputLayout(m_TextureInputLayout.Get());
     m_DeviceContext->VSSetShader(m_TextureVertexShader.Get(), nullptr, 0);
     m_DeviceContext->PSSetShader(m_TexturePixelShader.Get(), nullptr, 0);
+    SetWorldViewProjection2D(); // your helper to set matrices to CBs
 
-    // 2D用のビュー・プロジェクション行列設定
-    SetWorldViewProjection2D();
-
-    // 頂点バッファ設定
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
-    m_DeviceContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+    ID3D11Buffer* vbPtr = vb.Get();
+    m_DeviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
     m_DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // テクスチャをバインド
+    // Bind texture + optional sampler (sampler slot 0)
     m_DeviceContext->PSSetShaderResources(0, 1, &texture);
+    // if you have a sampler object: m_DeviceContext->PSSetSamplers(0,1,m_Sampler.GetAddressOf());
 
-    // 描画実行
+    // Draw
     m_DeviceContext->Draw(6, 0);
 
-    // --------------------------
-   // 描画後に SRV をアンバインド（スロット0を null に戻す）
-   // --------------------------
+    // -------- Unbind our SRV to avoid binding it beyond this call --------
     ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
     m_DeviceContext->PSSetShaderResources(0, 1, nullSRV);
 
-    // --------------------------
-    // DrawTexture は入力レイアウトやシェーダーを差し替えるため、
-    // 後続の3D描画が崩れないように元の（3D）状態に戻す
-    // --------------------------
-    // ここでは Renderer が Init() で作成している m_InputLayout / m_VertexShader / m_PixelShader に戻す
-    m_DeviceContext->IASetInputLayout(m_InputLayout.Get());
-    m_DeviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0);
-    m_DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0);
+    // -------- Restore previously saved GPU state --------
+    // restore samplers
+    m_DeviceContext->PSSetSamplers(0, 1, prevSampler);
 
-    // （必要ならプリミティブトポロジーも戻す）
-    m_DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    // restore SRV
+    m_DeviceContext->PSSetShaderResources(0, 1, prevPSRV);
+
+    // restore VB
+    m_DeviceContext->IASetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+
+    // restore primitive topology
+    m_DeviceContext->IASetPrimitiveTopology(prevTopo);
+
+    // restore rasterizer
+    m_DeviceContext->RSSetState(prevRS);
+
+    // restore depth-stencil
+    m_DeviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+
+    // restore blend
+    m_DeviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+
+    // restore constant buffers
+    m_DeviceContext->VSSetConstantBuffers(0, 1, prevVSCB);
+    m_DeviceContext->PSSetConstantBuffers(0, 1, prevPSCB);
+
+    // restore shaders & input layout
+    m_DeviceContext->VSSetShader(prevVS, nullptr, 0);
+    m_DeviceContext->PSSetShader(prevPS, nullptr, 0);
+    m_DeviceContext->IASetInputLayout(prevIL);
+
+    // Release the references we acquired via Get*
+    if (prevVS) prevVS->Release();
+    if (prevPS) prevPS->Release();
+    if (prevIL) prevIL->Release();
+    for (auto p : prevVSCB) if (p) p->Release();
+    for (auto p : prevPSCB) if (p) p->Release();
+    if (prevBlend) prevBlend->Release();
+    if (prevDSS) prevDSS->Release();
+    if (prevRS) prevRS->Release();
+    for (auto p : prevVBs) if (p) p->Release();
+    for (auto p : prevPSRV) if (p) p->Release();
+    for (auto p : prevSampler) if (p) p->Release();
+
+    //std::cout << "[Renderer] DrawTexture end\n";
 }
+
 
 void Renderer::DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size)
 {
     if (!texture) return;
 
-    // 中心位置 -> 左上に変換
+    // Save/restore depth & blend state quickly (we'll use DrawTexture which restores most state)
+    ID3D11DepthStencilState* prevDSS = nullptr;
+    UINT prevStencilRef = 0;
+    m_DeviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+
+    ID3D11BlendState* prevBlend = nullptr;
+    FLOAT prevBlendFactor[4] = { 0,0,0,0 };
+    UINT prevSampleMask = 0xFFFFFFFF;
+    m_DeviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+
+    // turn off depth, enable alpha blend (assume you have BS_ALPHABLEND created and stored)
+    SetDepthEnable(false);
+    SetBlendState(BS_ALPHABLEND);
+
     Vector2 topLeft;
     topLeft.x = static_cast<float>(center.x) - size.x * 0.5f;
     topLeft.y = static_cast<float>(center.y) - size.y * 0.5f;
+    DrawTexture(texture, topLeft, size);
 
-    // 深度無効・アルファブレンド有効にして描画
-    bool prevDepthEnable = true; // （状態を戻す必要があれば管理）
-    // 深度を OFF にする
-    Renderer::SetDepthEnable(false);
-    // 半透明ブレンド（既に BS_ALPHABLEND が用意されています）
-    Renderer::SetBlendState(BS_ALPHABLEND);
+    // restore blend/depth (DrawTexture already restores shaders/IL etc.)
+    // but if SetBlendState/SetDepthEnable modified device state outside DrawTexture, restore here:
+    m_DeviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_DeviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
 
-    // 実際の描画（既に DrawTexture にシェーダーバインド等まとめてある）
-    Renderer::DrawTexture(texture, topLeft, size);
-
-    // 表示後、深度を元に戻す（呼び出し側の期待に合わせて戻します）
-    Renderer::SetDepthEnable(true);
-    // （ブレンドは呼び出し側が必要なら上書きします）
+    if (prevDSS) prevDSS->Release();
+    if (prevBlend) prevBlend->Release();
 }
 
 
 
-
+//m_DeviceContext->Map(m_pVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);

@@ -8,6 +8,7 @@
 #include <SimpleMath.h>
 
 using namespace DirectX;
+using namespace DirectX::SimpleMath;
 
 FollowCameraComponent::FollowCameraComponent()
 {
@@ -38,6 +39,12 @@ void FollowCameraComponent::SetTarget(GameObject* target)
 //
 void FollowCameraComponent::Update(float dt)
 {
+    /*if (m_pReticle)
+    {
+        Vector2 rp = m_pReticle>GetScreenPos();
+        m_ReticleScreen = rp;
+    }*/
+
     //ターゲットがいないなら処理しない
     if (!m_Target) return;
 
@@ -185,10 +192,10 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
 
     Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);       //
 
-    char buf[512];
-    sprintf_s(buf, "DBG CAMERA: CameraPos=(%f,%f,%f) CameraFollowd=(%f,%f,%f)\n",
-        desiredPos.x, desiredPos.y, desiredPos.z,GetForward().x, GetForward().y, GetForward().z);
-    OutputDebugStringA(buf);
+    //char buf[512];
+    //sprintf_s(buf, "DBG CAMERA: CameraPos=(%f,%f,%f) CameraFollowd=(%f,%f,%f)\n",
+        //desiredPos.x, desiredPos.y, desiredPos.z,GetForward().x, GetForward().y, GetForward().z);
+    //OutputDebugStringA(buf);
     //スプリングで位置を滑らかに追従させる(距離はここで固定される)
     m_Spring.Update(desiredPos, dt);
 }
@@ -201,4 +208,58 @@ Vector3 FollowCameraComponent::GetForward() const
 Vector3 FollowCameraComponent::GetRight() const
 {
     return m_ViewMatrix.Invert().Right();
+}
+
+Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
+{
+    // safety checks
+    if (!m_Target) {
+        // fallback: camera forward
+        return GetForward();
+    }
+
+    // camera pos and provisional view (same as in Update)
+    Vector3 cameraPos = m_Spring.GetPosition();
+    Vector3 targetPos = m_Target->GetPosition();
+    Matrix provisionalView = Matrix::CreateLookAt(cameraPos, targetPos, Vector3::Up);
+
+    // screen coordinates from stored reticle (client coords)
+    float screenW = static_cast<float>(Application::GetWidth());
+    float screenH = static_cast<float>(Application::GetHeight());
+    float sx = m_ReticleScreen.x;
+    float sy = m_ReticleScreen.y;
+
+    // build matrices for XM functions
+    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
+    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
+    XMMATRIX worldXM = XMMatrixIdentity();
+
+    // make near/far screen vectors (note: Z in [0,1] for your earlier code)
+    XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
+    XMVECTOR farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
+
+    XMVECTOR nearWorldV = XMVector3Unproject(
+        nearScreen,
+        0.0f, 0.0f, screenW, screenH,
+        0.0f, 1.0f,
+        projXM,
+        viewXM,
+        worldXM);
+
+    XMVECTOR farWorldV = XMVector3Unproject(
+        farScreen,
+        0.0f, 0.0f, screenW, screenH,
+        0.0f, 1.0f,
+        projXM,
+        viewXM,
+        worldXM);
+
+    Vector3 nearWorld(XMVectorGetX(nearWorldV), XMVectorGetY(nearWorldV), XMVectorGetZ(nearWorldV));
+    Vector3 farWorld(XMVectorGetX(farWorldV), XMVectorGetY(farWorldV), XMVectorGetZ(farWorldV));
+
+    Vector3 dir = farWorld - nearWorld;
+    if (dir.LengthSquared() > 1e-6f) dir.Normalize();
+    else dir = GetForward(); // fallback
+
+    return dir;
 }

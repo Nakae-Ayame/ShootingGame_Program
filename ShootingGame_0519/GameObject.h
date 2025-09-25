@@ -37,23 +37,29 @@ public:
     const Vector3& GetPosition() { return m_transform.pos; }
     const Vector3& GetRotation() { return m_transform.rot; }
     const Vector3& GetScale()    { return m_transform.scale;}
-    const Vector3& GetWorldPosition()
+    const DirectX::SimpleMath::Vector3 GetWorldPosition() const
     {
+        using namespace DirectX::SimpleMath;
         if (m_parent)
         {
+            //親のワールド位置 + ローカル位置を返す
             return m_parent->GetWorldPosition() + m_transform.pos;
         }
         else
         {
             return m_transform.pos;
         }
-            
     }
 
     void SetScene(IScene* s) { m_scene = s; }
     IScene* GetScene() const { return m_scene; }
 
     const SRT& GetTransform() const { return m_transform; }
+
+    DirectX::SimpleMath::Matrix GetWorldMatrix() const;        // ワールド変換行列を返す
+    DirectX::SimpleMath::Vector3 GetForward() const;          // ワールド前方（正規化済み）
+    DirectX::SimpleMath::Vector3 GetRight() const;            // ワールド右方向（正規化済み）
+    DirectX::SimpleMath::Vector3 GetUp() const;               // ワールド上方向（正規化済み）
 
     //衝突通知
     virtual void OnCollision(GameObject* other) {}

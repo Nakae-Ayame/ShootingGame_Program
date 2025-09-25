@@ -7,7 +7,7 @@
 
 using namespace DirectX::SimpleMath;
 
-class OBBColliderComponent; // forward
+class OBBColliderComponent; //前方宣言
 
 class Bullet : public GameObject
 {
@@ -16,20 +16,25 @@ public:
     ~Bullet() override = default;
 
     void Initialize() override;
-    void Update(float dt) override; // もし基底が Update() ならシグネチャ合わせてください
+    void Update(float dt) override;
     void Draw(float alpha) override;
+    void OnCollision(GameObject* other) override;
 
-    // 見た目（今は省略orデバッグ用）や衝突サイズ設定
+    //弾の発射者のType
+   /* enum BulletType
+    {
+        Player,
+        Enemy
+    };*/
+
     void SetRadius(float r) { m_radius = r; }
-    //void SetLifeTime(float s){};
 
 private:
-    float m_radius = 3.0f;
+    float m_radius = 1.0f;
 
     Primitive m_primitive;
 
     std::shared_ptr<OBBColliderComponent> m_collider;
-    //std::shared_ptr<SphereComponent> m_bullet;
 };
 
 

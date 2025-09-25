@@ -1,7 +1,8 @@
 #pragma once
-#include "ColliderComponent.h"
 #include <DirectXMath.h>
 #include <SimpleMath.h>
+#include "ColliderComponent.h"
+
 //------------------------------------------------------------------------
 //OBBによる当たり判定(軸に対して任意の角度で回転できる当たり判定)のクラス
 //回転も考えた当たり判定、難しい
@@ -14,32 +15,16 @@ public:
 
     //当たり判定の大きさを指定する関数
     //(全体の幅・高さ・奥行き)
-    void SetSize(const Vector3& size) 
-    {
-        m_Size = size;
-    }
+    void SetSize(const Vector3& size);
 
     //GameObjectの位置のゲット関数
-    Vector3 GetCenter() const override
-    {
-        return GetOwner()->GetPosition();
-    }
+    Vector3 GetCenter() const override;
 
     //当たり判定用のサイズのゲット関数(m_Size)
-    Vector3 GetSize() const override
-    {
-        return Vector3(m_Size.x * GetOwner()->GetScale().x,
-            m_Size.y * GetOwner()->GetScale().y,
-            m_Size.z * GetOwner()->GetScale().z);
-    }
+    Vector3 GetSize() const override;
 
     //ゲームオブジェクトの回転値から、回転行列を生成。
-    DirectX::SimpleMath::Matrix GetRotationMatrix() const override
-    {
-        Vector3 rot = GetOwner()->GetRotation();
-        return DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
-    }
-
+    DirectX::SimpleMath::Matrix GetRotationMatrix() const override;
 private:
 
     //幅、高さ、奥行の大きさをそれぞれ設定できる変数

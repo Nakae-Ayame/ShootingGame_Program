@@ -8,9 +8,10 @@ using namespace DirectX;
 //頂点情報をまとめた構造体
 struct Vertex
 {
-    XMFLOAT3 position;  //頂点座標(x,y,z)
-    XMFLOAT3 normal;    //法線ベクトル(ライティングなどに使います)
-    XMFLOAT2 texcoord;  //テクスチャ座標(u,v)
+    XMFLOAT3 position;  //頂点座標
+    XMFLOAT3 normal;    //法線
+    XMFLOAT4 color;     //色
+    XMFLOAT2 texcoord;  //テクスチャ座標
 };
 
 //簡単な図形(球体や箱など)を管理するクラス

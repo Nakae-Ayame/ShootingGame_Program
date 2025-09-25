@@ -2,7 +2,8 @@
 #include "Component.h"
 #include "commontypes.h"
 
-enum class ColliderType
+//コライダーの種類
+enum ColliderType
 {
     AABB,
     OBB,
@@ -19,8 +20,6 @@ public:
 
     // 共通インターフェース追加
     virtual Vector3 GetCenter() const = 0;
-    /*virtual Vector3 GetMin() const = 0;
-    virtual Vector3 GetMax() const = 0;*/
     virtual Vector3 GetSize() const = 0;
     virtual DirectX::SimpleMath::Matrix GetRotationMatrix() const = 0;
 
