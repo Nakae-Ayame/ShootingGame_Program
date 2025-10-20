@@ -23,6 +23,8 @@ public:
         m_owner = owner;
     }
 
+    //コンポーネントが自分を持っている
+    //オブジェクトにアクセスするためのゲッター
     GameObject* GetOwner() const
     {
         return m_owner;

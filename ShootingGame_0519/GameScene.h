@@ -7,6 +7,7 @@
 #include "CameraObject.h"
 #include "Enemy.h"
 #include "TextureComponent.h"
+#include "EnemyTurretComponent.h"
 #include "Reticle.h"
 #include "SkyDome.h"
 #include "Bullet.h"
@@ -19,41 +20,61 @@ class GameScene : public IScene
 {
 public:
 	explicit GameScene() {};
-	void Update(float deltatime) override;
-	void Draw(float deltatime) override;
-	void Init() override;
-	void Uninit() override;
-	void AddObject(std::shared_ptr<GameObject> obj) override;
 	
+	//更新関数
+	void Update(float deltatime) override;
+	//描写関数
+	void Draw(float deltatime) override;
+	//初期化関数
+	void Init() override;
+	//終了関数
+	void Uninit() override;
+	
+	//オブジェクトの追加要求関数
+	void AddObject(std::shared_ptr<GameObject> obj) override;
+
+	//2Dオブジェクトの追加要求関数
+	void AddTextureObject(std::shared_ptr<GameObject> obj);
+	
+	//オブジェクトの削除要求関数
 	void RemoveObject(std::shared_ptr<GameObject>) override {};
+	
+	//オブジェクトの削除要求関数
 	void RemoveObject(GameObject* obj);
+
+	//実際に削除などをする関数
 	void FinishFrameCleanup() override;
+
+	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
 private:
 	std::shared_ptr<Player> m_player;
-	std::shared_ptr<Enemy> m_enemy01;
-	std::shared_ptr<Enemy> m_enemy02;
-	std::shared_ptr<Enemy> m_enemy03;
-	std::shared_ptr<Enemy> m_enemy04;
-	std::shared_ptr<Enemy> m_enemy05;
-	std::shared_ptr<Bullet> m_bullet;
 	std::shared_ptr<CameraObject> m_FollowCamera;
-	std::shared_ptr<TitleBackGround> m_background;
 	std::shared_ptr<SkyDome> m_SkyDome;
-	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
-	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
-	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
 	
-	//std::shared_ptr<GridFloor> m_GridFloor;
+	//GameScene内の3Dオブジェクトの配列
+	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
+
+	//GameScene内の2Dオブジェクトの配列
+	std::vector<std::shared_ptr<GameObject>> m_TextureObjects;
+
+	//削除予定のオブジェクトの配列
+	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
+
+	//追加予定のオブジェクトの配列
+	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
+
 	 // --- レティクル関係 ---
 	std::shared_ptr<GameObject> m_reticleObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
 	std::shared_ptr<TextureComponent> m_reticleTex;     // レティクルのテクスチャコンポーネント
 
 	bool m_isDragging = false;      // ドラッグ中フラグ
-	POINT m_lastDragPos{ 0,0 };       // 最終置いたスクリーン座標
+	POINT m_lastDragPos{ 0,0 };     // 最終置いたスクリーン座標
 
 	float m_reticleW = 64.0f;       // レティクル幅（px）
 	float m_reticleH = 64.0f;       // レティクル高さ（px）
+
+	//SceneのUpdate時に追加予定であったオブジェクトの配列の追加などを行う関数
 	void SetSceneObject();
 	void SetReticleByCenter(const POINT& screenPos)
 	{

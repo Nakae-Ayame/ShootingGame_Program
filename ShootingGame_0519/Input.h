@@ -26,7 +26,7 @@ public:
 
     static bool IsMouseLeftPressed();
     
-    //static void  SetMouseCenter(HWND hwnd);
+    static void Reset();
 
     //------------------------コントローラー系処理-----------------------
     //// XBox コントローラー

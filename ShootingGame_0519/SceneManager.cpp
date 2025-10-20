@@ -4,12 +4,15 @@
 #include "TransitionManager.h"
 #include "GameScene.h"
 #include "TitleScene.h"
+#include "ResultScene.h"
 #include "CollisionManager.h"
 #include "Application.h" 
        
 std::unordered_map<std::string, std::unique_ptr<IScene>> SceneManager::m_scenes;
 
 std::string SceneManager::m_currentSceneName;
+
+bool SceneManager::IsSceneChange = false;
 
 void SceneManager::RegisterScene(const std::string& name, std::unique_ptr<IScene> scene)
 {
@@ -18,13 +21,13 @@ void SceneManager::RegisterScene(const std::string& name, std::unique_ptr<IScene
 
 void SceneManager::SetCurrentScene(const std::string& name)
 {
-    std::cout << "[SC] SetCurrentScene -> " << name << std::endl;
-
     // 変更前のシーンがあれば一度 Uninit
     if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
     {
         m_scenes[m_currentSceneName]->Uninit();
     }
+
+    Input::Reset();
 
     // 新しいシーン名をセット＆Init
     m_currentSceneName = name;
@@ -37,7 +40,6 @@ void SceneManager::SetCurrentScene(const std::string& name)
 
     HWND hWnd = Application::GetWindow();
     SetWindowTextW(hWnd, wname.c_str());
-
 }
 
 std::string SceneManager::GetCurrentSceneName()
@@ -58,6 +60,8 @@ void SceneManager::Init()
     //m_scenes["TitleScene"]->Init();
     RegisterScene("GameScene", std::make_unique<GameScene>());
     //m_scenes["GameScene"]->Init();
+    RegisterScene("ResultScene", std::make_unique<ResultScene>());
+    //m_scenes["GameScene"]->Init();
     //初期シーンにTitleSceneを設定
     m_currentSceneName = "TitleScene";
     m_scenes[m_currentSceneName]->Init();
@@ -66,21 +70,26 @@ void SceneManager::Init()
 
 void SceneManager::Update(float deltatime)
 {
-    // 0) 入力等
+    //入力アップデート
     Input::Update();
 
-    // 1) フレーム先頭で前フレームのコライダーをクリア
+    //フレーム先頭で前フレームのコライダーをクリア
     CollisionManager::Clear();
 
-    // 2) トランジション更新（そのまま）
+    //トランジション更新（そのまま）
     TransitionManager::Update(deltatime);
 
     if (!TransitionManager::IsActive())
     {
-        // 3) SceneのUpdate（ここで Scene 内が RegisterCollider を呼ぶ）
+        //SceneのUpdate（ここで Scene 内が RegisterCollider を呼ぶ）
         if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
         {
             m_scenes[m_currentSceneName]->Update(deltatime);
+
+            /*if (IsSceneChange)
+            {
+                return;
+            }*/
         }
 
         // 4) 判定を実行（Scene がコライダーを登録し終えた後で）

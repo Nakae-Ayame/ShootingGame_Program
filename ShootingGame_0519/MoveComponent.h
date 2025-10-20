@@ -21,7 +21,7 @@ public:
 
 private: 
     //ユニット/秒
-    float m_speed = 25.0f;
+    float m_speed = 0.2f;
 
     //カメラの向きを取得する用のポインタ
     ICameraViewProvider* m_camera = nullptr;

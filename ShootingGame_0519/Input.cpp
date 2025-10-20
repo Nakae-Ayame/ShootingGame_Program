@@ -32,7 +32,7 @@ void Input::Update()
     //現在のフレームのマウスの座標を取得
     if (!GetCursorPos(&m_CurrentMousePos))
     {
-        OutputDebugStringA("GetCursorPos() Failed\n");
+        //OutputDebugStringA("GetCursorPos() Failed\n");
     }
     else
     {
@@ -90,4 +90,17 @@ bool Input::IsMouseLeftDown()
 bool Input::IsMouseLeftPressed()
 {
     return m_CurrentMouseButtons[0] != 0 && m_PreviousMouseButtons[0] == 0;
+}
+
+void Input::Reset()
+{
+    // 全キー・マウス状態をゼロにリセット
+    ZeroMemory(m_CurrentKeys, sizeof(m_CurrentKeys));
+    ZeroMemory(m_PreviousKeys, sizeof(m_PreviousKeys));
+
+    ZeroMemory(m_CurrentMouseButtons, sizeof(m_CurrentMouseButtons));
+    ZeroMemory(m_PreviousMouseButtons, sizeof(m_PreviousMouseButtons));
+
+    m_CurrentMousePos.x = m_CurrentMousePos.y = 0;
+    m_PreviousMousePos.x = m_PreviousMousePos.y = 0;
 }

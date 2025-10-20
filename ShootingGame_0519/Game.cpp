@@ -8,7 +8,7 @@
 void Game::GameInit()
 {
     //カーソル非表示＆固定
-    Application::HideCursorAndClip(); 
+    //Application::HideCursorAndClip(); 
 
     //DirectXのレンダラーを初期化
     Renderer::Init();

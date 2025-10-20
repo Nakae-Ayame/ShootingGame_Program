@@ -13,12 +13,15 @@ class IScene;
 //-------------------------------------------------------------
 class SceneManager : NonCopyable
 {
+private:
 	//Gameを構成している全Sceneを保存している
 	static std::unordered_map
 		<std::string, std::unique_ptr<IScene>> m_scenes;
 	
 	//今稼働しているScene名を文字列で入れていく変数
 	static std::string m_currentSceneName;
+
+	static bool IsSceneChange;
 
 public:
 	//ゲームの中で使うシーンを登録する関数
@@ -27,6 +30,7 @@ public:
 	//現在のシーンを設定する関数(stringに設定したいScene名を入れる)
 	static void SetCurrentScene(const std::string& name);
 
+	//今のシーンを取得する
 	static std::string GetCurrentSceneName();
 
 	//現在シーンの更新処理をする関数

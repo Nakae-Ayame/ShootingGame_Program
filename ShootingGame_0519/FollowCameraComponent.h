@@ -10,7 +10,6 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-
 class FollowCameraComponent : public Component, public ICameraViewProvider
 {
 public:
@@ -42,7 +41,7 @@ public:
     //ICameraViewProvider で追加したメソッドの実装を宣言
     Vector3 GetAimPoint() const override { return m_AimPoint; }
 
-    Vector3 GetPosition() const { return m_Spring.GetPosition();}
+    Vector3 GetPosition() const { return m_Spring.GetPosition(); }
 
     DirectX::SimpleMath::Vector3 GetAimDirectionFromReticle() const;
 private:
@@ -71,9 +70,9 @@ private:
     Matrix m_ViewMatrix;        //ビュー行列
     Matrix m_ProjectionMatrix;  //プロジェクト行列
 
-    SpringVector3 m_Spring;     //カメラ位置をスプリングで滑らかに追従させるためのラッパー
-    
-    Vector2 m_ReticleScreen = Vector2(0.0f, 0.0f); // ピクセル座標。Init 中に中央でセット済みでもOK
+    SpringVector3 m_Spring;     //カメラ位置をスプリングで滑らかに追従させるラッパー
+
+    Vector2 m_ReticleScreen = Vector2(0.0f, 0.0f); // クライアント座標（px）
     Vector3 m_AimPoint = Vector3::Zero;            //レティクルが指すワールド座標
     float m_AimPlaneDistance = 50.0f;              //レイと交差させる「カメラ前方の平面までの距離」
 
@@ -82,4 +81,9 @@ private:
     bool  m_UsePlayerOrientedCamera = true; // true: カメラ位置はプレイヤーの向きに合わせて behind に置く（自然）
 
     Vector3 m_LookTarget = Vector3::Zero;
+
+    // --- 追加メンバ: レティクルに応じたカメラの横シフト量（チューニング用） ---
+    float m_ScreenOffsetScale = 8.0f; // 画面幅 1.0 正規化あたりのワールド単位換算（調整可）
+    float m_MaxScreenOffset = 200.0f;  // 最大シフト（ワールド単位）
 };
+

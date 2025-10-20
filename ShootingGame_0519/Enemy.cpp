@@ -1,28 +1,11 @@
 #include <iostream>
 #include "Enemy.h"
 #include "Bullet.h"
+#include "SceneManager.h"
 
 void Enemy::Initialize()
 {
-    //基底クラスの初期化（Component群）
     GameObject::Initialize();
-
-    //モデルコンポーネントの生成
-    auto modelComp = std::make_shared<ModelComponent>();
-
-    //モデルの読み込み（失敗時に備えログなども可）
-    modelComp->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
-
-    SetRotation(DirectX::SimpleMath::Vector3(0.0, 0.0, 0.0));
-
-    //コライダーコンポーネントの生成
-    m_Collider  = std::make_shared<OBBColliderComponent>();
-    m_Collider -> SetSize({ 2.0f, 2.0f, 2.0f }); // モデルに合わせて調整
-    
-    //---------------GameObjectに追加---------------
-    AddComponent(modelComp);
-    AddComponent(m_Collider);
-    //----------------------------------------------
 }
 
 void Enemy::Update(float dt)
@@ -34,17 +17,75 @@ void Enemy::Update(float dt)
 //衝突時の処理
 void Enemy::OnCollision(GameObject* other)
 {
-    if (!other) return;
-    // 弾と衝突したら自分と弾を消す
-    if (dynamic_cast<Bullet*>(other))
+    if (!other)
     {
-        IScene* scene = GetScene();
-        if (scene)
-        {
-            std::cout << "Bulletに衝突したためEnemyを削除します " << std::endl;
-            scene->RemoveObject(this);    // raw pointer 版（IScene に追加済み）
-            scene->RemoveObject(other);   // 衝突相手も消す
+        return;
+    }
+
+    //相手が弾かどうか
+    if (auto bulletComp = other->GetComponent<BulletComponent>()) 
+    {
+        if (bulletComp->GetBulletType() == BulletComponent::BulletType::ENEMY)
+        { 
+            // Player弾に当たったらそのEnemyも弾も削除
+            if (auto scene = GetScene())
+            {
+                //SceneManager::SetCurrentScene("ResultScene");
+                scene->RemoveObject(this); // GameScene::RemoveObject(GameObject*) があるはず
+                scene->RemoveObject(other);
+                
+            }
         }
+    }
+}
+
+void Enemy::Damage(int amount)
+{
+    if (amount <= 0) return;
+    m_hp -= amount;
+
+    if (m_hp <= 0)
+    {
+        // 呼び出し順：派生の OnDeath をまず呼ばせる（派生が特殊演出を行えるように）
+        OnDeath();
+        // その後共通ハンドラ
+        HandleDeathCommon();
+    }
+}
+
+void Enemy::Heal(int amount)
+{
+    if (amount <= 0)
+    {
+        return;
+    }
+    m_hp += amount;
+}
+
+void Enemy::OnDeath()
+{
+    // デフォルトは何もしない（派生でエフェクトや音、スコア加算を行う）
+    // 例（参考）: std::cout << "Enemy died\n";
+}
+
+void Enemy::HandleDeathCommon()
+{
+    // 共通の削除処理など（スコア付与やパーティクル生成の共通処理をここに書ける）
+    // ここでは単純にシーンから削除
+    RemoveSelfFromScene();
+}
+
+void Enemy::RemoveSelfFromScene()
+{
+    IScene* s = GetScene();
+    if (s)
+    {
+        s->RemoveObject(this);
+    }
+    else
+    {
+        // シーンがない場合はログだけ（安全のため）
+        // std::cout << "Warning: Enemy removed but no scene attached.\n";
     }
 }
 
@@ -53,3 +94,4 @@ void Enemy::OnCollision(GameObject* other)
 //実行時に型のチェックをし、失敗したときは nullptr(ポインタの場合)になる
 //ポリモーフィズムが有効な型(virtual 必須)でしか使えない
 //上記の場合だとGameObject*をBullet*に変換しています
+//(今は使ってないです)

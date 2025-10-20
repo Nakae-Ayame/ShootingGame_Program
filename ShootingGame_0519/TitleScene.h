@@ -19,6 +19,7 @@ public:
 	void RemoveObject(std::shared_ptr<GameObject>) override;
 	void RemoveObject(GameObject* obj);
 	void FinishFrameCleanup() override;
+	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 private:
 
 	void SetSceneObject();

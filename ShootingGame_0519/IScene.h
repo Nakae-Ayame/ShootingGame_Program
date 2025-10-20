@@ -35,4 +35,6 @@ public:
 	virtual void RemoveObject(GameObject* obj) = 0;
 	//---------------他からオブジェクトの削除を行う関数------------------
 	virtual void FinishFrameCleanup() = 0;
+	//---------------シーン内にあるオブジェクトを持ってくる関数------------------
+	virtual const std::vector<std::shared_ptr<GameObject>>& GetObjects() const = 0;
 };

@@ -17,18 +17,21 @@ void MoveComponent::Initialize()
 
 void MoveComponent::Update(float dt)
 {
-    if (!m_camera) return;
+    if (!m_camera)
+    {
+        return;
+    }
 
-    // 1) 目標点（ワールド）をカメラから取得
+    //目標点（ワールド）をカメラから取得
     Vector3 aimTarget = m_camera->GetAimPoint();
 
-    // 2) 現在の位置と向き
+    //現在の位置と向き
     Vector3 pos = GetOwner()->GetPosition();
     Vector3 rot = GetOwner()->GetRotation(); // rot.x=pitch, rot.y=yaw, rot.z=roll の想定
     float currentYaw = rot.y;
     float currentPitch = m_currentPitch;
 
-    // 3) 目標方向（水平のみ）
+    //目標方向（水平のみ）
     Vector3 toTarget = aimTarget - pos;
     float distSq = toTarget.LengthSquared();
     if (toTarget.LengthSquared() < 1e-6f)
@@ -45,14 +48,14 @@ void MoveComponent::Update(float dt)
     Vector3 toDir = toTarget;
     toTarget.Normalize();
 
-    // 4) 目標 yaw を求める（forward 定義と整合）
+    //目標 yaw を求める（forward 定義と整合）
     float targetYaw = std::atan2(toTarget.x, toTarget.z);
 
-    // pitch = asin(y) でも良いが、安定のため水平距離を使う：
+    //pitch = asin(y) でも良いが、安定のため水平距離を使う：
     float horiz = std::sqrt(toDir.x * toDir.x + toDir.z * toDir.z);
     float targetPitch = std::atan2(toDir.y, horiz); // 正の値は上向き
 
-    // 6) yaw 差のラップ（-pi..pi に収める）
+    //yaw 差のラップ（-pi..pi に収める）
     float deltaYaw = targetYaw - currentYaw;
     while (deltaYaw > XM_PI) deltaYaw -= XM_2PI;
     while (deltaYaw < -XM_PI) deltaYaw += XM_2PI;

@@ -12,7 +12,7 @@ void GameObject::Update(float dt)
 {
     m_prevTransform = m_transform;
 
-    // 各コンポーネントへ固定ステップ dt を渡す
+    //各コンポーネントへ固定ステップdtを渡す
     for (auto& comp : m_components)
     {
         comp->Update(dt);

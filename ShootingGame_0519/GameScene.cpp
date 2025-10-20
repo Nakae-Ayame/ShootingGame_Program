@@ -7,11 +7,12 @@
 #include "Collision.h"
 #include "CollisionManager.h"
 #include "SkyDome.h"
+#include "HPBar.h"
+#include "Building.h"
+#include "PatrolComponent.h"
 
 void GameScene::Init()
-{
-    std::cout << "[GS] Init start" << std::endl;
-    
+{    
     //-----------------------スカイドーム作成-------------------------------
     m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_02.png");
     m_SkyDome->Initialize();
@@ -25,12 +26,32 @@ void GameScene::Init()
     auto moveComp = m_player->GetComponent<MoveComponent>();
 
     //--------------------------エネミー作成---------------------------------
-    m_enemy01 = std::make_shared<Enemy>();
-    m_enemy01->SetPosition({ 10.0f, 0.0f, 0.0f });
-    m_enemy01->SetRotation({ 0.0f,0.0f,0.0f });
-    m_enemy01->SetScale({ 1.0f, 1.0f, 1.0f });
-    m_enemy01->Initialize();
+    auto enemy = std::make_shared<Enemy>();
+    enemy->SetScene(this);
+    enemy->SetPosition({ 10.0f, 0.0f, 0.0f });
+    enemy->SetInitialHP(3);
 
+    //モデルの読み込み（失敗時に備えログなども可）
+    auto model = std::make_shared<ModelComponent>();
+    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
+    enemy->AddComponent(model);
+
+    // 巡回コンポーネントを追加
+    auto patrol = std::make_shared<PatrolComponent>();
+    std::vector<DirectX::SimpleMath::Vector3> pts = 
+    {
+        { 0.0f,  0.0f, 0.0f },
+        { 125.0f, 0.0f, 0.0f },
+        { 125.0f, 0.0f, 125.0f },
+        { 0.0f,  0.0f, 125.0f }
+    };
+    patrol->SetWaypoints(pts);
+    patrol->SetSpeed(25.0f);
+    patrol->SetPingPong(true); // 往復
+    patrol->SetArrivalThreshold(0.4f);
+    enemy->AddComponent(patrol);
+
+    AddObject(enemy); // シーン側に追加
     //-------------------------レティクル作成-------------------------------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
     RECT rc{};
@@ -38,6 +59,9 @@ void GameScene::Init()
     float x = (rc.right - rc.left) / 2;
     float y = (rc.bottom - rc.top) / 2;
     m_reticle->Initialize();
+    
+    auto HPbar = std::make_shared<TitleBackGround>(L"Asset/UI/HPBar.png", 1280); 
+    HPbar->Initialize();
 
     //------------------------------追尾カメラ作成---------------------------------
     m_FollowCamera = std::make_shared<CameraObject>();
@@ -67,14 +91,18 @@ void GameScene::Init()
     {
         m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* を受け取る場合
     }
+
     m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
 
     m_FollowCamera->GetCameraComponent()->SetTarget(m_player.get());
 
-    m_GameObjects.push_back(m_player);
-    m_GameObjects.push_back(m_enemy01);
-    m_GameObjects.push_back(m_reticle);
-    m_GameObjects.push_back(m_FollowCamera);
+    //AddTextureObject(HPbar);
+    AddTextureObject(m_reticle);
+
+    AddObject(m_player);
+    //AddObject(m_Building);
+    AddObject(enemy);
+    AddObject(m_FollowCamera);
 
     if (m_FollowCamera && m_FollowCamera->GetCameraComponent())
     {
@@ -117,6 +145,12 @@ void GameScene::Update(float deltatime)
         if (obj) obj->Update(deltatime);
     }
 
+    //全オブジェクト Update を一回だけ実行（重要）
+    for (auto& obj : m_TextureObjects)
+    {
+        if (obj) obj->Update(deltatime);
+    }
+
     for (auto& obj : m_GameObjects)
     {
         if (!obj) continue;
@@ -129,20 +163,32 @@ void GameScene::Update(float deltatime)
 
     
     Vector3 ppos = m_player->GetPosition();
+
+
+
 }
 
 void GameScene::Draw(float deltatime)
 {
-    // 1) 通常のオブジェクト描画（Reticle をここで skip）
+    //通常のオブジェクト描画
     for (auto& obj : m_GameObjects)
     {
 
-        if (!obj) continue;
+        if (!obj) { continue; }
+        if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; }
+        obj->Draw(deltatime);
+    }
+
+    for (auto& obj : m_TextureObjects)
+    {
+
+        if (!obj) { continue; }
+
         if (std::dynamic_pointer_cast<Reticle>(obj)) continue; // HUD はあとで描く
         obj->Draw(deltatime);
     }
 
-    // 3) HUD（レティクル）を最後に描く（深度やブレンド切り替えは内部で処理）
+    //HUD(レティクル)を最後に描く(深度やブレンド切り替えは内部で処理)
     if (m_reticle)
     {
         m_reticle->Draw(deltatime);
@@ -151,7 +197,7 @@ void GameScene::Draw(float deltatime)
     //デバッグ線
     //CollisionManager::DebugDrawAllColliders(gDebug);
 
-    // （もし m_reticleTex 経由の旧描画があるなら、それも最後に）
+    //(もし m_reticleTex 経由の旧描画があるなら、それも最後に)
     if (m_reticleTex && m_reticleTex->GetSRV())
     {
         Vector2 size(m_reticleW, m_reticleH);
@@ -162,24 +208,85 @@ void GameScene::Draw(float deltatime)
 
 void GameScene::Uninit()
 {
-    m_player.reset();
+    m_AddObjects.clear();
+    m_DeleteObjects.clear();
+
+    // 各GameObjectの明示的な終了処理を呼ぶ（任意）
+    for (auto& obj : m_GameObjects)
+    {
+       /* if (obj)
+            obj->Uninit();*/ // ← GameObject に Uninit() があるなら呼ぶ
+    }
+    for (auto& obj : m_TextureObjects)
+    {
+        //if (obj)
+            //obj->Uninit();
+    }
+
+    // 配列自体を解放（shared_ptr の参照をすべて消す）
+    m_GameObjects.clear();
+    m_TextureObjects.clear();
+
+    // 他のリストも念のため
+    m_AddObjects.clear();
+    m_DeleteObjects.clear();
 }
 
 void GameScene::AddObject(std::shared_ptr<GameObject> obj)
 {
-    if (!obj) return;
+    if (!obj)
+    {
+        return; 
+    }
 
-    // 既にシーン内にいるか pending にいるかチェック
+    //既にシーン内にいるかpendingにいるかチェック
     auto itInScene = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
-        [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
-    if (itInScene != m_GameObjects.end()) return; // 既に実体がある
+       [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
+    
+    //既に実体がある
+    if (itInScene != m_GameObjects.end())
+    {
+        return;
+    }
 
     auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
         [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
-    if (itPending != m_AddObjects.end()) return; // 追加予定にすでにある
+    
+    // 追加予定にすでにある
+    if (itPending != m_AddObjects.end())
+    {
+        return;
+    }
 
+    //所属しているSceneを登録
     obj->SetScene(this);
+    
+    //実際に配列にプッシュする
     m_AddObjects.push_back(obj);
+}
+
+void GameScene::AddTextureObject(std::shared_ptr<GameObject> obj)
+{
+    if (!obj)
+    {
+        return;
+    }
+
+    //既にシーン内にいるかpendingにいるかチェック
+    auto itInScene = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
+        [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
+
+    //既に実体がある
+    if (itInScene != m_GameObjects.end())
+    {
+        return;
+    }
+
+    //所属しているSceneを登録
+    obj->SetScene(this);
+
+    //実際に配列にプッシュする
+    m_TextureObjects.push_back(obj);
 }
 
 //void GameScene::RemoveObject(std::shared_ptr<GameObject> obj) 
@@ -229,8 +336,11 @@ void GameScene::FinishFrameCleanup()
     // m_DeleteObjects にあるアイテムを m_GameObjects から削除
     for (auto& delSp : m_DeleteObjects)
     {
-        if (!delSp) continue;
-        // find by pointer equality
+        if (!delSp) 
+        {
+            continue; 
+        
+        }
         auto it = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
         if (it != m_GameObjects.end())
@@ -239,7 +349,7 @@ void GameScene::FinishFrameCleanup()
             // (*it)->SetScene(nullptr);
 
             m_GameObjects.erase(it);
-            // shared_ptr をここで破棄 -> 実際の破棄は参照カウント次第
+            //shared_ptr をここで破棄 -> 実際の破棄は参照カウント次第
         }
         // もしオブジェクトがまだ m_AddObjects に入っているケースがあるなら（安全策）
         auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
@@ -256,7 +366,8 @@ void GameScene::FinishFrameCleanup()
 void GameScene::SetSceneObject()
 { 
     if (!m_AddObjects.empty())
-    { // 一括追加（file-safe: reserve してから insert） 
+    { 
+        //一括追加
         m_GameObjects.reserve(m_GameObjects.size() + m_AddObjects.size()); 
         m_GameObjects.insert(m_GameObjects.end(), std::make_move_iterator(m_AddObjects.begin()), std::make_move_iterator(m_AddObjects.end())); 
         m_AddObjects.clear();

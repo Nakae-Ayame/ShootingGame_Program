@@ -12,29 +12,35 @@ class OBBColliderComponent; //前方宣言
 class Bullet : public GameObject
 {
 public:
+
     Bullet() {};
     ~Bullet() override = default;
 
+    //初期化
     void Initialize() override;
+
+    //更新
     void Update(float dt) override;
+
+    //描画
     void Draw(float alpha) override;
+
+    //衝突判定
     void OnCollision(GameObject* other) override;
 
-    //弾の発射者のType
-   /* enum BulletType
-    {
-        Player,
-        Enemy
-    };*/
-
+    //弾の半径のセッター
     void SetRadius(float r) { m_radius = r; }
 
 private:
-    float m_radius = 1.0f;
+    //弾の半径
+    float m_radius = 1.0f; 
 
-    Primitive m_primitive;
+    //弾の描画用
+    Primitive m_primitive;  
 
-    std::shared_ptr<OBBColliderComponent> m_collider;
+    //コンポーネント保持
+    std::shared_ptr<OBBColliderComponent> m_collider;   
+
 };
 
 

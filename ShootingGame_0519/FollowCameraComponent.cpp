@@ -39,12 +39,6 @@ void FollowCameraComponent::SetTarget(GameObject* target)
 //
 void FollowCameraComponent::Update(float dt)
 {
-    /*if (m_pReticle)
-    {
-        Vector2 rp = m_pReticle>GetScreenPos();
-        m_ReticleScreen = rp;
-    }*/
-
     //ターゲットがいないなら処理しない
     if (!m_Target) return;
 
@@ -53,18 +47,16 @@ void FollowCameraComponent::Update(float dt)
 
     //マウスによる視点制御
     POINT delta = Input::GetMouseDelta();
-    
-    //そのまま使うと死ぬほど早く回るので、補正をかける
-    m_Yaw   += delta.x * m_Sensitivity;       
+
+    //感度を考慮して角度に反映
+    m_Yaw += delta.x * m_Sensitivity;
     m_Pitch += delta.y * m_Sensitivity;
 
     //角度制限（ラジアン）
-    m_Pitch = std::clamp(m_Pitch, m_PitchLimitMin, m_PitchLimitMax); //m_Pitchをm_PitchLimitMin以上、m_PitchLimitMax以内に収める
-    m_Yaw   = std::clamp(m_Yaw, -m_YawLimit, m_YawLimit);              //m_Yawを-m_YawLimit以上、m_YawLimit以内に収める
-
+    m_Pitch = std::clamp(m_Pitch, m_PitchLimitMin, m_PitchLimitMax);
+    m_Yaw = std::clamp(m_Yaw, -m_YawLimit, m_YawLimit);
 
     //カメラ位置（プレイヤーの背後）をスプリングに与える
-    //UpdateCameraPosition() 内で m_Spring.Update(desiredPos, dt) を呼ぶようにしてください
     UpdateCameraPosition(dt);
 
     //カメラの現在位置（スプリングから取得）
@@ -72,23 +64,20 @@ void FollowCameraComponent::Update(float dt)
     Vector3 targetPos = m_Target->GetPosition();
 
     //Unprojectを使ってレティクルのワールド点を計算
-    float screenW = static_cast<float>(Application::GetWidth());    //画面の幅
-    float screenH = static_cast<float>(Application::GetHeight());   //画面の高さ
+    float screenW = static_cast<float>(Application::GetWidth());
+    float screenH = static_cast<float>(Application::GetHeight());
 
-    //
-    float sx = m_ReticleScreen.x;   
+    float sx = m_ReticleScreen.x;
     float sy = m_ReticleScreen.y;
 
     //画面空間からオブジェクト空間に落とし込んで場所を仮で決める
     Matrix provisionalView = Matrix::CreateLookAt(cameraPos, targetPos, Vector3::Up);
 
-    //XMVectorSet((カーソルの位置のX),(カーソルの位置のY), … , … )
     XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
-    XMVECTOR farScreen  = XMVectorSet(sx, sy, 1.0f, 1.0f);
+    XMVECTOR farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
 
-    // Convert SimpleMath::Matrix to XMMATRIX
-    XMMATRIX projXM  = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
-    XMMATRIX viewXM  = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
+    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
+    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
     XMMATRIX worldXM = XMMatrixIdentity();
 
     XMVECTOR nearWorldV = XMVector3Unproject(
@@ -135,8 +124,6 @@ void FollowCameraComponent::Update(float dt)
     const float aimLerp = 12.0f; // 追従の速さ（調整可）
     m_AimPoint = m_AimPoint + (worldTarget - m_AimPoint) * std::min(1.0f, aimLerp * dt);
 
-    // （任意デバッグ）ここで gDebug などで nearWorld / farWorld / worldTarget / m_AimPoint を描画すると良い
-
     // ------- lookTarget（カメラの注視点）を m_AimPoint に寄せて計算 -------
     Vector3 aimDir = m_AimPoint - targetPos;
     if (aimDir.LengthSquared() > 1e-6f) aimDir.Normalize();
@@ -158,10 +145,7 @@ void FollowCameraComponent::Update(float dt)
     // レンダラへセット
     Renderer::SetViewMatrix(m_ViewMatrix);
     Renderer::SetProjectionMatrix(m_ProjectionMatrix);
-
-    
 }
-
 
 
 void FollowCameraComponent::UpdateCameraPosition(float dt)
@@ -169,34 +153,51 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     // 距離と高さはエイムでのみ変化（右クリック）
     float dist;
     float height;
-    if (m_IsAiming)//エイム中か
+    if (m_IsAiming)
     {
-        dist   = m_AimDistance;
+        dist = m_AimDistance;
         height = m_AimHeight;
     }
-    else   //エイム中じゃないか
+    else
     {
-        dist   = m_DefaultDistance;
+        dist = m_DefaultDistance;
         height = m_DefaultHeight;
     }
 
     //カメラ位置をプレイヤーの背後に置く
-    //プレイヤーの向きに合わせて behind に配置しておく(首だけ回す設計)
     Vector3 targetPos = m_Target->GetPosition(); //Playerのポジションを取ってくる
     Vector3 targetRot = m_Target->GetRotation(); //Playerの回転を取ってくる
     float playerYaw = targetRot.y;          //(rot.y = yaw を想定)
 
-    Matrix  playerRot     = Matrix::CreateRotationY(playerYaw); //Y軸(上方向)周りに回転行列を作る
-    Vector3 baseOffset    = Vector3(0.0f, 0.0f, -dist);         //プレイヤーのローカル座標系で見た時のカメラの位置
+    Matrix  playerRot = Matrix::CreateRotationY(playerYaw); //Y軸周りに回転行列を作る
+    Vector3 baseOffset = Vector3(0.0f, 0.0f, -dist);         //プレイヤーのローカル座標系で見た時のカメラの位置
     Vector3 rotatedOffset = Vector3::Transform(baseOffset, playerRot);  //回転座標をカメラに設定する
 
-    Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);       //
+    Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);
 
-    //char buf[512];
-    //sprintf_s(buf, "DBG CAMERA: CameraPos=(%f,%f,%f) CameraFollowd=(%f,%f,%f)\n",
-        //desiredPos.x, desiredPos.y, desiredPos.z,GetForward().x, GetForward().y, GetForward().z);
-    //OutputDebugStringA(buf);
-    //スプリングで位置を滑らかに追従させる(距離はここで固定される)
+    // --- ここから追加：レティクルのスクリーン X に基づく横シフトを適用 ---
+    // m_ReticleScreen はクライアント座標 (px)
+    float screenW = static_cast<float>(Application::GetWidth());
+    // 中心基準にして [-1..1] に正規化
+    float normX = 0.0f;
+    if (screenW > 1.0f)
+    {
+        normX = (m_ReticleScreen.x - (screenW * 0.5f)) / (screenW * 0.5f); // -1 .. 1
+    }
+
+    // カメラ右方向（プレイヤーの向きに合わせた右）を計算
+    Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
+    // 横オフセット量（ワールド単位）を決定（符号そのままでOK）
+    float lateral = normX * m_ScreenOffsetScale;
+    // 制限
+    lateral = std::clamp(lateral, -m_MaxScreenOffset, m_MaxScreenOffset);
+
+    // desiredPos に右方向のオフセットを追加（レティクル右 -> カメラ右へ移動）
+    desiredPos += localRight * lateral;
+
+    // --- ここまで追加 ---
+
+    //スプリングで位置を滑らかに追従させる
     m_Spring.Update(desiredPos, dt);
 }
 
@@ -234,7 +235,6 @@ Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
     XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
     XMMATRIX worldXM = XMMatrixIdentity();
 
-    // make near/far screen vectors (note: Z in [0,1] for your earlier code)
     XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
     XMVECTOR farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
 

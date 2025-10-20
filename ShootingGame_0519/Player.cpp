@@ -1,4 +1,5 @@
 #include "Player.h"
+#include "BulletComponent.h"
 
 void Player::Initialize()
 {
@@ -13,6 +14,7 @@ void Player::Initialize()
 
     //弾発射コンポーネントの生成
     auto shootComp = std::make_shared<ShootingComponent>();
+    //shootComp->SetBulletSpeed(80);
 
     //コライダーコンポーネントの生成
     m_Collider  = std::make_shared<OBBColliderComponent>();
@@ -38,4 +40,25 @@ void Player::Update(float dt)
 {
     //コンポーネント等のUpdate
     GameObject::Update(dt);
+
+}
+
+void Player::OnCollision(GameObject* other)
+{
+    if (!other) return;
+    //相手が弾かどうか
+    if (auto bc = other->GetComponent<BulletComponent>()) 
+    {
+        //弾が敵のものかどうか
+        if (bc->GetBulletType() == BulletComponent::BulletType::ENEMY)
+        {
+            //Enemy弾に当たったらそのPlayerも弾も削除
+            if (auto scene = GetScene())
+            {
+                //今後HP処理を入れる
+                scene->RemoveObject(this);
+                scene->RemoveObject(other);
+            }
+        }
+    }
 }

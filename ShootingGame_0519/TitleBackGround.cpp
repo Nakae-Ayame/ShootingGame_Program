@@ -26,7 +26,7 @@ void TitleBackGround::Initialize()
     {
         OutputDebugStringA("Reticle: テクスチャ読み込み失敗\n");
     }
-    m_texture->SetSize(1280, 720);
+    m_texture->SetSize(50, 20);
 
     // 初期位置：ウィンドウ中央
     RECT rc{};

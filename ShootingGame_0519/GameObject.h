@@ -18,6 +18,7 @@ public:
     virtual void Initialize();
     virtual void Update(float dt);   
     virtual void Draw(float alpha); 
+
     template<typename T, typename... Args>
     std::shared_ptr<T> AddComponent(Args&&... args)
     {
@@ -29,37 +30,28 @@ public:
 
     void AddComponent(std::shared_ptr<Component> comp);
 
-    // Transform関連のGetter / Setter
+    //位置・回転・大きさのセッター
     void SetPosition(const Vector3& pos) { m_transform.pos = pos;}
     void SetRotation(const Vector3& rot) { m_transform.rot = rot; }
     void SetScale(const Vector3& scl) { m_transform.scale = scl; }
 
+    //位置・回転・大きさのセッター
     const Vector3& GetPosition() { return m_transform.pos; }
     const Vector3& GetRotation() { return m_transform.rot; }
     const Vector3& GetScale()    { return m_transform.scale;}
-    const DirectX::SimpleMath::Vector3 GetWorldPosition() const
-    {
-        using namespace DirectX::SimpleMath;
-        if (m_parent)
-        {
-            //親のワールド位置 + ローカル位置を返す
-            return m_parent->GetWorldPosition() + m_transform.pos;
-        }
-        else
-        {
-            return m_transform.pos;
-        }
-    }
 
+    //現在シーンのゲッター・セッター
     void SetScene(IScene* s) { m_scene = s; }
     IScene* GetScene() const { return m_scene; }
 
+    //まとめてトランスフォームのゲッターセッター
     const SRT& GetTransform() const { return m_transform; }
 
-    DirectX::SimpleMath::Matrix GetWorldMatrix() const;        // ワールド変換行列を返す
-    DirectX::SimpleMath::Vector3 GetForward() const;          // ワールド前方（正規化済み）
-    DirectX::SimpleMath::Vector3 GetRight() const;            // ワールド右方向（正規化済み）
-    DirectX::SimpleMath::Vector3 GetUp() const;               // ワールド上方向（正規化済み）
+    //
+    DirectX::SimpleMath::Matrix  GetWorldMatrix() const;  //ワールド変換行列を返す
+    DirectX::SimpleMath::Vector3 GetForward() const;      //ワールド前方(正規化済み)
+    DirectX::SimpleMath::Vector3 GetRight() const;        //ワールド右方向(正規化済み)
+    DirectX::SimpleMath::Vector3 GetUp() const;           //ワールド上方向(正規化済み)
 
     //衝突通知
     virtual void OnCollision(GameObject* other) {}

@@ -147,23 +147,28 @@
   <ItemGroup>
     <ClCompile Include="AABBColliderComponent.cpp" />
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Building.cpp" />
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="BulletComponent.cpp" />
     <ClCompile Include="CameraObject.cpp" />
+    <ClCompile Include="CircularPatrolComponent.cpp" />
     <ClCompile Include="CollisionManager.cpp" />
     <ClCompile Include="DebugGlobals.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="EnemyTurretComponent.cpp" />
     <ClCompile Include="FollowCameraComponent.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
+    <ClCompile Include="HPBar.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="ModelComponent.cpp" />
     <ClCompile Include="MoveComponent.cpp" />
     <ClCompile Include="OBBColliderComponent.cpp" />
+    <ClCompile Include="PatrolComponent.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Primitive.cpp" />
     <ClCompile Include="renderer.cpp" />
@@ -171,6 +176,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="ResultScene.cpp" />
     <ClCompile Include="Reticle.cpp" />
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="ShootingComponent.cpp" />
@@ -188,9 +194,11 @@
     <ClInclude Include="AABBColliderComponent.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="BaseCamera.h" />
+    <ClInclude Include="Building.h" />
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="BulletComponent.h" />
     <ClInclude Include="CameraObject.h" />
+    <ClInclude Include="CircularPatrolComponent.h" />
     <ClInclude Include="ColliderComponent.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="CollisionHelpers.h" />
@@ -200,10 +208,12 @@
     <ClInclude Include="DebugGlobals.h" />
     <ClInclude Include="DebugRenderer.h" />
     <ClInclude Include="Enemy.h" />
+    <ClInclude Include="EnemyTurretComponent.h" />
     <ClInclude Include="FollowCameraComponent.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="HPBar.h" />
     <ClInclude Include="ICameraViewProvider.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="IScene.h" />
@@ -215,6 +225,7 @@
     <ClInclude Include="MoveComponent.h" />
     <ClInclude Include="NonCopyable.h" />
     <ClInclude Include="OBBColliderComponent.h" />
+    <ClInclude Include="PatrolComponent.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="renderer.h" />
@@ -222,6 +233,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="ResultScene.h" />
     <ClInclude Include="Reticle.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="ShootingComponent.h" />

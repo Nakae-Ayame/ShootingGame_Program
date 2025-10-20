@@ -29,7 +29,6 @@ void TitleScene::Update(float deltatime)
     {
         //‹ŒŽ®‚Í‚±‚Á‚¿
         SceneManager::SetCurrentScene("GameScene");
-        //TransitionManager::Start("GameScene", 1.0f, TransitionType::FADE, nullptr);
     }
 
 
