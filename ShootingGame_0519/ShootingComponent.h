@@ -7,7 +7,9 @@
 
 using namespace DirectX::SimpleMath;
 
-class Bullet; // 前方宣言
+class GameObject;
+class Bullet;
+class BulletComponent;
 
 class ShootingComponent : public Component
 {
@@ -24,47 +26,44 @@ public:
     void SetScene(IScene* scene) { m_scene = scene; }
     void SetCamera(ICameraViewProvider* camera) { m_camera = camera; }
 
-    // 設定
+    //設定用セッター
     void SetCooldown(float cd) { m_cooldown = cd; }
     void SetBulletSpeed(float sp) { m_bulletSpeed = sp; }
     void SetSpawnOffset(float off) { m_spawnOffset = off; }
     const std::vector<std::weak_ptr<GameObject>>& GetSelectedTargets() const { return m_selectedTargets; }
+    void SetAutoFire(bool v) { m_autoFire = v; }
+    void SetAutoAim(bool v) { m_autoAim = v; }
+    void SetMinDistanceToStopShooting(float d) { m_minDistanceToStopShooting = d; }
 
-private:
-    //弾生成関数(GameObjectを返します)
+
+protected:
+
+    //弾生成用関数
     std::shared_ptr<GameObject> CreateBullet(const Vector3& pos, const Vector3& dir);
 
-    //シーンとカメラを残しておく変数
-    IScene* m_scene = nullptr;
-    ICameraViewProvider* m_camera = nullptr;
+    //生成した弾を追加する関数
+    void AddBulletToScene(const std::shared_ptr<GameObject>& bullet);
 
-    float m_cooldown = 0.1f;   // 発射間隔（秒）
-    float m_timer = 0.0f;
-    float m_bulletSpeed = 220.0f;
-    float m_spawnOffset = 1.5f; // プレイヤー前方に出現させるオフセット
+private:
+    IScene* m_scene = nullptr;                  //生成した弾を追加するシーン
+    ICameraViewProvider* m_camera = nullptr;    //発射する向きを取得するカメラ関数
 
-    //--- 選択モード関連 ---
-    bool  m_canSelect = true;        
-    float m_selectionCooldown = 3.0f; //追尾弾発射後のクールダウン
-    float m_selectionTimer = 0.0f;    //
+    float m_cooldown = 0.1f;        //クールタイム
+    float m_timer = 0.0f;           //経過時間
+    float m_bulletSpeed = 220.0f;   //弾の速さ
+    float m_spawnOffset = 1.5f;     //発射位置のオフセット
+    float m_minDistanceToStopShooting = 0.0f;   //射撃を止める最短距離
+    
+    bool m_autoFire = false;   //自動発射モード
+    bool m_autoAim = false;    //自動照準モード
 
-    bool m_xWasDown = false;
+    std::weak_ptr<GameObject> m_target; //ターゲット保存用配列
 
-    int m_maxTargets = 3;              //選択できるターゲット
-    float m_selectionRadiusPx = 48.0f; //レティクルからの許容距離（px）
+    //
+    std::vector<std::weak_ptr<GameObject>> m_selectedTargets;
 
-    // 選択判定用の世界単位の半径（敵の中心からの距離がこの半径以下ならヒット）
-    float m_selectionRadiusWorld = 1.0f; // デフォルト: 1.0 world units
-
-    // レイの最大長さ（これ以上先は判定しない）
-    float m_rayMaxDist = 100.0f; // デフォルト: 100 units
-
-    std::vector<std::weak_ptr<GameObject>> m_selectedTargets; //選択中のターゲット
-
+    //ホーミングの強さ
     float m_homingStrength = 8.0f;
-
-    float m_ScreenOffsetScale = 8.0f; 
-    float m_MaxScreenOffset = 12.0f; //Playerが曲がる時にズレる量
 };
 
 

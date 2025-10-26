@@ -48,7 +48,7 @@ struct VERTEX_3D
     int BoneIndex[4];            //ボーンインデックス（最大4つ） 20231225
     float BoneWeight[4];         //各ボーンのウェイト値 20231225
     //std::string BoneName[4];     //各ボーンの名前 20231226
-    //int bonecnt = 0;             //影響を与えるボーン数 20231226
+    int bonecnt = 0;             //影響を与えるボーン数 20231226
 };
 
 
@@ -165,13 +165,17 @@ public:
     //レティクル用の関数
     static void DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size);
 
-    //static void BeginOverlay();
-    //static void DrawFullScreenQuad(const Color& color);
-    //static void EndOverlay();
+    // マテリアル用定数バッファのポインタを取得
+    static ID3D11Buffer* GetMaterialCB()
+    {
+        return m_MaterialBuffer.Get();
+    }
 
-    // 黒／任意色の全画面四角形をアルファ a で上書き描画する
-    ///static void DrawFullScreenQuad(float r, float g, float b, float a);
-    //static void BindGridShader();
+    // マテリアル用定数バッファのアドレス（ID3D11Buffer**）を取得
+    static ID3D11Buffer** GetMaterialCBAddress()
+    {
+        return m_MaterialBuffer.GetAddressOf();
+    }
 
     static void DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size);
 

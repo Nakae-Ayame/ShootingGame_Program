@@ -7,6 +7,7 @@ using namespace DirectX::SimpleMath;
 
 class CirculPatrolComponent : public Component
 {
+public:
 	CirculPatrolComponent() = default;
 	~CirculPatrolComponent() override = default;
 
@@ -14,16 +15,16 @@ class CirculPatrolComponent : public Component
 	void Update(float dt) override;
 
     // ê›íË
-    void SetCenter(const Vector3& c) { m_center = c; }
+    void SetCenter(const Vector3& c) { m_Center = c; }
     void SetRadius(float r)
     {
-        if (r < 0.0f) { m_radius = 0.0f; }
-        else { m_radius = r; }
+        if (r < 0.0f) { m_Radius = 0.0f; }
+        else { m_Radius = r; }
     }
-    void SetAngularSpeed(float radPerSec) { m_angularSpeed = radPerSec; } // ÉâÉWÉAÉì/ïb
-    void SetClockwise(bool cw) { m_clockwise = cw; }
-    void SetRotateToTangent(bool v) { m_rotateToTangent = v; }
-    void SetStartAngle(float rad) { m_angle = rad; }
+    void SetAngularSpeed(float radPerSec) { m_AngularSpeed = radPerSec; } // ÉâÉWÉAÉì/ïb
+    void SetClockwise(bool cw) { m_Clockwise = cw; }
+    void SetRotateToTangent(bool v) { m_RotateToTangent = v; }
+    void SetStartAngle(float rad) { m_Angle = rad; }
     //void SetEnabled(bool v) { m_enabled = v; }
 
     //bool IsEnabled() const { return m_enabled; }

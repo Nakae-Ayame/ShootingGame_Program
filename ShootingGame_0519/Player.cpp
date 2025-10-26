@@ -21,7 +21,13 @@ void Player::Initialize()
     m_Collider -> SetSize({ 12.0f, 10.0f, 30.0f }); // モデルに合わせて調整
 
     //モデルの読み込み（失敗時に備えログなども可）
-    modelComp->LoadModel("Asset/Model/Robot/12211_Robot_l2.obj");
+    modelComp->LoadModel("Asset/Build/Lowpoly_tree_sample.obj");
+
+    if (modelComp)
+    {
+        // 赤色に変更（Color(r,g,b,a)）
+        modelComp->SetColor(Color(1.0f, 0.0f, 0.0f, 1.0f));
+    }
 
     SetRotation(DirectX::SimpleMath::Vector3(14.5,0.0,3.1));
    

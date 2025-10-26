@@ -1,7 +1,7 @@
 #pragma once
 #include "GameObject.h"
 #include "ModelComponent.h"
-#include "EnemyTurretComponent.h"
+//#include "EnemyTurretComponent.h"
 #include "AABBColliderComponent.h"
 #include "OBBColliderComponent.h"
 

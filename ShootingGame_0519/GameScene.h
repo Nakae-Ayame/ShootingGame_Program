@@ -7,7 +7,7 @@
 #include "CameraObject.h"
 #include "Enemy.h"
 #include "TextureComponent.h"
-#include "EnemyTurretComponent.h"
+//#include "EnemyTurretComponent.h"
 #include "Reticle.h"
 #include "SkyDome.h"
 #include "Bullet.h"

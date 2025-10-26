@@ -9,9 +9,7 @@
 #include "Enemy.h"
 #include <algorithm>
 
-using namespace DirectX;
 using namespace DirectX::SimpleMath;
-
 
 static bool GetMousePickRay(ICameraViewProvider* cam, const POINT& mousePos, SMS::Vector3& outNear, SMS::Vector3& outFar)
 {

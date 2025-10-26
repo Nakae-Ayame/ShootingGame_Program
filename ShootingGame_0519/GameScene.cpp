@@ -10,6 +10,7 @@
 #include "HPBar.h"
 #include "Building.h"
 #include "PatrolComponent.h"
+#include "CircularPatrolComponent.h"
 
 void GameScene::Init()
 {    
@@ -52,6 +53,30 @@ void GameScene::Init()
     enemy->AddComponent(patrol);
 
     AddObject(enemy); // シーン側に追加
+
+    auto circEnemy = std::make_shared<Enemy>(); // あなたの Enemy ベースを使うならそちらで
+    circEnemy->SetScene(this);
+    circEnemy->SetPosition({ 8.0f, 0.0f, 0.0f });
+
+    // モデル・コライダ等
+    model = std::make_shared<ModelComponent>();
+    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
+    circEnemy->AddComponent(model);
+
+    auto col = std::make_shared<OBBColliderComponent>();
+    col->SetSize({ 2.0f,2.0f,2.0f });
+    circEnemy->AddComponent(col);
+
+    // 円周移動コンポーネント
+    auto circ = std::make_shared<CirculPatrolComponent>();
+    circ->SetCenter({ 0.0f, 0.0f, 0.0f });
+    circ->SetRadius(8.0f);
+    circ->SetAngularSpeed(DirectX::XM_PI / 2.0f); // 90deg/s
+    circ->SetClockwise(true);
+    circEnemy->AddComponent(circ);
+
+    AddObject(circEnemy);
+
     //-------------------------レティクル作成-------------------------------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
     RECT rc{};

@@ -156,7 +156,7 @@
     <ClCompile Include="DebugGlobals.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Enemy.cpp" />
-    <ClCompile Include="EnemyTurretComponent.cpp" />
+    <ClCompile Include="TurretComponent.cpp" />
     <ClCompile Include="FollowCameraComponent.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameObject.cpp" />
@@ -208,7 +208,7 @@
     <ClInclude Include="DebugGlobals.h" />
     <ClInclude Include="DebugRenderer.h" />
     <ClInclude Include="Enemy.h" />
-    <ClInclude Include="EnemyTurretComponent.h" />
+    <ClInclude Include="TurretComponent.h" />
     <ClInclude Include="FollowCameraComponent.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameObject.h" />
