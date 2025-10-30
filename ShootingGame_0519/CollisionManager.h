@@ -6,6 +6,13 @@
 
 class DebugRenderer;
 
+//当たっているペを保存する際に使用する構造体
+struct CollisionInfoLite
+{
+    ColliderComponent* a = nullptr;
+    ColliderComponent* b = nullptr;
+};
+
 class CollisionManager
 {
 public:

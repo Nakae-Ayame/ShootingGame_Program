@@ -1,0 +1,16 @@
+Component.h
+　↳ColliderComponent.h
+　　　↳OBBColliderComponent.h、AABBColliderComponent.h
+
+
+ColliderComponent…Collision関連のコンポーネントの基底クラスのファイル(Componentを継承)
+
+OBBColliderComponent…回転を踏まえたCollisionクラスのファイル(ColliderComponentを継承)
+
+AABBColliderComponent…回転を踏まえないCollisionクラスのファイル(ColliderComponentを継承)
+
+CollisionHelpers…当たり判定で使う計算などの処理をまとめたファイル
+
+Collision…
+
+CollisionManager…

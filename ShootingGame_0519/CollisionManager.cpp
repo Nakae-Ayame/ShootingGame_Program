@@ -9,12 +9,23 @@
 using namespace DirectX;
 
 std::vector<ColliderComponent*> CollisionManager::m_Colliders;
-
 bool CollisionManager::m_hitThisFrame = false;
 
 void CollisionManager::RegisterCollider(ColliderComponent* collider)
 {
-    if (!collider) return;
+    if (!collider)
+    {
+        return;
+    }
+
+    //オーナーがセットされているかのチェック
+    if (!collider->GetOwner())
+    {
+        //ログ表示
+        std::cout << "【警告】コライダーの所持者が存在しません" << std::endl;
+        return;
+    }
+
     //重複防止
     if (std::find(m_Colliders.begin(), m_Colliders.end(), collider) == m_Colliders.end())
     {
@@ -24,7 +35,11 @@ void CollisionManager::RegisterCollider(ColliderComponent* collider)
 
 void CollisionManager::UnregisterCollider(ColliderComponent* collider)
 {
-    if (!collider) return;
+    if (!collider)
+    {
+        return;
+    }
+
     auto it = std::find(m_Colliders.begin(), m_Colliders.end(), collider);
     if (it != m_Colliders.end())
     {
@@ -40,22 +55,48 @@ void CollisionManager::Clear()
 void CollisionManager::CheckCollisions()
 {
     //全コライダーを未ヒット状態に
-    for (auto col : m_Colliders)
+    for (auto col : m_Colliders) 
+    {
         col->SetHitThisFrame(false);
+    }
 
+    //判定する物の収集を行う
+    std::vector<CollisionInfoLite> hitPairs;
     size_t count = m_Colliders.size();
+       
     for (size_t i = 0; i < count; ++i)
     {
+        ColliderComponent* colA = m_Colliders[i];
+        if(!colA)
+        {
+            continue;//コライダーが付いていなければ
+        }
+
+        GameObject* ownerA = colA->GetOwner();
+        if(!ownerA)
+        {
+            continue;// 所有者が無ければスキップ（安全）
+        }
+
         for (size_t j = i + 1; j < count; ++j)
         {
-            ColliderComponent* colA = m_Colliders[i];
             ColliderComponent* colB = m_Colliders[j];
+            if (!colB)
+            {
+                continue;
+            }
+
+            GameObject* ownerB = colB->GetOwner();
+            if (!ownerB)
+            {
+                continue;
+            }
+            
+            bool hit = false;
 
             //コライダーの種類(AABB or OBB)を取得
             auto typeA = colA->GetColliderType();
             auto typeB = colB->GetColliderType();
-
-            bool hit = false;
 
             //-----------------------------------------
             // 衝突判定 ： AABB vs AABB
@@ -74,32 +115,19 @@ void CollisionManager::CheckCollisions()
                 auto a = static_cast<OBBColliderComponent*>(colA);
                 auto b = static_cast<OBBColliderComponent*>(colB);
 
-                // 回転（度数）を取得
-                Vector3 rotA_deg = a->GetOwner()->GetRotation();
-                Vector3 rotB_deg = b->GetOwner()->GetRotation();
+                //各データを取得する
+                Vector3 centerA = a->GetCenter();
+                Vector3 centerB = b->GetCenter();
+                Matrix rotA = a->GetRotationMatrix();
+                Matrix rotB = b->GetRotationMatrix();
+                Vector3 halfA = a->GetSize() * 0.5f;
+                Vector3 halfB = b->GetSize() * 0.5f;
 
-                // ラジアンに変換
-                Vector3 rotA_rad = Vector3(
-                    XMConvertToRadians(rotA_deg.x),
-                    XMConvertToRadians(rotA_deg.y),
-                    XMConvertToRadians(rotA_deg.z)
-                );
-                Vector3 rotB_rad = Vector3(
-                    XMConvertToRadians(rotB_deg.x),
-                    XMConvertToRadians(rotB_deg.y),
-                    XMConvertToRadians(rotB_deg.z)
-                );
-
-                // 回転行列生成（YawPitchRoll順）
-                Matrix rotA = Matrix::CreateFromYawPitchRoll(rotA_rad.y, rotA_rad.x, rotA_rad.z);
-                Matrix rotB = Matrix::CreateFromYawPitchRoll(rotB_rad.y, rotB_rad.x, rotB_rad.z);
-
-                // 軸ベクトル計算
+                //
                 Vector3 axesA[3] = { rotA.Right(), rotA.Up(), rotA.Forward() };
                 Vector3 axesB[3] = { rotB.Right(), rotB.Up(), rotB.Forward() };
 
-                // 判定関数に渡す
-                hit = Collision::IsOBBHit(a->GetCenter(), axesA, a->GetSize() * 0.5f, b->GetCenter(), axesB, b->GetSize() * 0.5f);
+                hit = Collision::IsOBBHit(centerA, axesA, halfA, centerB, axesB, halfB);
             }
 
             //-----------------------------------------
@@ -107,32 +135,21 @@ void CollisionManager::CheckCollisions()
             //-----------------------------------------
             else
             {
-                decltype(colA) aabb;
-                decltype(colA) obb;
-
+                AABBColliderComponent* aabb = nullptr;
+                OBBColliderComponent* obb = nullptr;
                 if (typeA == ColliderType::AABB)
                 {
-                    aabb = colA;
+                    aabb = static_cast<AABBColliderComponent*>(colA);
+                    obb  = static_cast<OBBColliderComponent*>(colB); 
                 }
                 else
                 {
-                    aabb = colB;
+                    aabb = static_cast<AABBColliderComponent*>(colB); 
+                    obb  = static_cast<OBBColliderComponent*>(colA);
                 }
 
-                if (typeA == ColliderType::OBB)
-                {
-                    obb = colA;
-                }
-                else
-                {
-                    obb = colB;
-                }
-
-                auto a = static_cast<AABBColliderComponent*>(aabb);
-                auto b = static_cast<OBBColliderComponent*>(obb);
-
-                hit = Collision::IsAABBvsOBBHit(a->GetMin(), a->GetMax(),
-                    b->GetCenter(), b->GetRotationMatrix(), b->GetSize() * 0.5f);
+                // AABB と OBB 双方の Get* は null-safe 実装を期待
+                hit = Collision::IsAABBvsOBBHit(aabb->GetMin(), aabb->GetMax(), obb->GetCenter(), obb->GetRotationMatrix(), obb->GetSize() * 0.5f);
             }
 
             //-----------------------------------------
@@ -144,15 +161,44 @@ void CollisionManager::CheckCollisions()
                 //std::cout << "当たっています" << std::endl;
 
                 // コリジョンイベント通知
-                colA->SetHitThisFrame(true);
-                colB->SetHitThisFrame(true);
-                colA->GetOwner()->OnCollision(colB->GetOwner());
-                colB->GetOwner()->OnCollision(colA->GetOwner());
+                //判定フェーズでは通知しないで入れておく。
+                CollisionInfoLite info;
+                info.a = colA;
+                info.b = colB;
+                hitPairs.push_back(info);
             }
             else
             {
                 //当たっていない場合のログ（デバッグ時のみ有効にするといい）
                 //std::cout << "当たっていません "<< std::endl;
+            }
+
+            for (const auto& p : hitPairs)
+            {
+                if (!p.a || !p.b)
+                {
+                    //一つ目の当たり判定と二つ目の当たり判定の中で
+                    // いずれかが無かったら終了
+                    continue;
+                }
+
+                ColliderComponent* colA = p.a;
+                ColliderComponent* colB = p.b;
+
+                GameObject* ownerA = colA->GetOwner();
+                GameObject* ownerB = colB->GetOwner();
+
+                if (!ownerA || !ownerB) continue; // 二度目の安全チェック
+
+                // Set Hit flag
+                colA->SetHitThisFrame(true);
+                colB->SetHitThisFrame(true);
+
+                // 通知。既存のシグネチャを使う場合は null チェックのみ。
+                ownerA->OnCollision(ownerB);
+                ownerB->OnCollision(ownerA);
+
+                // もし新しい CollisionInfo 構造体を使うならここで構築して渡す
             }
         }
     }

@@ -9,7 +9,12 @@ void OBBColliderComponent::SetSize(const Vector3& size)
 //GameObjectの位置のゲット関数
 Vector3 OBBColliderComponent::GetCenter() const
 {
-    return GetOwner()->GetPosition();
+    GameObject* owner = GetOwner();
+    if (!owner)
+    {
+        return Vector3::Zero;
+    }
+    return owner->GetPosition();
 };
 
 //当たり判定用のサイズのゲット関数(m_Size)

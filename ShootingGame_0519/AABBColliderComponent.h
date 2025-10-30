@@ -30,6 +30,11 @@ public:
     //中央から半分のサイズを引いて最大座標を出す
     Vector3 GetMax() const;
 
+    //
+    Vector3 GetHalfSizeWorld() const;
+
+    //
+    //AABBBounds GetWorldAABB() const;
 private:
 
     //幅、高さ、奥行の大きさをそれぞれ設定できる変数
