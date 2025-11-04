@@ -15,6 +15,12 @@ public:
     DebugRenderer() = default;
     ~DebugRenderer() = default;
 
+    static DebugRenderer& Get()
+    {
+        static DebugRenderer instance;
+        return instance;
+    }
+
     void Initialize(ID3D11Device* device, ID3D11DeviceContext* context,
         const wchar_t* vsPath = L"DebugLineVS.cso",
         const wchar_t* psPath = L"DebugLinePS.cso");
