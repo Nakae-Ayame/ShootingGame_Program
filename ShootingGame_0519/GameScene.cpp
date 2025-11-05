@@ -11,6 +11,7 @@
 #include "Building.h"
 #include "PatrolComponent.h"
 #include "CircularPatrolComponent.h"
+#include "FloorComponent.h"
 
 void GameScene::DebugCollisionMode()
 {
@@ -37,9 +38,9 @@ void GameScene::DebugSetPlayerSpeed()
 {
     ImGui::Begin("DebugPlayerSpeed");
 
-    static float speed = 10.0f;
+    static float speed = 25.0f;
     
-    ImGui::SliderFloat("PlayerSpeed", &speed, 0.1f, 35.0f);
+    ImGui::SliderFloat("PlayerSpeed", &speed, 0.1f, 75.0f);
 
     setSpeed = speed;
 
@@ -48,19 +49,15 @@ void GameScene::DebugSetPlayerSpeed()
 
 void GameScene::Init()
 {    
-    // デバッグMODE SELECT
+    //デバッグMODE SELECT
     DebugUI::RedistDebugFunction([this]() {DebugCollisionMode();});
 
     DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed();});
 
-        // 既存 Init の先頭あたりで一度だけ初期化
+    //DebugRendererの初期化
     m_debugRenderer = std::make_unique<DebugRenderer>();
     m_debugRenderer->Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext(),
         L"DebugLineVS.cso", L"DebugLinePS.cso");
-
-    //-----------------------スカイドーム作成-------------------------------
-    m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_02.png");
-    m_SkyDome->Initialize();
 
     //--------------------------プレイヤー作成---------------------------------
     m_player = std::make_shared<Player>();
@@ -70,60 +67,62 @@ void GameScene::Init()
     m_player->Initialize();
     auto moveComp = m_player->GetComponent<MoveComponent>();
 
-    //--------------------------エネミー作成---------------------------------
-    auto enemy = std::make_shared<Enemy>();
-    enemy->SetScene(this);
-    enemy->SetPosition({ 10.0f, 0.0f, 0.0f });
-    enemy->SetInitialHP(3);
+    //敵用の生成
+    m_enemySpawner = std::make_unique<EnemySpawner>(this);
+    m_enemySpawner->patrolCfg.spawnCount = 1;
+    m_enemySpawner->circleCfg.spawnCount = 1;
+    m_enemySpawner->turretCfg.spawnCount = 1;
+    m_enemySpawner->SetWaypoints({
+        {   0.0f, 0.0f,  0.0f },
+        { 125.0f, 0.0f,  0.0f },
+        { 125.0f, 0.0f,125.0f },
+        {   0.0f, 0.0f,125.0f }});
+    m_enemySpawner->SetWaypoints({
+        {  60.0f,50.0f,  0.0f },
+        { 120.0f,50.0f,  0.0f },
+        { 120.0f,50.0f,100.0f },
+        {   0.0f, 0.0f,200.0f }});
+    m_enemySpawner->SetWaypoints({
+        {   0.0f, 0.0f,   0.0f },
+        {-125.0f, 0.0f,   0.0f },
+        {-125.0f, 0.0f,-125.0f },
+        {   0.0f, 0.0f,-125.0f }});
 
-    //モデルの読み込み（失敗時に備えログなども可）
-    auto model = std::make_shared<ModelComponent>();
-    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
-    enemy->AddComponent(model);
+    m_enemySpawner->SetCircleCenter({ 0.0f, 0.0f,0.0f});
+    m_enemySpawner->SetCircleCenter({ 0.0f,20.0f,0.0f});
 
-    auto col = std::make_shared<OBBColliderComponent>();
-    col->SetSize({ 2.0f,2.0f,2.0f });
-    enemy->AddComponent(col);
+    m_enemySpawner->SetRadius(20.0f);
+    m_enemySpawner->SetRadius(30.0f);
 
-    // 巡回コンポーネントを追加
-    auto patrol = std::make_shared<PatrolComponent>();
-    std::vector<DirectX::SimpleMath::Vector3> pts = 
-    {
-        { 0.0f,  0.0f, 0.0f },
-        { 125.0f, 0.0f, 0.0f },
-        { 125.0f, 0.0f, 125.0f },
-        { 0.0f,  0.0f, 125.0f }
-    };
-    patrol->SetWaypoints(pts);
-    patrol->SetSpeed(25.0f);
-    patrol->SetPingPong(true); // 往復
-    patrol->SetArrivalThreshold(0.4f);
-    enemy->AddComponent(patrol);
+    m_enemySpawner->SetTurretPos({ 20.0f,20.0f,0.0f });
+    m_enemySpawner->SetTurretPos({ 0.0f,40.0f,0.0f });
 
-    AddObject(enemy); // シーン側に追加
+    m_enemySpawner->turretCfg.target = m_player;
 
-    auto circEnemy = std::make_shared<Enemy>(); // あなたの Enemy ベースを使うならそちらで
-    circEnemy->SetScene(this);
-    circEnemy->SetPosition({ 8.0f, 0.0f, 0.0f });
+    m_enemySpawner->EnsurePatrolCount();
+    m_enemySpawner->EnsureCircleCount();
+    m_enemySpawner->EnsureTurretCount();
 
-    // モデル・コライダ等
-    model = std::make_shared<ModelComponent>();
-    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
-    circEnemy->AddComponent(model);
+    //------------------スカイドーム作成-------------------------
 
-    col = std::make_shared<OBBColliderComponent>();
-    col->SetSize({ 2.0f,2.0f,2.0f });
-    circEnemy->AddComponent(col);
+    m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_02.png");
+    m_SkyDome->Initialize();
 
-    // 円周移動コンポーネント
-    auto circ = std::make_shared<CirculPatrolComponent>();
-    circ->SetCenter({ 0.0f, 0.0f, 0.0f });
-    circ->SetRadius(8.0f);
-    circ->SetAngularSpeed(DirectX::XM_PI / 2.0f); // 90deg/s
-    circ->SetClockwise(true);
-    circEnemy->AddComponent(circ);
+    //-----------------------床制作------------------------------
 
-    AddObject(circEnemy);
+    auto floorObj = std::make_shared<GameObject>();
+    floorObj->SetPosition(Vector3(0, -50, 0));
+    floorObj->SetRotation(Vector3(0, 0, 0));
+    floorObj->SetScale(Vector3(75, 75, 75));
+
+    // AddComponent で床コンポーネントを追加（テクスチャパスは任意）
+    auto floorComp = floorObj->AddComponent<FloorComponent>();
+
+    floorComp->SetGridTexture("Asset/Texture/grid01.jpeg", 1, 1);
+
+    floorObj->Initialize();
+
+    AddObject(floorObj);
 
     //-------------------------レティクル作成-------------------------------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
@@ -173,8 +172,6 @@ void GameScene::Init()
     AddTextureObject(m_reticle);
 
     AddObject(m_player);
-    //AddObject(m_Building);
-    AddObject(enemy);
     AddObject(m_FollowCamera);
 
     if (m_FollowCamera && m_FollowCamera->GetCameraComponent())
@@ -182,6 +179,10 @@ void GameScene::Init()
         Vector2 screenPos(static_cast<float>(m_lastDragPos.x), static_cast<float>(m_lastDragPos.y));
         m_FollowCamera->GetCameraComponent()->SetReticleScreenPos(screenPos);
     }
+
+    // 例: Renderer::Init() の後
+    DebugRenderer::Get().Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext());
+
 }
 
 void GameScene::Update(float deltatime)
@@ -236,10 +237,10 @@ void GameScene::Update(float deltatime)
         }
     }
 
-    
-    Vector3 ppos = m_player->GetPosition();
-
-
+    if (Input::IsKeyDown(VK_RETURN))
+    {
+        SceneManager::SetChangeScene("TitleScene");
+    }
 
 }
 
@@ -268,9 +269,6 @@ void GameScene::Draw(float deltatime)
     {
         m_reticle->Draw(deltatime);
     }
-    
-    //デバッグ線
-    //CollisionManager::DebugDrawAllColliders(gDebug);
 
     //(もし m_reticleTex 経由の旧描画があるなら、それも最後に)
     if (m_reticleTex && m_reticleTex->GetSRV())
@@ -317,31 +315,52 @@ void GameScene::Draw(float deltatime)
     
 }
 
-
 void GameScene::Uninit()
 {
-    m_AddObjects.clear();
-    m_DeleteObjects.clear();
+    if (m_enemySpawner)
+    {
+        m_enemySpawner.reset();
+    }
 
-    // 各GameObjectの明示的な終了処理を呼ぶ（任意）
+    //DebugRenderer をクリアして破棄
+    if (m_debugRenderer)
+    {
+        m_debugRenderer->Clear();
+        //もし DebugRenderer に Shutdown/Uninit があれば呼ぶ
+        //m_debugRenderer->Uninit();
+        m_debugRenderer.reset();
+    }
+
+    //GameObject解放
     for (auto& obj : m_GameObjects)
     {
-       /* if (obj)
-            obj->Uninit();*/ // ← GameObject に Uninit() があるなら呼ぶ
+        if (!obj) { continue; }
+        // GameObject::Uninit を実装しておくこと（下で例示）
+        obj->Uninit();
+        obj->SetScene(nullptr);
     }
+
+    //テクスチャオブジェクト解放
     for (auto& obj : m_TextureObjects)
     {
-        //if (obj)
-            //obj->Uninit();
+        if (!obj) { continue; }
+        obj->Uninit();
+        obj->SetScene(nullptr);
     }
 
-    // 配列自体を解放（shared_ptr の参照をすべて消す）
+    //vectors をクリアして shared_ptr の参照カウントを下げる
     m_GameObjects.clear();
     m_TextureObjects.clear();
-
-    // 他のリストも念のため
     m_AddObjects.clear();
     m_DeleteObjects.clear();
+
+    //個別メンバ（player, camera, etc.）を reset
+    m_player.reset();
+    m_FollowCamera.reset();
+    m_SkyDome.reset();
+    m_reticleObj.reset();
+    m_reticleTex.reset();
+    m_reticle.reset();
 }
 
 void GameScene::AddObject(std::shared_ptr<GameObject> obj)
@@ -401,16 +420,6 @@ void GameScene::AddTextureObject(std::shared_ptr<GameObject> obj)
     m_TextureObjects.push_back(obj);
 }
 
-//void GameScene::RemoveObject(std::shared_ptr<GameObject> obj) 
-//{ 
-//    if (!obj) return;
-//    // 重複 push を防ぐ
-//    auto it = std::find_if(m_DeleteObjects.begin(), m_DeleteObjects.end(), [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
-//    if (it != m_DeleteObjects.end()) return;
-//    m_DeleteObjects.push_back(obj);
-//
-//} 
-
 void GameScene::RemoveObject(GameObject* obj)
 {
     //ポインタがないなら処理終わり
@@ -444,36 +453,42 @@ void GameScene::RemoveObject(GameObject* obj)
 }
 
 void GameScene::FinishFrameCleanup()
-{ 
-    // m_DeleteObjects にあるアイテムを m_GameObjects から削除
+{
+    //m_DeleteObjectsにあるアイテムを削除
     for (auto& delSp : m_DeleteObjects)
     {
-        if (!delSp) 
-        {
-            continue; 
-        
-        }
+        if (!delSp){ continue; }
+
+        //m_GameObjects から探す
         auto it = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
+
         if (it != m_GameObjects.end())
         {
-            // オプション: Scene 参照をクリアしたい場合
-            // (*it)->SetScene(nullptr);
+            //Uninit
+            (*it)->Uninit();
+
+            //シーン参照を切る
+            (*it)->SetScene(nullptr);
 
             m_GameObjects.erase(it);
-            //shared_ptr をここで破棄 -> 実際の破棄は参照カウント次第
         }
-        // もしオブジェクトがまだ m_AddObjects に入っているケースがあるなら（安全策）
+
+        //m_AddObjectsにまだあるなら削除
         auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
         if (itPending != m_AddObjects.end())
         {
+            // 追加前に削除予定だったオブジェクトなら Uninit して erase
+            (*itPending)->Uninit();
+            (*itPending)->SetScene(nullptr);
             m_AddObjects.erase(itPending);
         }
     }
 
     m_DeleteObjects.clear();
-} 
+}
+
 
 void GameScene::SetSceneObject()
 { 

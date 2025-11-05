@@ -13,6 +13,7 @@
 #include "Bullet.h"
 #include "TitleBackGround.h"
 #include "DebugUI.h"
+#include "EnemySpawner.h"
 
 //---------------------------------
 //ISceneを継承したGameScene
@@ -54,7 +55,15 @@ public:
 
 	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
+	//削除予定のオブジェクトの配列
+	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
+
+	//追加予定のオブジェクトの配列
+	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
+
 private:
+	std::unique_ptr<EnemySpawner> m_enemySpawner;
+
 	std::unique_ptr<DebugRenderer> m_debugRenderer;
 
 	std::shared_ptr<Player> m_player;
@@ -66,12 +75,6 @@ private:
 
 	//GameScene内の2Dオブジェクトの配列
 	std::vector<std::shared_ptr<GameObject>> m_TextureObjects;
-
-	//削除予定のオブジェクトの配列
-	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
-
-	//追加予定のオブジェクトの配列
-	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
 
 	 // --- レティクル関係 ---
 	std::shared_ptr<GameObject> m_reticleObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
@@ -85,6 +88,7 @@ private:
 
 	//SceneのUpdate時に追加予定であったオブジェクトの配列の追加などを行う関数
 	void SetSceneObject();
+
 	void SetReticleByCenter(const POINT& screenPos)
 	{
 		if (!m_reticleTex) return;
