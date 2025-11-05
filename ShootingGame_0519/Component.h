@@ -14,6 +14,7 @@ public:
     virtual void Initialize() {} //ゲームループ内のInit
     virtual void Update(float dt) {};   //ゲームループ内のUpdate
     virtual void Draw(float alpha) {};  //ゲームループ内のDraw
+    virtual void Uninit() {};
 
     //コンポーネントが属するクラス(GameObjectなど)を参照、保持する仕組み
     //例）コンポーネント内での更新で親オブジェクトの位置や

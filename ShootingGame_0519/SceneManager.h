@@ -23,6 +23,8 @@ private:
 
 	static bool IsSceneChange;
 
+	static bool m_sceneChangedThisFrame;
+
 public:
 	//ゲームの中で使うシーンを登録する関数
 	static void RegisterScene(const std::string& name, std::unique_ptr<IScene> scene);
@@ -32,6 +34,8 @@ public:
 
 	//今のシーンを取得する
 	static std::string GetCurrentSceneName();
+
+	static void SetChangeScene(const std::string& name);
 
 	//現在シーンの更新処理をする関数
 	static void Update(float deltatime);

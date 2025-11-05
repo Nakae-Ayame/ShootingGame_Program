@@ -14,6 +14,8 @@ std::string SceneManager::m_currentSceneName;
 
 bool SceneManager::IsSceneChange = false;
 
+bool SceneManager::m_sceneChangedThisFrame = false;
+
 void SceneManager::RegisterScene(const std::string& name, std::unique_ptr<IScene> scene)
 {
     m_scenes[name] = std::move(scene); //m_sceneに引数のScene名とスーマートポインタを使って登録
@@ -47,6 +49,27 @@ std::string SceneManager::GetCurrentSceneName()
     return m_currentSceneName;
 }
 
+void SceneManager::SetChangeScene(const std::string& name)
+{
+    // mark change so Update loop can skip remaining steps
+    m_sceneChangedThisFrame = true;
+
+    // safety: clear registered colliders immediately to avoid dangling pointers
+    CollisionManager::Clear();
+
+    // 現在のシーンを Uninit してから新しいシーンを Init
+    if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
+    {
+        m_scenes[m_currentSceneName]->Uninit();
+    }
+
+    Input::Reset();
+
+    m_currentSceneName = name;
+    m_scenes[m_currentSceneName]->Init();
+
+}
+
 void SceneManager::Init()
 {
     //-------------------------------------------------------------
@@ -70,44 +93,35 @@ void SceneManager::Init()
 
 void SceneManager::Update(float deltatime)
 {
-    //入力アップデート
     Input::Update();
+    CollisionManager::Clear(); // フレーム先頭クリア
 
-    //フレーム先頭で前フレームのコライダーをクリア
-    CollisionManager::Clear();
-
-    //トランジション更新（そのまま）
     TransitionManager::Update(deltatime);
 
     if (!TransitionManager::IsActive())
     {
-        //SceneのUpdate（ここで Scene 内が RegisterCollider を呼ぶ）
+        // snapshot (not strictly required if SetCurrentScene sets flag)
+        // call scene Update
         if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
         {
             m_scenes[m_currentSceneName]->Update(deltatime);
-
-            /*if (IsSceneChange)
-            {
-                return;
-            }*/
         }
 
-        // 4) 判定を実行（Scene がコライダーを登録し終えた後で）
-        CollisionManager::CheckCollisions();
+        // if scene changed during Update, skip collision / cleanup to avoid using freed data
+        if (m_sceneChangedThisFrame)
+        {
+            m_sceneChangedThisFrame = false;
+            return; // short-circuit: next frame will start clean
+        }
 
-        // 5) 削除や追加の反映（安全なタイミング）
+        // 正常ルート：判定 / フレーム終端処理
+        CollisionManager::CheckCollisions();
         if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
         {
             m_scenes[m_currentSceneName]->FinishFrameCleanup();
         }
     }
-    else
-    {
-        // 遷移中の扱い（従来通り）
-    }
 }
-
-
 
 void SceneManager::Draw(float deltatime)
 {

@@ -19,6 +19,7 @@ public:
     void Initialize() override {};
     void Update(float dt) override {};
     void Draw(float alpha) override {};
+    void Uninit() override {};
 
 private:
     //í∏ì_ópÇÃç\ë¢ëÃ

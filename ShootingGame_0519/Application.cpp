@@ -92,9 +92,6 @@ void Application::MainLoop()
             Game::GameUpdate(m_DeltaTime);
             //TransitionManager::Update(m_DeltaTime);
             Game::GameDraw(m_DeltaTime);
-
-            // フェードオーバーレイ
-            //TransitionManager::Draw();
         }
     }
 
