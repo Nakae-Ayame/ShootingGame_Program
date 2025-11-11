@@ -14,8 +14,8 @@ void PatrolComponent::Initialize()
 		m_CurrentIndex = 0;
 	}
 
-	std::cout << "[PatrolComponent] Initialize: waypoints=" << m_Waypoints.size()
-		<< " startIndex=" << m_CurrentIndex << " speed=" << m_speed << "\n";
+	//std::cout << "[PatrolComponent] Initialize: waypoints=" << m_Waypoints.size()
+		//<< " startIndex=" << m_CurrentIndex << " speed=" << m_speed << "\n";
 }
 
 void PatrolComponent::Update(float dt)
@@ -49,8 +49,8 @@ void PatrolComponent::Update(float dt)
 
 	if (dist2 <= thresh2)
 	{
-		std::cout << "[PatrolComponent] Reached waypoint idx=" << m_CurrentIndex
-			<< " pos=(" << pos.x << "," << pos.y << "," << pos.z << ")\n";
+		/*std::cout << "[PatrolComponent] Reached waypoint idx=" << m_CurrentIndex
+			<< " pos=(" << pos.x << "," << pos.y << "," << pos.z << ")\n";*/
 
 
 		//コールバック呼び出し
@@ -110,7 +110,7 @@ void PatrolComponent::Update(float dt)
 
 			if (prevIndex != m_CurrentIndex)
 			{
-				std::cout << "[PatrolComponent] Now targeting waypoint idx=" << m_CurrentIndex << "\n";
+				//std::cout << "[PatrolComponent] Now targeting waypoint idx=" << m_CurrentIndex << "\n";
 			}
 		}
 		return; // 到着時はまず向きを更新せず次フレームから移動
@@ -142,9 +142,9 @@ void PatrolComponent::Update(float dt)
 	// 1秒に1回の状態ログ（スパム回避）
 	if (doPeriodicLog)
 	{
-		std::cout << "[PatrolComponent] Pos=(" << pos.x << "," << pos.y << "," << pos.z
+		/*std::cout << "[PatrolComponent] Pos=(" << pos.x << "," << pos.y << "," << pos.z
 			<< ") TargetIdx=" << m_CurrentIndex
-			<< " TargetPos=(" << target.x << "," << target.y << "," << target.z << ")\n";
+			<< " TargetPos=(" << target.x << "," << target.y << "," << target.z << ")\n";*/
 	}
 }
 

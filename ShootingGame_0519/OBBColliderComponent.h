@@ -17,6 +17,8 @@ public:
     //(全体の幅・高さ・奥行き)
     void SetSize(const Vector3& size);
 
+    ///void SetPosition(const Vector3& pos);
+
     //GameObjectの位置のゲット関数
     Vector3 GetCenter() const override;
 

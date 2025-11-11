@@ -16,7 +16,7 @@ TextureComponent::TextureComponent()
 bool TextureComponent::LoadTexture(const std::wstring& filepath)
 {
     ID3D11Device* device = Renderer::GetDevice();
-    if (!device) return false;
+    if (!device) { return false; }
 
     HRESULT hr = CreateWICTextureFromFile(device, filepath.c_str(), nullptr, m_TextureSRV.GetAddressOf());
     return SUCCEEDED(hr);
@@ -28,7 +28,9 @@ void TextureComponent::Draw(float alpha)
 {
     if (!m_TextureSRV) return;
 
-    std::cout << "[TextureComp] Draw start SRV=" << m_TextureSRV.Get() << std::endl;
+    //std::cout << "[TextureComp] Draw start SRV=" << m_TextureSRV.Get() << std::endl;
+
     Renderer::DrawTexture(m_TextureSRV.Get(), m_Position, m_Size);
-    std::cout << "[TextureComp] Draw end\n";
+
+    //std::cout << "[TextureComp] Draw end\n";
 }

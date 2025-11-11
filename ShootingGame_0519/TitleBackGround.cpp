@@ -12,8 +12,6 @@ TitleBackGround::TitleBackGround(const std::wstring& texturePath, float size)
 
 void TitleBackGround::Initialize()
 {
-    //panda_iruka_irowake_iruka.png
-    // 自分のコンポーネントとして TextureComponent を作る
     m_texture = AddComponent<TextureComponent>();
     if (!m_texture)
     {
@@ -26,6 +24,7 @@ void TitleBackGround::Initialize()
     {
         OutputDebugStringA("Reticle: テクスチャ読み込み失敗\n");
     }
+
     m_texture->SetSize(50, 20);
 
     // 初期位置：ウィンドウ中央

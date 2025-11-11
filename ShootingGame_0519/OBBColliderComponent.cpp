@@ -6,6 +6,11 @@ void OBBColliderComponent::SetSize(const Vector3& size)
     m_Size = size;
 }
 
+//void OBBColliderComponent::SetPosition(const Vector3& pos)
+//{
+//    m_Pos = pos;
+//}
+
 //GameObjectの位置のゲット関数
 Vector3 OBBColliderComponent::GetCenter() const
 {
@@ -14,7 +19,7 @@ Vector3 OBBColliderComponent::GetCenter() const
     {
         return Vector3::Zero;
     }
-    return owner->GetPosition();
+    return owner->GetPosition() ;
 };
 
 //当たり判定用のサイズのゲット関数(m_Size)
