@@ -14,6 +14,7 @@
 #include "TitleBackGround.h"
 #include "DebugUI.h"
 #include "EnemySpawner.h"
+#include "BuildingSpawner.h"
 
 //---------------------------------
 //ISceneを継承したGameScene
@@ -37,6 +38,9 @@ public:
 
 	//モード変更用関数
 	void DebugSetPlayerSpeed();
+
+	//モード変更用関数
+	void DebugSetCameraOffset();
 	
 	//オブジェクトの追加要求関数
 	void AddObject(std::shared_ptr<GameObject> obj) override;
@@ -63,6 +67,8 @@ public:
 
 private:
 	std::unique_ptr<EnemySpawner> m_enemySpawner;
+
+	std::unique_ptr<BuildingSpawner> m_buildingSpawner;
 
 	std::unique_ptr<DebugRenderer> m_debugRenderer;
 
@@ -102,4 +108,8 @@ private:
 	bool isCollisionDebugMode = false;
 
 	float setSpeed = 10.0f;
+
+	float setOffset = -50.0;
+
+	int enemyCount = 0;
 };

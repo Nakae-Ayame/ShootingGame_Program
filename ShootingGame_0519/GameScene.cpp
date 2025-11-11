@@ -12,6 +12,7 @@
 #include "PatrolComponent.h"
 #include "CircularPatrolComponent.h"
 #include "FloorComponent.h"
+#include "PlayAreaComponent.h"
 
 void GameScene::DebugCollisionMode()
 {
@@ -67,32 +68,41 @@ void GameScene::Init()
     m_player->Initialize();
     auto moveComp = m_player->GetComponent<MoveComponent>();
 
-    //敵用の生成
+    auto playAreaComp = std::make_shared<PlayAreaComponent>();
+
+    playAreaComp->SetMinY(-10.0f);
+    playAreaComp->SetMaxY( 50.0f);
+    moveComp->SetPlayArea(playAreaComp.get());
+
+    //-------------------------敵生成--------------------------------
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 1;
-    m_enemySpawner->circleCfg.spawnCount = 1;
+    m_enemySpawner->patrolCfg.spawnCount = 2;
+    m_enemySpawner->circleCfg.spawnCount = 2;
     m_enemySpawner->turretCfg.spawnCount = 1;
+
+    enemyCount = m_enemySpawner->patrolCfg.spawnCount + m_enemySpawner->circleCfg.spawnCount + m_enemySpawner->turretCfg.spawnCount;
+
     m_enemySpawner->SetWaypoints({
-        {   0.0f, 0.0f,  0.0f },
-        { 125.0f, 0.0f,  0.0f },
-        { 125.0f, 0.0f,125.0f },
-        {   0.0f, 0.0f,125.0f }});
+        {   0.0f, 20.0f,  0.0f },
+        {  20.0f, 20.0f,  0.0f },
+        {  20.0f, 20.0f,20.0f },
+        {   0.0f, 20.0f,20.0f }});
     m_enemySpawner->SetWaypoints({
-        {  60.0f,50.0f,  0.0f },
-        { 120.0f,50.0f,  0.0f },
-        { 120.0f,50.0f,100.0f },
-        {   0.0f, 0.0f,200.0f }});
+        {  60.0f, 10.0f,  0.0f },
+        {  60.0f, 10.0f,  0.0f },
+        {  60.0f, 10.0f,100.0f },
+        {   0.0f, 10.0f,200.0f }});
     m_enemySpawner->SetWaypoints({
         {   0.0f, 0.0f,   0.0f },
-        {-125.0f, 0.0f,   0.0f },
-        {-125.0f, 0.0f,-125.0f },
-        {   0.0f, 0.0f,-125.0f }});
+        {  75.0f, 0.0f,   0.0f },
+        {  75.0f, 0.0f, 75.0f },
+        {   0.0f, 0.0f, 75.0f }});
 
-    m_enemySpawner->SetCircleCenter({ 0.0f, 0.0f,0.0f});
-    m_enemySpawner->SetCircleCenter({ 0.0f,20.0f,0.0f});
+    m_enemySpawner->SetCircleCenter({ 50.0f, 0.0f,0.0f});
+    m_enemySpawner->SetCircleCenter({ -30.0f,20.0f,0.0f});
 
     m_enemySpawner->SetRadius(20.0f);
-    m_enemySpawner->SetRadius(30.0f);
+    m_enemySpawner->SetRadius(50.0f);
 
     m_enemySpawner->SetTurretPos({ 20.0f,20.0f,0.0f });
     m_enemySpawner->SetTurretPos({ 0.0f,40.0f,0.0f });
@@ -105,13 +115,13 @@ void GameScene::Init()
 
     //------------------スカイドーム作成-------------------------
 
-    m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_02.png");
-    m_SkyDome->Initialize();
+    /*m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_02.png");
+    m_SkyDome->Initialize();*/
 
     //-----------------------床制作------------------------------
 
     auto floorObj = std::make_shared<GameObject>();
-    floorObj->SetPosition(Vector3(0, -50, 0));
+    floorObj->SetPosition(Vector3(0, -5, 0));
     floorObj->SetRotation(Vector3(0, 0, 0));
     floorObj->SetScale(Vector3(75, 75, 75));
 
@@ -123,6 +133,21 @@ void GameScene::Init()
     floorObj->Initialize();
 
     AddObject(floorObj);
+
+    //--------------------------建物生成-----------------------------
+
+    m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
+    BuildingConfig bc;
+    bc.modelPath = "Asset/Build/rocks_01_model.obj";
+    bc.count = 1;
+    bc.areaWidth = 20.0f;
+    bc.areaDepth = 20.0f;
+    bc.spacing = 20.0f;
+    bc.randomizeRotation = true;
+    bc.minScale = 0.9f;
+    bc.maxScale = 1.2f;
+
+    m_buildingSpawner->Spawn(bc);
 
     //-------------------------レティクル作成-------------------------------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
@@ -159,12 +184,12 @@ void GameScene::Init()
         shootComp->SetCamera(cameraComp.get());
     }
 
-    if (cameraComp)
-    {
-        m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* を受け取る場合
-    }
+    //if (cameraComp)
+    //{
+    //    m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* を受け取る場合
+    //}
 
-    m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
+    //m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
 
     m_FollowCamera->GetCameraComponent()->SetTarget(m_player.get());
 
@@ -190,8 +215,47 @@ void GameScene::Update(float deltatime)
     //新規オブジェクトをGameSceneのオブジェクト配列に追加する
     SetSceneObject();
 
+    if (!m_player)
+    {
+        std::cout << "プレイヤーが発見できませんでした" << m_player << std::endl;
+    }
+    else
+    {
+        std::cout << "プレイヤーが発見されました m_player ptr = " << m_player << std::endl;
+
+        auto pos = m_player->GetPosition();
+        if (!std::isfinite(pos.x) || !std::isfinite(pos.y) || !std::isfinite(pos.z))
+        {
+            std::cout << "DEBUG: player pos is not finite" << std::endl;
+            std::cout << "Playerの位置" << "X = " << pos.x << " , Y = " << pos.y << " , Z = " << pos.z << std::endl;
+        }
+        else
+        {
+            std::cout << "DEBUG: player pos" << std::endl;
+            std::cout << "Playerの位置" << "X = " << pos.x << " , Y = " << pos.y << " , Z = " << pos.z << std::endl;
+        }
+    }
+
     auto PlayerMove = m_player->GetComponent<MoveComponent>();
-    PlayerMove->SetSpeed(setSpeed);
+    if (PlayerMove)
+    {
+        /*PlayerMove->SetSpeed(setSpeed);
+        Vector3 pos = m_player->GetPosition();*/
+        std::cout << "MoveComponent起動中です" << std::endl;
+
+    }
+    else
+    {
+        std::cout << "MoveComponentクラスが見つかりません" << std::endl;
+    }
+
+
+  /*  auto cameraMove = m_FollowCamera->GetComponent<FollowCameraComponent>();
+    if (cameraMove)
+    {
+        cameraMove->SetLookTargetScreenOffsetScale(setOffset);
+    }*/
+   
     //----------------- レティクルのドラッグ処理 -----------------
     if (Input::IsMouseLeftPressed())
     {
@@ -237,7 +301,7 @@ void GameScene::Update(float deltatime)
         }
     }
 
-    if (Input::IsKeyDown(VK_RETURN))
+    if (enemyCount <= 0)
     {
         SceneManager::SetChangeScene("TitleScene");
     }
@@ -286,23 +350,22 @@ void GameScene::Draw(float deltatime)
             Matrix view = camComp->GetView();
             Matrix proj = camComp->GetProj();
 
-            // 各オブジェクトのコライダーを登録
+            //各オブジェクトのコライダーを登録
             for (auto& obj : m_GameObjects)
             {
                 if (!obj) continue;
                 auto col = obj->GetComponent<ColliderComponent>();
                 if (!col) continue;
 
-                // 色（当たっているなら赤、そうでなければ緑半透明）
+                //色（当たっているなら赤、そうでなければ緑半透明）
                 bool hit = col->IsHitThisFrame();
                 Vector4 color = hit ? Vector4(1, 0, 0, 1) : Vector4(0, 1, 0, 0.6f);
 
-                // center / size / rotation を取得
                 Vector3 center = col->GetCenter();
-                Vector3 size = col->GetSize();          // ** full size を期待 **
-                Matrix rot = col->GetRotationMatrix(); // AABB は Identity を返すように実装済み
+                Vector3 size = col->GetSize();         
+                Matrix rot = col->GetRotationMatrix(); 
 
-                // DebugRenderer::AddBox は size が fullSize を期待します（内部で 0.5 をかける）
+                //DebugRenderer::AddBox は size が fullSize を期待します
                 m_debugRenderer->AddBox(center, size, rot, color);
             }
 
@@ -326,8 +389,7 @@ void GameScene::Uninit()
     if (m_debugRenderer)
     {
         m_debugRenderer->Clear();
-        //もし DebugRenderer に Shutdown/Uninit があれば呼ぶ
-        //m_debugRenderer->Uninit();
+
         m_debugRenderer.reset();
     }
 
@@ -465,6 +527,11 @@ void GameScene::FinishFrameCleanup()
 
         if (it != m_GameObjects.end())
         {
+            if (auto enemy = std::dynamic_pointer_cast<Enemy>(*it))
+            {
+                enemyCount -= 1;
+            }
+
             //Uninit
             (*it)->Uninit();
 

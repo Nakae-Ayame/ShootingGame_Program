@@ -85,5 +85,10 @@ private:
     // --- 追加メンバ: レティクルに応じたカメラの横シフト量（チューニング用） ---
     float m_ScreenOffsetScale = 8.0f; // 画面幅 1.0 正規化あたりのワールド単位換算（調整可）
     float m_MaxScreenOffset = 200.0f;  // 最大シフト（ワールド単位）
-};
 
+    float m_PrevPlayerYaw = 0.0f;
+    float m_TurnOffsetScale = 4.0f;   // yawSpeed -> ワールド横オフセット換算（調整用）
+    float m_TurnOffsetMax = 6.0f;     // オフセット最大値（ワールド単位）
+    float m_CurrentTurnOffset = 0.0f; // 現在の横オフセット（滑らかに更新）
+    float m_TurnOffsetLerp = 8.0f;    // オフセットが変化するときの滑らかさ（大きいと即時）
+};
