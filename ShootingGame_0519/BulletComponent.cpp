@@ -54,7 +54,7 @@ void BulletComponent::Update(float dt)
             {
                 //オブジェクト削除候補の配列に入れる
                 s->RemoveObject(owner);
-                std::cout << "弾の稼働時間が終了したため削除します " << std::endl;
+                //std::cout << "弾の稼働時間が終了したため削除します " << std::endl;
             }
         }
         return; // 以降の更新はしない

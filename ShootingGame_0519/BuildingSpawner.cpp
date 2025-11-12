@@ -55,14 +55,16 @@ void BuildingSpawner::Spawn(const BuildingConfig& cfg)
             //建物生成
             auto obj = std::make_shared<GameObject>();
             obj->SetScene(m_scene);
-            obj->SetPosition({ x, 0.0f, z });
+            obj->SetPosition({ x, -12, z });
             float scale = RandFloat(cfg.minScale, cfg.maxScale);
-            obj->SetScale({ 20, 20, 20 });
+            obj->SetScale({ 10, 10, 10 });
 
             if (cfg.randomizeRotation)
             {
                 obj->SetRotation({ 0.0f, RandFloat(0.0f, 6.2831853f), 0.0f });
             }
+
+            obj->SetRotation({ 0.0f, 0.0f, 0.0f });
 
             //ModelComponentを作るがリソースは共有(今はまだ実装していない)
             auto mc = std::make_shared<ModelComponent>();
@@ -71,11 +73,11 @@ void BuildingSpawner::Spawn(const BuildingConfig& cfg)
             obj->AddComponent(mc);
 
             //建物なのでAABB
-            auto aabb = std::make_shared<AABBColliderComponent>();
+            //auto aabb = std::make_shared<AABBColliderComponent>();
 
             //ざっくりサイズを設定する
-            aabb->SetSize({ 5.0f * 20, 10.0f * 20, 5.0f * 20 });
-            obj->AddComponent(aabb);
+            //aabb->SetSize({ 10.0f, 10.0f ,10.0f });
+            //obj->AddComponent(aabb);
 
             obj->Initialize();
 

@@ -220,7 +220,7 @@ MeshPart Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
 void Model::Draw(const DirectX::XMMATRIX& worldMatrix)
 {
-    std::cout << "[Model] Draw開始\n";
+    //std::cout << "[Model] Draw開始\n";
 
     // ここでワールド行列をセット（あなたのRendererの設計に沿って）
     Matrix4x4 mat;
@@ -229,7 +229,7 @@ void Model::Draw(const DirectX::XMMATRIX& worldMatrix)
 
     for (const MeshPart& part : meshes_)
     {
-        std::cout << "[Model] MeshPart描画 indexCount=" << part.indexCount << "\n";
+        //std::cout << "[Model] MeshPart描画 indexCount=" << part.indexCount << "\n";
 
         const Material& mat = materials_[part.materialIndex];
 

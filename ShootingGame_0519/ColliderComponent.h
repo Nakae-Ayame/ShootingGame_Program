@@ -19,7 +19,9 @@ public:
     ColliderType GetColliderType() const { return m_Type; }               //コライダーのType(AABB/OBB)のゲット関数
 
     virtual Vector3 GetCenter() const = 0;                                //中心の座標ゲット関数
-    virtual Vector3 GetSize() const = 0;                                  //当たり判定のサイズゲット関数
+    virtual Vector3 GetSize()   const = 0;                                  //当たり判定のサイズゲット関数
+    //virtual Vector3 GetPosition()   const = 0;
+
     virtual DirectX::SimpleMath::Matrix GetRotationMatrix() const = 0;    //回転行列のゲット関数
 
     void SetEnabled(bool enabled);       //当たり判定の有効/無効のセット関数

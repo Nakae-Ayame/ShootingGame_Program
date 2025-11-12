@@ -38,7 +38,7 @@ void Bullet::Update(float dt)
 
 void Bullet::Draw(float alpha)
 {
-    std::cout << "Bullet::Draw called" << std::endl;
+    //std::cout << "Bullet::Draw called" << std::endl;
 
     //ワールド行列セット
     Matrix4x4 world = GetTransform().GetMatrix();

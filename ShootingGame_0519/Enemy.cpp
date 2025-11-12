@@ -30,7 +30,6 @@ void Enemy::OnCollision(GameObject* other)
             // Player’e‚É“–‚½‚Á‚½‚ç‚»‚ÌEnemy‚à’e‚àíœ
             if (auto scene = GetScene())
             {
-                //SceneManager::SetCurrentScene("ResultScene");
                 scene->RemoveObject(this); // GameScene::RemoveObject(GameObject*) ‚ª‚ ‚é‚Í‚¸
                 scene->RemoveObject(other);
                 

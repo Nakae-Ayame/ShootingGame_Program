@@ -178,10 +178,6 @@ static bool GetMousePickRay(ICameraViewProvider* cam, const POINT& mousePos, SMS
     return true;
 }
 
-
-
-// ヘルパー: レイ( origin, dir ) と点 point の最短距離を返す。
-// origin はレイの開始点、dir は正規化済み方向ベクトル
 static float DistancePointToRay(const Vector3& origin, const Vector3& dir, const Vector3& point)
 {
     Vector3 v = point - origin;

@@ -9,7 +9,6 @@
 
 EnemySpawner::EnemySpawner(GameScene* scene) : m_scene(scene)
 {
-    // デフォルトウェイポイントを用意しておく
     patrolCfg.waypoints = 
     {
         {0,0,0}, {100,0,0}, {100,0,100}, {0,0,100}
@@ -26,12 +25,12 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(const PatrolConfig& c
 
     //モデルの設定を行い、Componentを付ける
     auto model = std::make_shared<ModelComponent>();
-    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
+    model->LoadModel("Asset/Model/Enemy/uploads_files_3862208_Cube.obj");
     enemy->AddComponent(model);
 
     //当たり判定の設定を行い、Componentを付ける
     auto col = std::make_shared<OBBColliderComponent>();
-    col->SetSize({ 2.0f,2.0f,2.0f });
+    col->SetSize({ 3,3,3 });
     enemy->AddComponent(col);
 
     //PatrolEnemyの設定を行い、Componentを付ける
@@ -53,16 +52,17 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnCircleEnemy(const CircleConfig& c
     auto enemy = std::make_shared<Enemy>();
     enemy->SetScene(m_scene);
     enemy->SetPosition(pos);
+
     enemy->SetInitialHP(3);
 
     //モデルの設定を行い、Componentを付ける
     auto model = std::make_shared<ModelComponent>();
-    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
+    model->LoadModel("Asset/Model/Enemy/uploads_files_3862208_Cube.obj");
     enemy->AddComponent(model);
 
     //当たり判定の設定を行い、Componentを付ける
     auto col = std::make_shared<OBBColliderComponent>();
-    col->SetSize({ 2.0f,2.0f,2.0f });
+    col->SetSize({ 3,3,3 });
     enemy->AddComponent(col);
 
     //CirculPatrolEnemyの設定を行い、Componentを付ける
@@ -88,12 +88,12 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnTurretEnemy(const TurretConfig& c
 
     //モデルの設定を行い、Componentを付ける
     auto model = std::make_shared<ModelComponent>();
-    model->LoadModel("Asset/Model/Robot/uploads_files_3862208_Cube.fbx");
+    model->LoadModel("Asset/Model/Enemy/uploads_files_3862208_Cube.obj");
     enemy->AddComponent(model);
 
     //当たり判定の設定を行い、Componentを付ける
     auto col = std::make_shared<OBBColliderComponent>();
-    col->SetSize({ 2.0f,2.0f,2.0f });
+    col->SetSize({ 3,3,3 });
     enemy->AddComponent(col);
 
     //TurretEnemyの設定を行い、Componentを付ける

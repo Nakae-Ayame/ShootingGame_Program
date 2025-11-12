@@ -176,6 +176,13 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ModelComponent::LoadTextureFrom
 
         // 既存の TextureManager を使ってロード (UTF8 -> 変換は内部でやられている想定)
         ID3D11ShaderResourceView* srv = TextureManager::Load(fullPath);
+
+        OutputDebugStringA(("Trying to load texture: " + fullPath + "\n").c_str());
+        if (!std::filesystem::exists(fullPath)) 
+        {
+            OutputDebugStringA(("Texture NOT FOUND: " + fullPath + "\n").c_str());
+        }
+
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> comsrv = srv;
         return comsrv;
     }
