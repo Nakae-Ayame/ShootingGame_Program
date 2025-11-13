@@ -88,4 +88,6 @@ https://ftvoid.com/blog/post/329
 進める順番→カメラの動き、プレイヤーの動き、弾をちゃんとレティクルの方向に飛ばす、UI追加
 
 
-
+[モデルサイト]
+Rock1.obj
+URL→https://free3d.com/ja/3d-model/low-poly-rock-4631.html
