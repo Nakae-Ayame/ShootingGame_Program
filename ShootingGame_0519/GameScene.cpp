@@ -56,12 +56,100 @@ void GameScene::DebugSetPlayerSpeed()
     ImGui::End();
 }
 
+void GameScene::DebugSetAimDistance()
+{
+    ImGui::Begin("DebugAimDistance");
+
+    static float aimDistance = 2000.0f;
+
+    ImGui::SliderFloat("AimDistance", &aimDistance, 2000.0f, 7500.0f);
+
+    setAimDistance = aimDistance;
+
+    ImGui::End();
+}
+
+static bool RaySphereIntersect(const DirectX::SimpleMath::Vector3& rayOrigin,
+    const DirectX::SimpleMath::Vector3& rayDir,
+    const DirectX::SimpleMath::Vector3& sphereCenter,
+    float sphereRadius,
+    float& outT)
+{
+    using namespace DirectX::SimpleMath;
+    Vector3 m = rayOrigin - sphereCenter;
+    float b = m.Dot(rayDir);
+    float c = m.LengthSquared() - sphereRadius * sphereRadius;
+
+    if (c > 0.0f && b > 0.0f) { return false; }
+
+    float discr = b * b - c;
+    if (discr < 0.0f) { return false; }
+
+    float t = -b - sqrtf(discr);
+    if (t < 0.0f)
+    {
+        t = -b + sqrtf(discr);
+    }
+    if (t < 0.0f) { return false; }
+
+    outT = t;
+    return true;
+}
+
+bool GameScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
+                        const DirectX::SimpleMath::Vector3& dir,
+                        float maxDistance,
+                        RaycastHit& outHit,
+                        GameObject* ignore)
+{
+    using namespace DirectX::SimpleMath;
+    float bestT = std::numeric_limits<float>::infinity();
+    std::shared_ptr<GameObject> bestObj;
+
+    for (auto& obj : m_GameObjects)
+    {
+        if (!obj) { continue; }
+        if (obj.get() == ignore) { continue; }
+
+        //敵のみを候補にする(Enemy のみ狙う)
+        Enemy* e = dynamic_cast<Enemy*>(obj.get());
+        if (!e) { continue; }
+
+        float radius = e->GetBoundingRadius();
+        float t;
+        if (RaySphereIntersect(origin, dir, e->GetPosition(), radius, t))
+        {
+            if (t >= 0.0f && t <= maxDistance && t < bestT)
+            {
+                bestT = t;
+                bestObj = obj;
+            }
+        }
+    }
+
+    if (bestObj)
+    {
+        outHit.hitObject = bestObj;
+        outHit.distance = bestT;
+        outHit.position = origin + dir * bestT;
+        outHit.normal = (outHit.position - bestObj->GetPosition());
+        if (outHit.normal.LengthSquared() > 1e-6f)
+        {
+            outHit.normal.Normalize();
+        }
+        return true;
+    }
+    return false;
+}
+
 void GameScene::Init()
 {    
     //デバッグMODE SELECT
     DebugUI::RedistDebugFunction([this]() {DebugCollisionMode();});
 
     DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed();});
+    
+    DebugUI::RedistDebugFunction([this]() {DebugSetAimDistance();});
 
     //DebugRendererの初期化
     m_debugRenderer = std::make_unique<DebugRenderer>();
@@ -92,19 +180,19 @@ void GameScene::Init()
 
     m_enemySpawner->SetWaypoints({
         {   0.0f, 20.0f,  0.0f },
-        {  20.0f, 20.0f,  0.0f },
-        {  20.0f, 20.0f,20.0f },
-        {   0.0f, 20.0f,20.0f }});
+        {   0.0f, 20.0f,  0.0f },
+        {   0.0f, 20.0f,  0.0f },
+        {   0.0f, 20.0f,  0.0f }});
     m_enemySpawner->SetWaypoints({
-        {  60.0f, 10.0f,  0.0f },
-        {  60.0f, 10.0f,  0.0f },
-        {  60.0f, 10.0f,100.0f },
-        {   0.0f, 10.0f,200.0f }});
+        {   0.0f, 20.0f,  0.0f },
+        { -60.0f, 20.0f,  0.0f },
+        { -60.0f, 20.0f,-60.0f },
+        {   0.0f, 20.0f,-60.0f }});
     m_enemySpawner->SetWaypoints({
-        {   0.0f, 0.0f,   0.0f },
-        {  75.0f, 0.0f,   0.0f },
-        {  75.0f, 0.0f, 75.0f },
-        {   0.0f, 0.0f, 75.0f }});
+        {   0.0f,  0.0f,   0.0f },
+        { 120.0f,  0.0f,   0.0f },
+        { 120.0f,  0.0f, 120.0f },
+        {   0.0f,  0.0f, 120.0f }});
 
     m_enemySpawner->SetCircleCenter({ 50.0f, 0.0f,0.0f});
     m_enemySpawner->SetCircleCenter({ -30.0f,20.0f,0.0f});
@@ -146,10 +234,10 @@ void GameScene::Init()
 
     m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
     BuildingConfig bc;
-    bc.modelPath = "Asset/Build/wooden watch tower2.obj";
-    bc.count = 1;
-    bc.areaWidth = 20.0f;
-    bc.areaDepth = 20.0f;
+    bc.modelPath = "Asset/Build/Rock1.obj";
+    bc.count = 7;
+    bc.areaWidth = 750.0f;
+    bc.areaDepth = 750.0f;
     bc.spacing = 20.0f;
     bc.randomizeRotation = true;
     bc.minScale = 0.9f;
@@ -197,6 +285,8 @@ void GameScene::Init()
         m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* を受け取る場合
     }
 
+    cameraComp->SetDistance(15.0f);
+
     m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
 
     m_FollowCamera->GetCameraComponent()->SetTarget(m_player.get());
@@ -234,6 +324,12 @@ void GameScene::Update(float deltatime)
         PlayerMove->SetSpeed(setSpeed);
     }
 
+    auto PlayerShoot = m_player->GetComponent<ShootingComponent>();
+    if (PlayerShoot)
+    {
+        PlayerShoot->SetAimDistance(setAimDistance);
+    }
+
     //----------------- レティクルのドラッグ処理 -----------------
     if (Input::IsMouseLeftPressed())
     {
@@ -250,6 +346,7 @@ void GameScene::Update(float deltatime)
     {
         m_isDragging = false;
     }
+
 
     //カメラにレティクル座標を渡す（最新のものを渡す）
     if (m_FollowCamera && m_FollowCamera->GetCameraComponent())

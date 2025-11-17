@@ -14,7 +14,7 @@ FollowCameraComponent::FollowCameraComponent()
 {
     // スプリングの初期設定（通常時）
     m_normalStiffness = 12.0f;
-    m_normalDamping   = 6.0f;
+    m_normalDamping = 6.0f;
     m_Spring.SetStiffness(m_normalStiffness);
     m_Spring.SetDamping(m_normalDamping);
     m_Spring.SetMass(1.0f);
@@ -45,7 +45,7 @@ void FollowCameraComponent::SetTarget(GameObject* target)
 
 void FollowCameraComponent::SetBoostState(bool isBoosting)
 {
-    //ブースト中かどうかのStateをセット
+    // ブースト中かどうかのStateをセット
     m_boostRequested = isBoosting;
 }
 
@@ -61,7 +61,10 @@ Vector3 FollowCameraComponent::GetRight() const
 
 Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
 {
-    if (!m_Target) { return GetForward(); }
+    if (!m_Target)
+    {
+        return GetForward();
+    }
 
     Vector3 cameraPos = m_Spring.GetPosition();
     Vector3 targetPos = m_Target->GetPosition();
@@ -88,15 +91,24 @@ Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
     Vector3 farWorld(XMVectorGetX(farWorldV), XMVectorGetY(farWorldV), XMVectorGetZ(farWorldV));
 
     Vector3 dir = farWorld - nearWorld;
-    if (dir.LengthSquared() > 1e-6f) dir.Normalize();
-    else dir = GetForward();
+    if (dir.LengthSquared() > 1e-6f)
+    {
+        dir.Normalize();
+    }
+    else
+    {
+        dir = GetForward();
+    }
 
     return dir;
 }
 
 void FollowCameraComponent::Update(float dt)
 {
-    if (!m_Target) { return; }
+    if (!m_Target)
+    {
+        return;
+    }
 
     m_IsAiming = Input::IsMouseRightDown();
     POINT delta = Input::GetMouseDelta();
@@ -105,7 +117,7 @@ void FollowCameraComponent::Update(float dt)
     m_Pitch = std::clamp(m_Pitch, m_PitchLimitMin, m_PitchLimitMax);
     m_Yaw = std::clamp(m_Yaw, -m_YawLimit, m_YawLimit);
 
-    //ブーストブレンドを目標に向かって滑らかに変化
+    // ブーストブレンドを目標に向かって滑らかに変化
     float targetBlend;
     if (m_boostRequested)
     {
@@ -115,6 +127,7 @@ void FollowCameraComponent::Update(float dt)
     {
         targetBlend = 0.0f;
     }
+
     float blendDelta = (targetBlend - m_boostBlend);
     float maxStep = std::min(1.0f, m_boostBlendSpeed * dt);
     if (fabs(blendDelta) <= maxStep)
@@ -133,13 +146,12 @@ void FollowCameraComponent::Update(float dt)
         }
     }
 
-    // カメラ位置の更新（内部でブーストにより stiffness/damping 等を補間）
+    // カメラ位置の更新（今回はブーストで距離のみ変動）
     UpdateCameraPosition(dt);
 
-    //カメラと追尾対象のPos取得
+    // カメラと追尾対象のPos取得
     Vector3 cameraPos = m_Spring.GetPosition();
     Vector3 targetPos = m_Target->GetPosition();
-
 
     float screenW = static_cast<float>(Application::GetWidth());
     float screenH = static_cast<float>(Application::GetHeight());
@@ -170,8 +182,8 @@ void FollowCameraComponent::Update(float dt)
 
     Vector3 camForward = GetForward();
 
-    // ブースト時は 注視平面距離 を増やす（カメラが後ろに残る感じ）
-    float localAimPlaneDist = m_AimPlaneDistance + (m_boostBlend * m_boostAimDistanceAdd);
+    // ※変更点：ブーストで AimPlaneDistance を変えない（注視計算は常に同じ）
+    float localAimPlaneDist = m_AimPlaneDistance;
 
     Vector3 planePoint = cameraPos + camForward * localAimPlaneDist;
     float denom = rayDir.Dot(camForward);
@@ -196,7 +208,7 @@ void FollowCameraComponent::Update(float dt)
     {
         aimDir.Normalize();
     }
-    else 
+    else
     {
         aimDir = GetForward();
     }
@@ -207,7 +219,8 @@ void FollowCameraComponent::Update(float dt)
     Matrix playerRot = Matrix::CreateRotationY(targetRot.y);
     Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
 
-    float lookOffsetMul = 0.6f + 0.8f * m_boostBlend;
+    // ※変更点：lookOffsetMul はブーストに依存させない（常に 0.6）
+    float lookOffsetMul = 0.6f;
     rawLookTarget += localRight * (m_CurrentTurnOffset * lookOffsetMul);
 
     m_LookTarget = m_LookTarget + (rawLookTarget - m_LookTarget) * std::min(1.0f, m_LookAheadLerp * dt);
@@ -220,14 +233,15 @@ void FollowCameraComponent::Update(float dt)
 
 void FollowCameraComponent::UpdateCameraPosition(float dt)
 {
-    if (!m_Target) { return; }
+    if (!m_Target)
+    {
+        return;
+    }
 
-    // ブースト時/通常時の spring パラメータを m_boostBlend により補間
-    float stiffness = (1.0f - m_boostBlend) * m_normalStiffness + m_boostBlend * m_boostedStiffness;
-    float damping = (1.0f - m_boostBlend) * m_normalDamping + m_boostBlend * m_boostedDamping;
-
-    m_Spring.SetStiffness(stiffness);
-    m_Spring.SetDamping(damping);
+    // ※変更点：スプリングの stiffness/damping はブーストで切り替えない（固定）
+    // （初期化時に設定済みの m_normalStiffness / m_normalDamping を使い続ける）
+    // 以前は m_boostBlend によって stiffness/damping を補間していましたが、
+    // 今回は「距離のみ」変化させたいという要望に合わせて削除しました。
 
     float dist;
     float height;
@@ -268,9 +282,9 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     desiredPos += localRight * lateral;
 
     float yawDelta = playerYaw - m_PrevPlayerYaw;
-    while (yawDelta > XM_PI) 
+    while (yawDelta > XM_PI)
     {
-        yawDelta -= XM_2PI; 
+        yawDelta -= XM_2PI;
     }
     while (yawDelta < -XM_PI)
     {
@@ -280,8 +294,8 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     float safeDt = std::max(1e-6f, dt);
     float yawSpeed = yawDelta / safeDt;
 
-    // ブースト時により大きな横オフセットを与える（距離が伸びると見効果が薄れるため）
-    float boostScale = 1.0f + m_boostBlend * 1.5f; // 通常1.0、ブーストで最大 2.5 倍程度
+    // ※変更点：boostScale を常に 1.0 に（ブーストで横オフセットを変えない）
+    float boostScale = 1.0f;
     float turnLateral = yawSpeed * m_TurnOffsetScale * boostScale;
     float turnMax = m_TurnOffsetMax * boostScale;
     turnLateral = std::clamp(turnLateral, -turnMax, turnMax);

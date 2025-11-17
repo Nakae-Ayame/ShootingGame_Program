@@ -40,7 +40,7 @@ public:
 	void DebugSetPlayerSpeed();
 
 	//モード変更用関数
-	void DebugSetCameraOffset();
+	void DebugSetAimDistance();
 	
 	//オブジェクトの追加要求関数
 	void AddObject(std::shared_ptr<GameObject> obj) override;
@@ -56,6 +56,12 @@ public:
 
 	//実際に削除などをする関数
 	void FinishFrameCleanup() override;
+
+	bool Raycast(const DirectX::SimpleMath::Vector3& origin,
+					const DirectX::SimpleMath::Vector3& dir,
+					float maxDistance,
+					RaycastHit& outHit,
+					GameObject* ignore = nullptr) override;
 
 	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
@@ -108,6 +114,8 @@ private:
 	bool isCollisionDebugMode = false;
 
 	float setSpeed = 10.0f;
+
+	float setAimDistance = 2000.0f;
 
 	Vector3 setRot = { 0,0,0 };
 

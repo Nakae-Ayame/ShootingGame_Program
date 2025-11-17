@@ -26,5 +26,8 @@ public:
     virtual SMS::Vector3 GetPosition() const = 0;
 
     virtual SMS::Vector3 GetAimDirectionFromReticle() const = 0;
+
+    // ブースト状態を外部から通知する（既存の実装を壊さないためデフォルトは no-op）
+    virtual void SetBoostState(bool isBoosting) { /* default: ignore */ }
 };
 
