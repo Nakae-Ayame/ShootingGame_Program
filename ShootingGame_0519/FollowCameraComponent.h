@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Component.h"
 #include "commontypes.h"
 #include "GameObject.h"
@@ -6,31 +6,35 @@
 #include "ICameraViewProvider.h"
 #include <DirectXMath.h>
 #include <SimpleMath.h>
+#include <random>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
+
+class PlayAreaComponent;
 
 class FollowCameraComponent : public Component, public ICameraViewProvider
 {
 public:
 
-    void SetReticleObject(class Reticle* r) { m_pReticle = r; }
-
     FollowCameraComponent();
     void Initialize() override {};
     void Update(float dt) override;
 
-    //ƒJƒƒ‰‚ª’Ç‚¤‘ÎÛ‚ğƒZƒbƒg‚·‚éŠÖ”
+    //ã‚«ãƒ¡ãƒ©ãŒè¿½ã†å¯¾è±¡ã‚’ã‚»ãƒƒãƒˆã™ã‚‹é–¢æ•°
     void SetTarget(GameObject* target);
-
+    void SetVerticalAimScale(float s) { m_VerticalAimScale = std::clamp(s, 0.0f, 1.0f); }
     void SetDistance(float dist) { m_DefaultDistance = dist; }
     void SetHeight(float h) { m_DefaultHeight = h; }
-
     void SetSensitivity(float s) { m_Sensitivity = s; }
-    float GetSensitivity() const { return m_Sensitivity; }
-
-    // ƒu[ƒXƒgó‘Ô’Ê’miMoveComponent ‚©‚çŒÄ‚Î‚ê‚éj
     void SetBoostState(bool isBoosting) override;
+    void SetPlayArea(PlayAreaComponent* p) { m_playArea = p; }
+
+    //ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ã®ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ä½ç½®ã‚’å¤–éƒ¨ï¼ˆGameSceneï¼‰ã‹ã‚‰æ¯ãƒ•ãƒ¬ãƒ¼ãƒ æ¸¡ã™ãŸã‚ã®é–¢æ•°
+    void SetReticleScreenPos(const Vector2& screenPos) { m_ReticleScreen = screenPos; }
+
+    float GetVerticalAimScale() const { return m_VerticalAimScale; }
+    float GetSensitivity() const { return m_Sensitivity; }
 
     Matrix GetView() const { return m_ViewMatrix; }
     Matrix GetProj() const { return m_ProjectionMatrix; }
@@ -38,76 +42,89 @@ public:
     Vector3 GetForward() const override;
     Vector3 GetRight() const override;
 
-    //ƒŒƒeƒBƒNƒ‹‚ÌƒXƒNƒŠ[ƒ“ˆÊ’u‚ğŠO•”iGameScenej‚©‚ç–ˆƒtƒŒ[ƒ€“n‚·‚½‚ß‚ÌŠÖ”
-    void SetReticleScreenPos(const Vector2& screenPos) { m_ReticleScreen = screenPos; }
-
-    //ICameraViewProvider ‚Å’Ç‰Á‚µ‚½ƒƒ\ƒbƒh‚ÌÀ‘•‚ğéŒ¾
+   
+    //ICameraViewProvider ã§è¿½åŠ ã—ãŸãƒ¡ã‚½ãƒƒãƒ‰ã®å®Ÿè£…ã‚’å®£è¨€
     Vector3 GetAimPoint() const override { return m_AimPoint; }
 
     Vector3 GetPosition() const { return m_Spring.GetPosition(); }
 
     DirectX::SimpleMath::Vector3 GetAimDirectionFromReticle() const;
+
+    //----------------------------ã‚«ãƒ¡ãƒ©æ¼”å‡ºé–¢æ•°ã¾ã¨ã‚----------------------------
+	void Shake(float magnitude, float duration);       //ã‚«ãƒ¡ãƒ©æŒ¯å‹•é–¢æ•°ï¼šæŒ¯å‹•å¹…ã€æŒ¯å‹•æ™‚é–“
+
 private:
-    class Reticle* m_pReticle = nullptr;
+
+    //class Reticle* m_pReticle = nullptr;
 
     void UpdateCameraPosition(float dt);
 
-    GameObject* m_Target = nullptr;   //ƒJƒƒ‰‚ª’Ç]‚·‚é‘ÎÛ(ƒvƒŒƒCƒ„[‚È‚Ç)‚Ìƒ|ƒCƒ“ƒ^
+    GameObject* m_Target = nullptr;   //ã‚«ãƒ¡ãƒ©ãŒè¿½å¾“ã™ã‚‹å¯¾è±¡(ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãªã©)ã®ãƒã‚¤ãƒ³ã‚¿
 
-    float m_DefaultDistance = 30.0f;  //’Ç]‘ÎÛ‚ÌŒã•û‚É‚Ç‚Ì‚®‚ç‚¢‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
-    float m_DefaultHeight = 3.5f;     //’Ç]‘ÎÛ‚©‚ç‚Ç‚Ì‚®‚ç‚¢‚‚¢Š‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
+    float m_DefaultDistance = 15.0f;  //è¿½å¾“å¯¾è±¡ã®å¾Œæ–¹ã«ã©ã®ãã‚‰ã„ã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
+    float m_DefaultHeight = 3.5f;     //è¿½å¾“å¯¾è±¡ã‹ã‚‰ã©ã®ãã‚‰ã„é«˜ã„æ‰€ã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
 
-    float m_AimDistance = 20.0f;      //ƒGƒCƒ€‚µ‚½‚Æ‚«‚ÌŒã•û‚Ç‚Ì‚ ‚½‚è‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
-    float m_AimHeight = 2.8f;         //ƒGƒCƒ€‚µ‚½‚Æ‚«’Ç]‘ÎÛ‚©‚ç‚Ç‚Ì‚®‚ç‚¢‚‚¢Š‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
+    float m_AimDistance = 20.0f;      //ã‚¨ã‚¤ãƒ ã—ãŸã¨ãã®å¾Œæ–¹ã©ã®ã‚ãŸã‚Šã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
+    float m_AimHeight = 2.8f;         //ã‚¨ã‚¤ãƒ ã—ãŸã¨ãè¿½å¾“å¯¾è±¡ã‹ã‚‰ã©ã®ãã‚‰ã„é«˜ã„æ‰€ã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
 
-    bool m_IsAiming = false;          //¡ƒGƒCƒ€‚µ‚Ä‚¢‚é‚©‚Ç‚¤‚©‚ÌboolŒ^
+    bool m_IsAiming = false;          //ä»Šã‚¨ã‚¤ãƒ ã—ã¦ã„ã‚‹ã‹ã©ã†ã‹ã®boolå‹
 
-    float m_Yaw = 0.0f;               //ƒ}ƒEƒX‘€ì‚ÅÏ‚İã‚°‚Ä‚¢‚­‰ñ“]Šp(ƒˆ[)
-    float m_Pitch = 0.0f;             //ƒ}ƒEƒX‘€ì‚ÅÏ‚İã‚°‚Ä‚¢‚­‰ñ“]Šp(ƒsƒbƒ`)
-    float m_Sensitivity = 0.001f;     //m_Sensitivity ‚Í¬‚³‚¢‚Ù‚Çu‚ä‚Á‚­‚è‰ñ‚év
+    float m_Yaw = 0.0f;               //ãƒã‚¦ã‚¹æ“ä½œã§ç©ã¿ä¸Šã’ã¦ã„ãå›è»¢è§’(ãƒ¨ãƒ¼)
+    float m_Pitch = 0.0f;             //ãƒã‚¦ã‚¹æ“ä½œã§ç©ã¿ä¸Šã’ã¦ã„ãå›è»¢è§’(ãƒ”ãƒƒãƒ)
+    float m_Sensitivity = 0.001f;     //m_Sensitivity ã¯å°ã•ã„ã»ã©ã€Œã‚†ã£ãã‚Šå›ã‚‹ã€
 
-    float m_PitchLimitMin = XMConvertToRadians(-15.0f); //ƒsƒbƒ`(ã‰º)‚Ì§ŒÀ’l(Å¬)
-    float m_PitchLimitMax = XMConvertToRadians(45.0f);  //ƒsƒbƒ`(ã‰º)‚Ì§ŒÀ’l(Å‘å)
-    float m_YawLimit = XMConvertToRadians(120.0f);      //ƒˆ[(¶‰E)‚Ì§ŒÀ’l
+    float m_PitchLimitMin = XMConvertToRadians(-15.0f); //ãƒ”ãƒƒãƒ(ä¸Šä¸‹)ã®åˆ¶é™å€¤(æœ€å°)
+    float m_PitchLimitMax = XMConvertToRadians(45.0f);  //ãƒ”ãƒƒãƒ(ä¸Šä¸‹)ã®åˆ¶é™å€¤(æœ€å¤§)
+    float m_YawLimit = XMConvertToRadians(120.0f);      //ãƒ¨ãƒ¼(å·¦å³)ã®åˆ¶é™å€¤
 
-    Matrix m_ViewMatrix;        //ƒrƒ…[s—ñ
-    Matrix m_ProjectionMatrix;  //ƒvƒƒWƒFƒNƒgs—ñ
+    Matrix m_ViewMatrix;        //ãƒ“ãƒ¥ãƒ¼è¡Œåˆ—
+    Matrix m_ProjectionMatrix;  //ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆè¡Œåˆ—
 
-    SpringVector3 m_Spring;     //ƒJƒƒ‰ˆÊ’u‚ğƒXƒvƒŠƒ“ƒO‚ÅŠŠ‚ç‚©‚É’Ç]‚³‚¹‚éƒ‰ƒbƒp[
+    SpringVector3 m_Spring;     //ã‚«ãƒ¡ãƒ©ä½ç½®ã‚’ã‚¹ãƒ—ãƒªãƒ³ã‚°ã§æ»‘ã‚‰ã‹ã«è¿½å¾“ã•ã›ã‚‹ãƒ©ãƒƒãƒ‘ãƒ¼
 
-    Vector2 m_ReticleScreen = Vector2(0.0f, 0.0f); // ƒNƒ‰ƒCƒAƒ“ƒgÀ•Wipxj
-    Vector3 m_AimPoint = Vector3::Zero;            //ƒŒƒeƒBƒNƒ‹‚ªw‚·ƒ[ƒ‹ƒhÀ•W
-    float m_AimPlaneDistance = 50.0f;              //ƒŒƒC‚ÆŒğ·‚³‚¹‚éuƒJƒƒ‰‘O•û‚Ì•½–Ê‚Ü‚Å‚Ì‹——£v
+    Vector2 m_ReticleScreen = Vector2(0.0f, 0.0f); // ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆåº§æ¨™ï¼ˆpxï¼‰
+    Vector3 m_AimPoint = Vector3::Zero;            //ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ãŒæŒ‡ã™ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™
+    float m_AimPlaneDistance = 50.0f;              //ãƒ¬ã‚¤ã¨äº¤å·®ã•ã›ã‚‹ã€Œã‚«ãƒ¡ãƒ©å‰æ–¹ã®å¹³é¢ã¾ã§ã®è·é›¢ã€
 
-    float m_LookAheadDistance = 8.0f;    // ‚Ç‚ê‚¾‚¯‘O•ûiƒŒƒeƒBƒNƒ‹•ûŒüj‚ğ’‹‚·‚é‚©i‰æ–Ê“à‚ÅƒvƒŒƒCƒ„[‚ğ‚¸‚ç‚·—Êj
-    float m_LookAheadLerp = 10.0f;       // lookTarget ‚ÌƒXƒ€[ƒY“x‡‚¢
-    bool  m_UsePlayerOrientedCamera = true; // true: ƒJƒƒ‰ˆÊ’u‚ÍƒvƒŒƒCƒ„[‚ÌŒü‚«‚É‡‚í‚¹‚Ä behind ‚É’u‚­i©‘Rj
+    float m_LookAheadDistance = 8.0f;    // ã©ã‚Œã ã‘å‰æ–¹ï¼ˆãƒ¬ãƒ†ã‚£ã‚¯ãƒ«æ–¹å‘ï¼‰ã‚’æ³¨è¦–ã™ã‚‹ã‹ï¼ˆç”»é¢å†…ã§ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’ãšã‚‰ã™é‡ï¼‰
+    float m_LookAheadLerp = 10.0f;       // lookTarget ã®ã‚¹ãƒ ãƒ¼ã‚ºåº¦åˆã„
 
     Vector3 m_LookTarget = Vector3::Zero;
 
-    // --- ’Ç‰Áƒƒ“ƒo: ƒŒƒeƒBƒNƒ‹‚É‰‚¶‚½ƒJƒƒ‰‚Ì‰¡ƒVƒtƒg—Êiƒ`ƒ…[ƒjƒ“ƒO—pj ---
-    float m_ScreenOffsetScale = 16.0f; // ‰æ–Ê• 1.0 ³‹K‰»‚ ‚½‚è‚Ìƒ[ƒ‹ƒh’PˆÊŠ·Zi’²®‰Âj
-    float m_MaxScreenOffset = 20.0f;  // Å‘åƒVƒtƒgiƒ[ƒ‹ƒh’PˆÊj
+    // --- è¿½åŠ ãƒ¡ãƒ³ãƒ: ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ã«å¿œã˜ãŸã‚«ãƒ¡ãƒ©ã®æ¨ªã‚·ãƒ•ãƒˆé‡ï¼ˆãƒãƒ¥ãƒ¼ãƒ‹ãƒ³ã‚°ç”¨ï¼‰ ---
+    float m_ScreenOffsetScale = 16.0f; // ç”»é¢å¹… 1.0 æ­£è¦åŒ–ã‚ãŸã‚Šã®ãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½æ›ç®—ï¼ˆèª¿æ•´å¯ï¼‰
+    float m_MaxScreenOffset = 20.0f;  // æœ€å¤§ã‚·ãƒ•ãƒˆï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ï¼‰
 
     float m_PrevPlayerYaw = 0.0f;
-    float m_TurnOffsetScale = 8.0f;   // yawSpeed -> ƒ[ƒ‹ƒh‰¡ƒIƒtƒZƒbƒgŠ·Zi’²®—pj
-    float m_TurnOffsetMax = 12.0f;     // ƒIƒtƒZƒbƒgÅ‘å’liƒ[ƒ‹ƒh’PˆÊj
-    float m_CurrentTurnOffset = 0.0f; // Œ»İ‚Ì‰¡ƒIƒtƒZƒbƒgiŠŠ‚ç‚©‚ÉXVj
-    float m_TurnOffsetLerp = 6.0f;    // ƒIƒtƒZƒbƒg‚ª•Ï‰»‚·‚é‚Æ‚«‚ÌŠŠ‚ç‚©‚³i‘å‚«‚¢‚Æ‘¦j
+    float m_TurnOffsetScale = 8.0f;   // yawSpeed -> ãƒ¯ãƒ¼ãƒ«ãƒ‰æ¨ªã‚ªãƒ•ã‚»ãƒƒãƒˆæ›ç®—ï¼ˆèª¿æ•´ç”¨ï¼‰
+    float m_TurnOffsetMax = 12.0f;     // ã‚ªãƒ•ã‚»ãƒƒãƒˆæœ€å¤§å€¤ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ï¼‰
+    float m_CurrentTurnOffset = 0.0f; // ç¾åœ¨ã®æ¨ªã‚ªãƒ•ã‚»ãƒƒãƒˆï¼ˆæ»‘ã‚‰ã‹ã«æ›´æ–°ï¼‰
+    float m_TurnOffsetLerp = 6.0f;    // ã‚ªãƒ•ã‚»ãƒƒãƒˆãŒå¤‰åŒ–ã™ã‚‹ã¨ãã®æ»‘ã‚‰ã‹ã•ï¼ˆå¤§ãã„ã¨å³æ™‚ï¼‰
 
 
-    // -----------------ƒu[ƒXƒgŠÖ˜A‚Ì•Ï”------------------------
-   // --- ƒu[ƒXƒg§Œä—pƒƒ“ƒo ---
-    bool m_boostRequested = false;   // Œ»İƒ{ƒ^ƒ“‚Åƒu[ƒXƒg—v‹’†‚©iMoveComponent ‚©‚ç SetBoostStatej
-    float m_boostBlend = 0.0f;       // 0..1 ‚Ì•âŠÔ’li0 = ’Êí’Ç, 1 = ƒu[ƒXƒg‚Ì’x’Ç]j
-    float m_boostBlendSpeed = 6.0f;  // ƒuƒŒƒ“ƒh‚Ì‘¬‚³
+    // -----------------ãƒ–ãƒ¼ã‚¹ãƒˆé–¢é€£ã®å¤‰æ•°------------------------
+    bool m_boostRequested = false;   // ç¾åœ¨ãƒœã‚¿ãƒ³ã§ãƒ–ãƒ¼ã‚¹ãƒˆè¦æ±‚ä¸­ã‹ï¼ˆMoveComponent ã‹ã‚‰ SetBoostStateï¼‰
+    float m_boostBlend = 0.0f;       // 0..1 ã®è£œé–“å€¤ï¼ˆ0 = é€šå¸¸è¿½éš, 1 = ãƒ–ãƒ¼ã‚¹ãƒˆæ™‚ã®é…è¿½å¾“ï¼‰
+    float m_boostBlendSpeed = 6.0f;  // ãƒ–ãƒ¬ãƒ³ãƒ‰ã®é€Ÿã•
 
-    // ƒu[ƒXƒg‚Ì–Ú•W’liƒ`ƒ…[ƒjƒ“ƒOj
-    float m_boostedStiffness = 6.0f;
-    float m_boostedDamping = 3.0f;
-    float m_boostAimDistanceAdd = 8.0f; // ƒu[ƒXƒgA’‹‹——£‚ğL‚Î‚·iƒJƒƒ‰‚ªŒã‚ë‚Éc‚éˆóÛj
+    // ãƒ–ãƒ¼ã‚¹ãƒˆæ™‚ã®ç›®æ¨™å€¤ï¼ˆãƒãƒ¥ãƒ¼ãƒ‹ãƒ³ã‚°ï¼‰
+    float m_boostAimDistanceAdd = 8.0f; // ãƒ–ãƒ¼ã‚¹ãƒˆæ™‚ã€æ³¨è¦–è·é›¢ã‚’ä¼¸ã°ã™ï¼ˆï¼ã‚«ãƒ¡ãƒ©ãŒå¾Œã‚ã«æ®‹ã‚‹å°è±¡ï¼‰
 
-    // ’Êí‚Ìƒoƒlƒpƒ‰ƒ[ƒ^iFollowCameraComponent ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Åİ’èj
+    // é€šå¸¸ã®ãƒãƒãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ï¼ˆFollowCameraComponent ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§è¨­å®šï¼‰
     float m_normalStiffness = 12.0f;
     float m_normalDamping = 6.0f;
+
+    float m_Fov = XMConvertToRadians(45.0f); // ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ä½œã£ãŸ FOV ã¨åˆã‚ã›ã‚‹
+    PlayAreaComponent* m_playArea = nullptr;
+
+    float m_VerticalAimScale = 0.85f;
+
+    //-----------------ã‚·ã‚§ã‚¤ã‚¯ç”¨ãƒ¡ãƒ³ãƒ-----------------
+    float m_shakeMagnitude = 0.0f;        //ç¾åœ¨ã®æŒ¯å¹…ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ï¼‰
+    float m_shakeTimeRemaining = 0.0f;    //æ®‹ã‚Šæ™‚é–“ï¼ˆç§’ï¼‰
+    float m_shakeTotalDuration = 0.0f;    //æœ€åˆã«æŒ‡å®šã—ãŸæŒ¯å‹•æ™‚é–“ï¼ˆç§’ï¼‰
+    float m_shakePhase = 0.0f;            //æ³¢å½¢ãƒ•ã‚§ãƒ¼ã‚º
+    float m_shakeFrequency = 25.0f;       //æŒ¯å‹•ã®åŸºæº–å‘¨æ³¢æ•°(Hz) â€” ãƒãƒ¥ãƒ¼ãƒ‹ãƒ³ã‚°å¯
+
+    DirectX::SimpleMath::Vector3 m_shakeOffset = DirectX::SimpleMath::Vector3::Zero;
 };

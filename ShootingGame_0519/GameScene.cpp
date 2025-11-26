@@ -364,7 +364,7 @@ void GameScene::Init()
     {
         hp->SetOnDamaged([cameraComp](const DamageInfo& info)
             {
-                cameraComp->Shake(4.0f, 0.5f);
+                cameraComp->Shake(3.0f, 0.5f);
             });
     }
 

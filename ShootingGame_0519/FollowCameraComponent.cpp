@@ -1,9 +1,11 @@
 ﻿// FollowCameraComponent.cpp
 #define NOMINMAX
+#include <cmath> 
 #include "FollowCameraComponent.h"
 #include "Renderer.h"
 #include "Application.h"
 #include "Input.h"
+#include "PlayAreaComponent.h"
 #include <SimpleMath.h>
 #include <algorithm>
 
@@ -29,6 +31,9 @@ FollowCameraComponent::FollowCameraComponent()
     m_boostRequested = false;
     m_boostBlend = 0.0f;
     m_boostBlendSpeed = 6.0f;
+
+	//カメラ振動用の乱数初期化
+    //m_shakeRng.seed(123456789ULL);
 }
 
 void FollowCameraComponent::SetTarget(GameObject* target)
@@ -100,6 +105,18 @@ Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
         dir = GetForward();
     }
 
+    // --- 垂直スケール適用 ---
+    dir.y *= m_VerticalAimScale;
+    if (dir.LengthSquared() > 1e-6f)
+    {
+        dir.Normalize();
+    }
+    else
+    {
+        // もしスケールでゼロに近くなったらフォワードを返す
+        dir = GetForward();
+    }
+
     return dir;
 }
 
@@ -151,6 +168,7 @@ void FollowCameraComponent::Update(float dt)
 
     // カメラと追尾対象のPos取得
     Vector3 cameraPos = m_Spring.GetPosition();
+    cameraPos += m_shakeOffset;
     Vector3 targetPos = m_Target->GetPosition();
 
     float screenW = static_cast<float>(Application::GetWidth());
@@ -213,10 +231,21 @@ void FollowCameraComponent::Update(float dt)
         aimDir = GetForward();
     }
 
+    // --- 垂直スケールをここで適用してから正規化 ---
+    aimDir.y = 0;
+    if (aimDir.LengthSquared() > 1e-6f)
+    {
+        aimDir.Normalize();
+    }
+    else
+    {
+        aimDir = GetForward();
+    }
+
     Vector3 rawLookTarget = targetPos + aimDir * m_LookAheadDistance + Vector3(0.0f, (m_DefaultHeight + m_AimHeight) * 0.5f, 0.0f);
 
     Vector3 targetRot = m_Target->GetRotation();
-    Matrix playerRot = Matrix::CreateRotationY(targetRot.y);
+    Matrix  playerRot = Matrix::CreateRotationY(targetRot.y);
     Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
 
     // ※変更点：lookOffsetMul はブーストに依存させない（常に 0.6）
@@ -237,11 +266,6 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     {
         return;
     }
-
-    // ※変更点：スプリングの stiffness/damping はブーストで切り替えない（固定）
-    // （初期化時に設定済みの m_normalStiffness / m_normalDamping を使い続ける）
-    // 以前は m_boostBlend によって stiffness/damping を補間していましたが、
-    // 今回は「距離のみ」変化させたいという要望に合わせて削除しました。
 
     float dist;
     float height;
@@ -269,6 +293,18 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     Vector3 rotatedOffset = Vector3::Transform(baseOffset, playerRot);
 
     Vector3 desiredPos = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);
+
+    float desiredY = desiredPos.y;
+    float maxY = targetPos.y + 6.0f;
+    if (desiredY > maxY)
+    {
+        desiredY = maxY;
+    }
+    if (desiredY < -8.0f)
+    {
+        desiredY = -8.0f;
+    }
+    desiredPos.y = desiredY;
 
     float screenW = static_cast<float>(Application::GetWidth());
     float normX = 0.0f;
@@ -305,8 +341,108 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     // カメラ本体の横移動（プレイヤーの向きに応じてカメラを横にずらす）
     desiredPos += localRight * m_CurrentTurnOffset;
 
-    // --- 重要: 毎フレームの yaw を保存して次フレームの差分に備える ---
-    m_PrevPlayerYaw = playerYaw;
+    // 画面上下がワールドでどこかを計算するために、
+    // カメラ前方方向と target までの距離を使う
+    Vector3 camToTarget = targetPos - desiredPos;
+    float distAlongForward = camToTarget.Length(); // >0
 
+    // 安全対策
+    if (distAlongForward < 1e-6f) distAlongForward = 1e-6f;
+
+    // 垂直方向の半分のワールド長（カメラが target 平面で見る半高さ）
+    // m_Fov はラジアン
+    float halfHeight = std::tan(m_Fov * 0.5f) * distAlongForward;
+
+    // PlayArea が渡されていれば Y 方向でクランプする
+    if (m_playArea)
+    {
+        float boundsMinY = m_playArea->GetBoundsMin().y; // 下限（PlayAreaComponent に GetBoundsMin を用意）
+        float boundsMaxY = m_playArea->GetBoundsMax().y; // 上限
+
+        // カメラの Y が満たすべき範囲
+        float minCameraY = boundsMinY + halfHeight;
+        float maxCameraY = boundsMaxY - halfHeight;
+
+        // もし領域が狭くて半高さの2倍より小さい場合は中央へ寄せる（オーバーラップ防止）
+        if (minCameraY > maxCameraY)
+        {
+            float mid = (minCameraY + maxCameraY) * 0.5f;
+            minCameraY = maxCameraY = mid;
+        }
+
+        // クランプ
+        desiredPos.y = std::clamp(desiredPos.y, minCameraY, maxCameraY);
+    }
+
+    // スプリングを更新（追従用）
     m_Spring.Update(desiredPos, dt);
+
+	m_PrevPlayerYaw = playerYaw;
+
+    //振動計算
+    m_shakeOffset = Vector3::Zero;
+
+	if (m_shakeTimeRemaining > 0.0f && m_Target)
+    {
+       //残り時間計算
+		float t = m_shakeTimeRemaining / std::max(1e-6f, m_shakeTotalDuration);
+        float falloff = t;
+
+		//振動位相更新
+		m_shakePhase += dt * m_shakeFrequency * 2.0f * XM_PI;
+
+        //雑な複合波形
+        float sample = std::sin(m_shakePhase)
+            + 0.5f * std::sin(3.0f * m_shakePhase + 1.7f);
+		
+		float offsetAmount = m_shakeMagnitude  * sample * falloff;
+
+        //描画時の右方向
+		Vector3 cameraPosTemp = m_Spring.GetPosition();
+
+        Vector3 forward = m_Target->GetPosition() - cameraPosTemp;
+        if (forward.LengthSquared() > 1e-6f)
+        {
+            forward.Normalize();
+            // DirectXMath で Up x forward を計算
+            XMVECTOR vForward = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&forward));
+            XMVECTOR vUp = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&Vector3::Up));
+            XMVECTOR vRight = XMVector3Cross(vUp, vForward);
+            Vector3 camRight;
+            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&camRight), vRight);
+
+            if (camRight.LengthSquared() > 1e-6f)
+            {
+                camRight.Normalize();
+                // **m_shakeOffset に格納（描画時に加算する）**
+                m_shakeOffset = camRight * offsetAmount;
+            }
+        }
+
+        // タイマーを減らす（ここで行う）
+        m_shakeTimeRemaining -= dt;
+        if (m_shakeTimeRemaining <= 0.0f)
+        {
+            // リセット
+            m_shakeMagnitude = 0.0f;
+            m_shakeTimeRemaining = 0.0f;
+            m_shakeTotalDuration = 0.0f;
+            m_shakePhase = 0.0f;
+            m_shakeOffset = Vector3::Zero;
+        }
+    }
+}
+
+
+void FollowCameraComponent::Shake(float magnitude, float duration)
+{
+    if (magnitude <= 0.0f || duration <= 0.0f) { return; }
+
+    // 既存のシェイクより強ければ上書き、残り時間も延長できるように最大値を取る
+    m_shakeMagnitude     = std::max(m_shakeMagnitude, magnitude);
+    m_shakeTimeRemaining = std::max(m_shakeTimeRemaining, duration);
+    m_shakeTotalDuration = std::max(m_shakeTotalDuration, duration);
+
+    // フェーズはリセット（任意でランダムにしても良い）
+    m_shakePhase = 0.0f;
 }
