@@ -1,9 +1,5 @@
 #pragma once
 #include "GameObject.h"
-#include "ModelComponent.h"
-#include "MoveComponent.h"
-#include "ShootingComponent.h"
-#include "AABBColliderComponent.h"
 #include "OBBColliderComponent.h"
 
 class Player : public GameObject
@@ -17,7 +13,12 @@ public:
 
     //è’ìÀîªíËä÷êî
     void OnCollision(GameObject* other) override;
+
 private:
     std::shared_ptr<OBBColliderComponent> m_Collider;
+
+    // penetration âè¡óp
+    //void ResolvePenetrationWith(GameObject* other);
+    //bool IsCollidingWith(GameObject* other) const;
 };
 

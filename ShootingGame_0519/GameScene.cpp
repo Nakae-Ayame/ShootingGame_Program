@@ -13,6 +13,7 @@
 #include "CircularPatrolComponent.h"
 #include "FloorComponent.h"
 #include "PlayAreaComponent.h"
+#include "HitPointCompornent.h"
 
 void GameScene::DebugCollisionMode()
 {
@@ -97,12 +98,22 @@ static bool RaySphereIntersect(const DirectX::SimpleMath::Vector3& rayOrigin,
 }
 
 bool GameScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
-                        const DirectX::SimpleMath::Vector3& dir,
-                        float maxDistance,
-                        RaycastHit& outHit,
-                        GameObject* ignore)
+    const DirectX::SimpleMath::Vector3& dir,
+    float maxDistance,
+    RaycastHit& outHit,
+    std::function<bool(GameObject*)> predicate,
+    GameObject* ignore)
 {
     using namespace DirectX::SimpleMath;
+
+    // Normalize dir for distance correctness
+    Vector3 ndir = dir;
+    if (ndir.LengthSquared() <= 1e-6f)
+    {
+        return false;
+    }
+    ndir.Normalize();
+
     float bestT = std::numeric_limits<float>::infinity();
     std::shared_ptr<GameObject> bestObj;
 
@@ -111,19 +122,59 @@ bool GameScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
         if (!obj) { continue; }
         if (obj.get() == ignore) { continue; }
 
-        //敵のみを候補にする(Enemy のみ狙う)
-        Enemy* e = dynamic_cast<Enemy*>(obj.get());
-        if (!e) { continue; }
-
-        float radius = e->GetBoundingRadius();
-        float t;
-        if (RaySphereIntersect(origin, dir, e->GetPosition(), radius, t))
+        if (predicate)
         {
-            if (t >= 0.0f && t <= maxDistance && t < bestT)
+            if (!predicate(obj.get()))
             {
-                bestT = t;
-                bestObj = obj;
+                continue;
             }
+        }
+
+        // Candidate check: prefer using collider components (AABB/sphere) if present
+        // Example: if GameObject has a method GetBoundingRadius use sphere test,
+        // otherwise if AABBColliderComponent exists use AABB raycast, etc.
+        // Here we show a fallback using sphere: if object provides GetBoundingRadius().
+        float t;
+        float radius = 0.0f;
+
+        // try dynamic_cast to a component that gives us a bounding radius (example)
+        // if your GameObject has GetBoundingRadius method, call it instead.
+        bool hasSphere = false;
+        // Example pseudo-check: if (obj->HasComponent<SphereCollider>()) ...
+        // For now, try to call a method if exists (adjust to your codebase)
+        // ----
+        // Fallback: if object exposes a method GetBoundingRadius() - adapt as needed:
+        // float r = obj->GetBoundingRadius(); // uncomment if exists
+        // hasSphere = (r > 0.0f);
+        // radius = r;
+
+        // If you have Enemy::GetBoundingRadius we can still use it:
+        {
+            Enemy* e = dynamic_cast<Enemy*>(obj.get());
+            if (e)
+            {
+                radius = e->GetBoundingRadius();
+                hasSphere = true;
+            }
+        }
+
+        if (hasSphere)
+        {
+            if (RaySphereIntersect(origin, ndir, obj->GetPosition(), radius, t))
+            {
+                if (t >= 0.0f && t <= maxDistance && t < bestT)
+                {
+                    bestT = t;
+                    bestObj = obj;
+                }
+            }
+        }
+        else
+        {
+            // Optionally, test AABB if your GameObject has AABB component
+            // AABBColliderComponent* aabb = obj->GetComponent<AABBColliderComponent>();
+            // if (aabb) { if (RayAABBIntersect(...)) { ... } }
+            // For brevity, skip if no collider info
         }
     }
 
@@ -131,7 +182,7 @@ bool GameScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
     {
         outHit.hitObject = bestObj;
         outHit.distance = bestT;
-        outHit.position = origin + dir * bestT;
+        outHit.position = origin + ndir * bestT;
         outHit.normal = (outHit.position - bestObj->GetPosition());
         if (outHit.normal.LengthSquared() > 1e-6f)
         {
@@ -139,6 +190,7 @@ bool GameScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
         }
         return true;
     }
+
     return false;
 }
 
@@ -157,24 +209,41 @@ void GameScene::Init()
         L"DebugLineVS.cso", L"DebugLinePS.cso");
 
     //--------------------------プレイヤー作成---------------------------------
+    m_playArea = std::make_shared<PlayAreaComponent>();
+    m_playArea->SetScene(this); // PlayArea がシーンを利用する場合
+    m_playArea->SetBounds({ -372.0f, -1.0f, -372.0f }, { 372.0f, 150.0f, 372.0f });
+    m_playArea->SetGroundY(-7.0f);
+    
     m_player = std::make_shared<Player>();
     m_player->SetPosition({ 0.0f, 0.0f, 0.0f });
     m_player->SetRotation({ 80.0,0.0,0.0 });
     m_player->SetScale({ 0.3f, 0.3f, 0.3f });
     m_player->Initialize();
+
     auto moveComp = m_player->GetComponent<MoveComponent>();
 
-    auto playAreaComp = std::make_shared<PlayAreaComponent>();
+    if (moveComp)
+    {
+        // PlayArea を渡す（PlayArea は shared_ptr でシーンが保持している）
+        moveComp->SetPlayArea(m_playArea.get());
 
-    /*playAreaComp->SetMinY(-3.5f);
-    playAreaComp->SetMaxY(20.0f);
-    moveComp->SetPlayArea(playAreaComp.get());*/
+        // obstacleTester を PlayArea の RaycastObstacle に接続
+        moveComp->SetObstacleTester([this](const DirectX::SimpleMath::Vector3& start,
+            const DirectX::SimpleMath::Vector3& dir,
+            float len,
+            DirectX::SimpleMath::Vector3& outNormal,
+            float& outDist) -> bool
+            {
+                if (!m_playArea) { return false; }
+                return m_playArea->RaycastObstacle(start, dir, len, outNormal, outDist, /*ignore*/ nullptr);
+            });
+    }
 
     //-------------------------敵生成--------------------------------
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 1;
+    m_enemySpawner->patrolCfg.spawnCount = 0;
     m_enemySpawner->circleCfg.spawnCount = 0;
-    m_enemySpawner->turretCfg.spawnCount = 0;
+    m_enemySpawner->turretCfg.spawnCount = 1;
 
     enemyCount = m_enemySpawner->patrolCfg.spawnCount + m_enemySpawner->circleCfg.spawnCount + m_enemySpawner->turretCfg.spawnCount;
 
@@ -235,13 +304,17 @@ void GameScene::Init()
     m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
     BuildingConfig bc;
     bc.modelPath = "Asset/Build/Rock1.obj";
-    bc.count = 7;
-    bc.areaWidth = 750.0f;
-    bc.areaDepth = 750.0f;
+    bc.count = 3;
+    bc.areaWidth = 320.0f;
+    bc.areaDepth = 320.0f;
     bc.spacing = 20.0f;
     bc.randomizeRotation = true;
-    bc.minScale = 0.9f;
-    bc.maxScale = 1.2f;
+    bc.minScale = 0.2f;
+    bc.maxScale = 0.5f;
+
+    m_buildingSpawner->Spawn(bc);
+
+    bc.modelPath = "Asset/Build/wooden watch tower2.obj";
 
     m_buildingSpawner->Spawn(bc);
 
@@ -283,6 +356,16 @@ void GameScene::Init()
     if (cameraComp)
     {
         m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* を受け取る場合
+        cameraComp->SetPlayArea(m_playArea.get());
+        cameraComp->SetDistance(15.0f);
+    }
+
+    if (auto hp = m_player->GetComponent<HitPointComponent>())
+    {
+        hp->SetOnDamaged([cameraComp](const DamageInfo& info)
+            {
+                cameraComp->Shake(4.0f, 0.5f);
+            });
     }
 
     cameraComp->SetDistance(15.0f);
@@ -313,22 +396,12 @@ void GameScene::Update(float deltatime)
     //新規オブジェクトをGameSceneのオブジェクト配列に追加する
     SetSceneObject();
 
-    if (m_player)
-    {
-        //m_player->SetRotation(setRot);
-    }
-
     auto PlayerMove = m_player->GetComponent<MoveComponent>();
     if (PlayerMove)
     {
         PlayerMove->SetSpeed(setSpeed);
     }
 
-    auto PlayerShoot = m_player->GetComponent<ShootingComponent>();
-    if (PlayerShoot)
-    {
-        PlayerShoot->SetAimDistance(setAimDistance);
-    }
 
     //----------------- レティクルのドラッグ処理 -----------------
     if (Input::IsMouseLeftPressed())
@@ -354,6 +427,14 @@ void GameScene::Update(float deltatime)
         m_FollowCamera->GetCameraComponent()->SetReticleScreenPos(Vector2((float)m_lastDragPos.x, (float)m_lastDragPos.y));
     }
 
+    //------------------------------------------------------------------
+
+
+
+
+
+
+
     //全オブジェクト Update を一回だけ実行（重要）
     for (auto& obj : m_GameObjects)
     {
@@ -376,7 +457,9 @@ void GameScene::Update(float deltatime)
         }
     }
 
-    if (enemyCount <= 0)
+    std::cout << "PlayerのHP : " << m_player->GetComponent<HitPointComponent>()->GetHP() << std::endl;
+
+    if (enemyCount <= 0 || m_player->GetComponent<HitPointComponent>()->GetHP() <= 0)
     {
         SceneManager::SetChangeScene("TitleScene");
     }

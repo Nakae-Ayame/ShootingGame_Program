@@ -15,6 +15,7 @@
 #include "DebugUI.h"
 #include "EnemySpawner.h"
 #include "BuildingSpawner.h"
+#include "PlayAreaComponent.h"
 
 //---------------------------------
 //ISceneÇåpè≥ÇµÇΩGameScene
@@ -58,10 +59,11 @@ public:
 	void FinishFrameCleanup() override;
 
 	bool Raycast(const DirectX::SimpleMath::Vector3& origin,
-					const DirectX::SimpleMath::Vector3& dir,
-					float maxDistance,
-					RaycastHit& outHit,
-					GameObject* ignore = nullptr) override;
+				 const DirectX::SimpleMath::Vector3& dir,
+				 float maxDistance,
+				 RaycastHit& outHit,
+				 std::function<bool(GameObject*)> predicate = nullptr,
+				 GameObject* ignore = nullptr);
 
 	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
@@ -120,4 +122,6 @@ private:
 	Vector3 setRot = { 0,0,0 };
 
 	int enemyCount = 0;
+
+	std::shared_ptr<PlayAreaComponent> m_playArea;
 };
