@@ -2,8 +2,10 @@
 #include "GameObject.h"
 #include "GameScene.h"
 #include "ModelComponent.h"
-#include "AABBColliderComponent.h"
+#include "BoxComponent.h"
+#include "OBBColliderComponent.h"
 #include "ModelCache.h"
+#include "Building.h"
 #include <random>
 
 BuildingSpawner::BuildingSpawner(GameScene* scene) : m_scene(scene)
@@ -21,13 +23,7 @@ static float RandFloat(float a, float b)
 void BuildingSpawner::Spawn(const BuildingConfig& cfg)
 {
     if (!m_scene) { return; }
-    /*auto res = ModelCache::Instance().GetOrLoad(cfg.modelPath);
-    if (!res)
-    {
-        OutputDebugStringA("BuildingSpawner::Spawn - model load failed\n");
-        return;
-    }*/
-
+    
     //簡単にグリッドを配置しておく
     int perRow = static_cast<int>(std::ceil(std::sqrt((double)cfg.count)));
     float startX = -cfg.areaWidth * 0.5f;
@@ -44,45 +40,36 @@ void BuildingSpawner::Spawn(const BuildingConfig& cfg)
     float stepZ = stepX;
 
     int placed = 0;
-    for (int r = 0; r < perRow && placed < cfg.count; ++r)
+    for (int i = 0; i < cfg.count; ++i)
     {
-        for (int c = 0; c < perRow && placed < cfg.count; ++c)
+        float x = RandFloat(-cfg.areaWidth * 0.5f, cfg.areaWidth * 0.5f);
+        float z = RandFloat(-cfg.areaDepth * 0.5f, cfg.areaDepth * 0.5f);
+
+        auto obj = std::make_shared<Building>();
+        obj->SetScene(m_scene);
+        obj->SetPosition({ x, -12, z }); // 高さは統一
+        obj->SetScale({ 10, 10, 10 });
+
+        if (cfg.randomizeRotation)
         {
-            //奥行と位置を設定(ある程度ランダム)
-            float x = startX + c * stepX + RandFloat(-cfg.spacing * 0.3f, cfg.spacing * 0.3f);
-            float z = startZ + r * stepZ + RandFloat(-cfg.spacing * 0.3f, cfg.spacing * 0.3f);
-
-            //建物生成
-            auto obj = std::make_shared<GameObject>();
-            obj->SetScene(m_scene);
-            obj->SetPosition({ x, -12, z });
-            float scale = RandFloat(cfg.minScale, cfg.maxScale);
-            obj->SetScale({ 10, 10, 10 });
-
-            if (cfg.randomizeRotation)
-            {
-                obj->SetRotation({ 0.0f, RandFloat(0.0f, 6.2831853f), 0.0f });
-            }
-
-            obj->SetRotation({ 0.0f, 0.0f, 0.0f });
-
-            //ModelComponentを作るがリソースは共有(今はまだ実装していない)
-            auto mc = std::make_shared<ModelComponent>();
-            //mc->SetResource(res);
-            mc->LoadModel(cfg.modelPath);
-            obj->AddComponent(mc);
-
-            //建物なのでAABB
-            //auto aabb = std::make_shared<AABBColliderComponent>();
-
-            //ざっくりサイズを設定する
-            //aabb->SetSize({ 10.0f, 10.0f ,10.0f });
-            //obj->AddComponent(aabb);
-
-            obj->Initialize();
-
-            m_scene->AddObject(obj);
-            ++placed;
+            obj->SetRotation({ 0.0f, RandFloat(0.0f, 6.2831853f), 0.0f });
         }
+        else
+        {
+            obj->SetRotation({ 0.0f, 0.0f, 0.0f });
+        }
+
+        // AABB コライダーを作って必ずオブジェクトに追加すること（重要）
+        auto col = std::make_shared<OBBColliderComponent>();
+        col->SetSize({ 3.0f, 3.0f, 3.0f }); // 必要に応じてモデルサイズに合わせる
+        obj->AddComponent(col);
+
+        auto mc = std::make_shared<ModelComponent>();
+        mc->LoadModel(cfg.modelPath);
+        obj->AddComponent(mc);
+
+        obj->Initialize();
+        m_scene->AddObject(obj);
     }
+
 }

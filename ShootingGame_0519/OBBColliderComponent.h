@@ -17,8 +17,6 @@ public:
     //(全体の幅・高さ・奥行き)
     void SetSize(const Vector3& size);
 
-    ///void SetPosition(const Vector3& pos);
-
     //GameObjectの位置のゲット関数
     Vector3 GetCenter() const override;
 
@@ -27,9 +25,15 @@ public:
 
     //ゲームオブジェクトの回転値から、回転行列を生成。
     DirectX::SimpleMath::Matrix GetRotationMatrix() const override;
+
+    void SetLocalOffset(const Vector3& offset) { m_LocalOffset = offset; }
+    const Vector3& GetLocalOffset() const { return m_LocalOffset; }
+
 private:
 
     //幅、高さ、奥行の大きさをそれぞれ設定できる変数
     Vector3 m_Size = Vector3(1, 1, 1);
+
+    DirectX::SimpleMath::Vector3 m_LocalOffset = DirectX::SimpleMath::Vector3::Zero;
 };
 

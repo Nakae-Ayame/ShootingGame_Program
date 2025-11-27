@@ -93,12 +93,4 @@ void BulletComponent::Update(float dt)
     pos += m_velocity * m_speed * dt;
     GetOwner()->SetPosition(pos);
 
-    // デバッグログ（任意、頻度落とすべし）
-    static float accum = 0.0f;
-    accum += dt;
-    if (accum > 1.0f)
-    { // 1秒ごと
-        accum = 0.0f;
-        //std::cout << "[Bullet] pos=(" << pos.x << "," << pos.y << "," << pos.z << ") speed=" << m_speed << "\n";
-    }
 }
