@@ -58,9 +58,8 @@ void CollisionManager::Clear()
 
 void CollisionManager::CheckCollisions()
 {
-    //OutputDebugStringA(("ColliderCount: " + std::to_string(m_Colliders.size()) + "\n").c_str());
 
-    //全コライダーを未ヒット状態に
+    //全コライダーを未ヒット状態にする
     for (auto col : m_Colliders) 
     {
         col->SetHitThisFrame(false);
@@ -68,35 +67,32 @@ void CollisionManager::CheckCollisions()
 
     //判定する物の収集を行う
     std::vector<CollisionInfoLite>  hitPairs;
+
+    //サイズ取得
     size_t count = m_Colliders.size();
        
+    //サイズ分回す
     for (size_t i = 0; i < count; ++i)
     {
+        //
         ColliderComponent* colA = m_Colliders[i];
-        if(!colA)
-        {
-            continue;//コライダーが付いていなければ
-        }
+        //コライダーが付いていなければ
+        if(!colA){ continue; }
 
         GameObject* ownerA = colA->GetOwner();
-        if(!ownerA)
-        {
-            continue;// 所有者が無ければスキップ（安全）
-        }
+        //所有者がいなければ
+        if(!ownerA){ continue; }
 
+        //今の当たり判定の一個先から回す
         for (size_t j = i + 1; j < count; ++j)
         {
             ColliderComponent* colB = m_Colliders[j];
-            if (!colB)
-            {
-                continue;
-            }
+            //コライダーが付いていなければ
+            if (!colB){ continue; }
 
             GameObject* ownerB = colB->GetOwner();
-            if (!ownerB)
-            {
-                continue;
-            }
+            //所有者がいなければ
+            if (!ownerB){ continue; }
             
             bool hit = false;
 
@@ -166,7 +162,7 @@ void CollisionManager::CheckCollisions()
             //-----------------------------------------
             if (hit)
             {
-                // コリジョンイベント通知
+                //コリジョンイベント通知
                 //判定フェーズでは通知しないで入れておく。
                 CollisionInfoLite info;
                 info.a = colA;
@@ -184,112 +180,155 @@ void CollisionManager::CheckCollisions()
     
     for (const auto& p : hitPairs)
     {
+        //
         if (!p.a || !p.b) { continue; }
 
+        //
         ColliderComponent* colA = p.a;
         ColliderComponent* colB = p.b;
+
+        //
         GameObject* ownerA = colA->GetOwner();
         GameObject* ownerB = colB->GetOwner();
+
         if (!ownerA || !ownerB) { continue; }
 
-        // デフォルト：何も押し出さない
+        //押し出し量を保存するための変数を作っておく
         Vector3 pushA = Vector3::Zero;
         Vector3 pushB = Vector3::Zero;
+
+        //当たったどうかのbool型
         bool resolved = false;
 
-        // 型判定して適切な MTV 計算を呼ぶ
-        auto typeA = colA->GetColliderType();
-        auto typeB = colB->GetColliderType();
+        //コライダーの種類を取得する
+        ColliderType typeA = colA->GetColliderType();
+        ColliderType typeB = colB->GetColliderType();
 
+        //-----------------MTV(押し出し量)計算----------------------
+        //AABB同士の当たり判定なら
+        if (typeA == ColliderType::AABB && typeB == ColliderType::AABB)
+        {
+            resolved = Collision::ComputeAABBMTV(static_cast<AABBColliderComponent*>(colA),
+                                                 static_cast<AABBColliderComponent*>(colB),
+                                                 pushA, 
+                                                 pushB);
+        }
+        //AABBとOBBの当たり判定なら
         if (typeA == ColliderType::AABB && typeB == ColliderType::OBB)
         {
-            resolved = Collision::ComputeAABBvsOBBMTV(
-                static_cast<AABBColliderComponent*>(colA),
-                static_cast<OBBColliderComponent*>(colB),
-                pushA, pushB);
+            resolved = Collision::ComputeAABBvsOBBMTV_Simple(static_cast<AABBColliderComponent*>(colA),
+                                                             static_cast<OBBColliderComponent*>(colB),
+                                                             pushA, pushB);
         }
         else if (typeA == ColliderType::OBB && typeB == ColliderType::AABB)
         {
-            resolved = Collision::ComputeAABBvsOBBMTV(
-                static_cast<AABBColliderComponent*>(colB),
-                static_cast<OBBColliderComponent*>(colA),
-                pushB, pushA);
+            resolved = Collision::ComputeAABBvsOBBMTV_Simple(static_cast<AABBColliderComponent*>(colB),
+                                                             static_cast<OBBColliderComponent*>(colA),
+                                                             pushB, pushA);
         }
-        else if (typeA == ColliderType::AABB && typeB == ColliderType::AABB)
+        //OBB同士の当たり判定なら
+        else if (typeA == ColliderType::OBB && typeB == ColliderType::OBB)
         {
-            resolved = Collision::ComputeAABBMTV(
-                static_cast<AABBColliderComponent*>(colA),
-                static_cast<AABBColliderComponent*>(colB),
-                pushA, pushB);
+            resolved = Collision::ComputeOBBMTV(static_cast<OBBColliderComponent*>(colA),
+                                                static_cast<OBBColliderComponent*>(colB),
+                                                pushA,
+                                                pushB);
         }
         else
         {
-            Vector3 dir = ownerA->GetPosition() - ownerB->GetPosition();
-            if (dir.LengthSquared() > 1e-6f)
-            {
-                dir.Normalize();
-                float tiny = 0.1f;
-                pushA = dir * tiny;
-                pushB = -dir * tiny;
-                resolved = true;
-            }
+            //それ以外の組み合わせはMTVを計算しない
+            resolved = false;
         }
 
-        // 押し出しが計算された直後の部分（resolved が true のあと）
+        //押し出しがいらないなら
+        if (!resolved){ continue; }
+
         if (resolved)
         {
-            // 'pushA' は A を押し出す量（ワールド単位）
-            // 動的 (MoveComponent) がある側に修正を委譲する
+            bool aStatic = colA->IsStatic();
+            bool bStatic = colB->IsStatic();
+
+            // 押し出し方向ベクトル（法線っぽいもの）を求める
+            Vector3 normalA = pushA;
+            if (normalA.LengthSquared() > 1e-6f)
+            {
+                normalA.Normalize();
+            }
+            else
+            {
+                normalA = DirectX::SimpleMath::Vector3::Up;
+            }
+            Vector3 normalB = -normalA;
+
             auto mvA = ownerA->GetComponent<MoveComponent>();
             auto mvB = ownerB->GetComponent<MoveComponent>();
 
-            // normal の安全な計算（push がゼロなら中心差を代わりに使う）
-            Vector3 normal;
-            if (pushA.LengthSquared() > 1e-6f)
+            // ① どちらも Static → 何も動かさない
+            if (aStatic && bStatic)
             {
-                normal = pushA;
-                normal.Normalize();
+                // 位置補正もしない
             }
-            else
+            // ② A が Static, B が Dynamic → B だけ押し出す
+            else if (aStatic && !bStatic)
             {
-                Vector3 dir = ownerA->GetPosition() - ownerB->GetPosition();
-                if (dir.LengthSquared() > 1e-6f)
+                if (mvB)
                 {
-                    dir.Normalize();
-                    normal = dir;
+                    // B（ownerB）が動くキャラなら、押し出し量を積む
+                    mvB->HandleCollisionCorrection(pushB, normalB);
                 }
                 else
                 {
-                    normal = Vector3::Up;
+                    // MoveComponent が無いなら直接位置を動かす
+                    ownerB->SetPosition(ownerB->GetPosition() + pushB);
                 }
             }
-
-            if (mvA)
+            // ③ A が Dynamic, B が Static → A だけ押し出す
+            else if (!aStatic && bStatic)
             {
-                mvA->HandleCollisionCorrection(pushA, normal);
+                if (mvA)
+                {
+                    mvA->HandleCollisionCorrection(pushA, normalA);
+                }
+                else
+                {
+                    ownerA->SetPosition(ownerA->GetPosition() + pushA);
+                }
             }
-            else if (mvB)
-            {
-                // pushB は B を押し出す向きで計算済み
-                Vector3 normalB = -normal;
-                mvB->HandleCollisionCorrection(pushB, normalB);
-            }
+            // ④ どちらも Dynamic（例：Player vs Enemy） → 半分ずつ押し出す
             else
             {
-                // どちらも static -> 両方少し分配して押し出す（元の方針を残す）
-                ownerA->SetPosition(ownerA->GetPosition() + pushA * 0.5f);
-                ownerB->SetPosition(ownerB->GetPosition() + pushB * 0.5f);
+                Vector3 halfA = pushA * 0.5f;
+                Vector3 halfB = pushB * 0.5f;
+
+                if (mvA)
+                {
+                    mvA->HandleCollisionCorrection(halfA, normalA);
+                }
+                else
+                {
+                    ownerA->SetPosition(ownerA->GetPosition() + halfA);
+                }
+
+                if (mvB)
+                {
+                    mvB->HandleCollisionCorrection(halfB, normalB);
+                }
+                else
+                {
+                    ownerB->SetPosition(ownerB->GetPosition() + halfB);
+                }
             }
         }
 
-
-        // 衝突フラグ立てと通知（OnCollision）
+        //衝突フラグ
         colA->SetHitThisFrame(true);
         colB->SetHitThisFrame(true);
 
+        //ユーザー側の OnCollision イベント通知
         ownerA->OnCollision(ownerB);
         ownerB->OnCollision(ownerA);
     }
+
 }
 
 void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)

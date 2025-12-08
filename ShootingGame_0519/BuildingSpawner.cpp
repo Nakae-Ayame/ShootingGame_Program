@@ -76,10 +76,11 @@ int BuildingSpawner::Spawn(const BuildingConfig& cfg)
             obj->SetRotation({ 0.0f, 0.0f, 0.0f });
 
             //コライダー（OBB）を追加。baseColliderSize に scale を乗算
-            auto col = std::make_shared<OBBColliderComponent>();
+            auto col = std::make_shared<AABBColliderComponent>();
             col->SetSize({ 3.0f, 17.0f, 3.0f });
             col->SetEnabled(false);
             obj->AddComponent(col);
+            col->isStatic = true;
 
             //モデルを読み込みる
             auto mc = std::make_shared<ModelComponent>();

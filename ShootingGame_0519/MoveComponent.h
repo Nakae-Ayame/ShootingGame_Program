@@ -5,6 +5,7 @@
 #include "ICameraViewProvider.h"
 #include <SimpleMath.h>
 #include <fstream>
+#include <algorithm>
 #include <functional>
 
 class PlayAreaComponent;
@@ -14,38 +15,51 @@ class MoveComponent : public Component
 public:
     MoveComponent() = default;
     ~MoveComponent() override = default;
-
+    
     void Initialize() override;
     void Update(float dt) override;
     void Uninit() override;
 
-    //移動速度のセット関数
+    //-----------------------------------Set関数関連------------------------------------
     void SetSpeed(float speed) { m_baseSpeed = speed; }
-
-    //移動の前後左右を決めるために使うカメラのセット関数
     void SetCameraView(ICameraViewProvider* camera) { m_camera = camera; }
-
     void SetPlayArea(PlayAreaComponent* playArea) { m_playArea = playArea; }
 
     void SetObstacleTester(std::function<bool(const DirectX::SimpleMath::Vector3&,
-        const DirectX::SimpleMath::Vector3&,
-        float,
-        DirectX::SimpleMath::Vector3&,
-        float&)> tester)
-    {
-        m_obstacleTester = std::move(tester);
-    }
- 
-    void AddImpulse(const DirectX::SimpleMath::Vector3& impulse)
-    {
-        m_externalVelocity += impulse;
-    }
+                            const DirectX::SimpleMath::Vector3&,
+                            float,
+                            DirectX::SimpleMath::Vector3&,
+                            float&)> tester) { m_obstacleTester = std::move(tester); }
+    //-----------------------------------Get関数関連------------------------------------
+    bool GetBoostingState() const { return m_isBoosting; }
 
+	//ブースト量を取得する関数(演出で使用)
+    float GetBoostIntensity() const
+    {
+        if (m_isBoosting)
+        {
+			//ブースト中(0.0～1.0)
+            float t = m_boostTimer / m_boostSeconds;
+            return std::clamp(t, 0.0f, 1.0f);
+        }
+        else if (m_recoverTimer >= 0.0f)
+        {
+			//ブーストから回復中(1.0～0.0)
+            float t = 1.0f - std::clamp(m_recoverTimer / m_boostRecover, 0.0f, 1.0f);
+            return t;
+        }
+        else
+        {
+            return 0.0f;
+        }
+    }
+	//-----------------------------------その他関数関連------------------------------------
+    void AddImpulse(const DirectX::SimpleMath::Vector3& impulse){ m_externalVelocity += impulse; }
     void HandleCollisionCorrection(const DirectX::SimpleMath::Vector3& push,
-        const DirectX::SimpleMath::Vector3& contactNormal);
-
+                                   const DirectX::SimpleMath::Vector3& contactNormal);
     void ClearCollisionCorrectionFlag() { m_collisionCorrectedThisFrame = false; }
 
+    void ApplyCollisionPush();
 private:
 
     //カメラの向きを取得する用のポインタ
@@ -121,5 +135,14 @@ private:
     float m_pitchTiltSmoothK = 6.0f;         // 指数ローパスの速さ（小さくするとゆっくり）
     float m_maxPitchDeltaDegPerSec = 60.0f;  // 1秒あたりの最大変化量（度/秒）
     float m_pitchSaturationFactor = 6.0f;    // atan の分母などに使う（垂直速度のスケール）
+
+    DirectX::SimpleMath::Vector3 m_accumulatedPush = DirectX::SimpleMath::Vector3::Zero;
+    bool m_hadCollisionThisFrame = false;
+
+    float m_externalDamping = 1.0f;
+
+    // 既存メンバのどこかに追加してください
+    DirectX::SimpleMath::Vector3 m_totalPushThisFrame = DirectX::SimpleMath::Vector3::Zero;
+    bool m_hasPushThisFrame = false;
 
 };

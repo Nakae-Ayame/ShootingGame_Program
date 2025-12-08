@@ -30,9 +30,10 @@ void Player::Initialize()
     HPComp->SetInvincibilityOnHit(1.5f);
 
     //コライダーコンポーネントの生成
-    m_Collider  = std::make_shared<OBBColliderComponent>();
+    m_Collider = std::make_shared<OBBColliderComponent>();
     m_Collider -> SetSize({ 12.0f, 10.0f, 30.0f }); // モデルに合わせて調整
-    m_Collider ->SetLocalOffset(Vector3(0.0f,0.0f ,15.0f));
+    //m_Collider -> SetLocalOffset(Vector3(0.0f,0.0f ,15.0f));
+    m_Collider ->isStatic = false;
 
   //---------------GameObjectに追加---------------
     AddComponent(modelComp);

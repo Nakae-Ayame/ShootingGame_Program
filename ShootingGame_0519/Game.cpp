@@ -40,12 +40,8 @@ void Game::GameDraw(float deltaTime)
 {    
     //フレームの開始
     Renderer::Begin();
-
-    SceneManager::Draw(deltaTime); //シーンマネージャーの描画処理
-
-    // デバッグUIの描画
-    DebugUI::Render();
-
+    //シーンマネージャーの描画処理
+    SceneManager::Draw(deltaTime);
     //フレームの終了
     Renderer::End();
 }

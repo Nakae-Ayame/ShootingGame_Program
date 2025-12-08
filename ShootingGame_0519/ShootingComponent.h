@@ -2,6 +2,7 @@
 #include "Component.h"
 #include "IScene.h"
 #include "ICameraViewProvider.h"
+#include "DebugRenderer.h"
 #include <memory>
 #include <SimpleMath.h>
 
@@ -21,6 +22,15 @@ public:
     void Initialize() override {}
     //更新関数
     void Update(float dt) override;
+
+    void Draw(float alpha) override
+    {
+        /*m_debugRenderer->Draw(
+            m_FollowCamera->GetCameraComponent()->GetView(),
+            m_FollowCamera->GetCameraComponent()->GetProj()
+        );*/
+       
+    }
 
     //シーンとカメラを外部からセット
     void SetScene(IScene* scene) { m_scene = scene; }
@@ -50,7 +60,7 @@ private:
 
     float m_cooldown = 0.1f;        //クールタイム
     float m_timer = 0.0f;           //経過時間
-    float m_bulletSpeed = 220.0f;   //弾の速さ
+    float m_bulletSpeed = 500.0f;   //弾の速さ
     float m_spawnOffset = 1.5f;     //発射位置のオフセット
     float m_minDistanceToStopShooting = 0.0f;   //射撃を止める最短距離
     
@@ -66,6 +76,8 @@ private:
 
     //ホーミングの強さ
     float m_homingStrength = 8.0f;
+    
+	DebugRenderer* m_debugRenderer;
 };
 
 

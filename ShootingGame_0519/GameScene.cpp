@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include "GameScene.h"
 #include "Input.h"
 #include "DebugGlobals.h" 
@@ -14,6 +14,7 @@
 #include "FloorComponent.h"
 #include "PlayAreaComponent.h"
 #include "HitPointCompornent.h"
+#include "DebugPlayer.h"
 
 void GameScene::DebugCollisionMode()
 {
@@ -215,12 +216,12 @@ bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
         if (!obj) continue;
         if (obj.get() == ignore) continue;
 
-        // š ƒRƒ‰ƒCƒ_[‚ğ‚Á‚Ä‚¢‚È‚¢‚È‚ç–³‹
+        // â˜… ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’æŒã£ã¦ã„ãªã„ãªã‚‰ç„¡è¦–
         auto obb = obj->GetComponent<OBBColliderComponent>();
         auto aabb = obj->GetComponent<AABBColliderComponent>();
         bool hasCollider = (obb || aabb);
 
-        // Enemy ‚ÌŠÈˆÕ‹… or Building ‚Ì AABB ‚È‚Çc
+        // Enemy ã®ç°¡æ˜“çƒ or Building ã® AABB ãªã©â€¦
         float radius = 0.0f;
         bool hasSphere = false;
 
@@ -231,14 +232,14 @@ bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
         }
         else if (hasCollider)
         {
-            // š ƒRƒ‰ƒCƒ_[‚©‚ç‚´‚Á‚­‚è”¼Œa‚ğì‚éi‘ÎŠp’·‚Ì”¼•ªj
-            //    ‚«‚Á‚¿‚è‚µ‚½ Ray vs OBB/AABB ‚ÍŒã‚ÅÀ‘•‚Å‚àOK
+            // â˜… ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‹ã‚‰ã–ã£ãã‚ŠåŠå¾„ã‚’ä½œã‚‹ï¼ˆå¯¾è§’é•·ã®åŠåˆ†ï¼‰
+            //    ãã£ã¡ã‚Šã—ãŸ Ray vs OBB/AABB ã¯å¾Œã§å®Ÿè£…ã§ã‚‚OK
             Vector3 center = obj->GetPosition();
             Vector3 extents;
 
             if (obb)
             {
-                extents = obb->GetSize() * 0.5f; // size ‚ª‘S’·‚È‚ç”¼•ª‚Å”¼Œa‘Š“–
+                extents = obb->GetSize() * 0.5f; // size ãŒå…¨é•·ãªã‚‰åŠåˆ†ã§åŠå¾„ç›¸å½“
             }
             else // AABB
             {
@@ -246,7 +247,7 @@ bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
                 extents = size * 0.5f;
             }
 
-            radius = extents.Length(); // ‘ÎŠpü‚Ì’·‚³ à ‚¨‚¨‚´‚Á‚Ï‚È”¼Œa
+            radius = extents.Length(); // å¯¾è§’ç·šã®é•·ã• â‰’ ãŠãŠã–ã£ã±ãªåŠå¾„
             hasSphere = (radius > 0.0f);
         }
 
@@ -269,7 +270,7 @@ bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
         outHit.distance = bestT;
         outHit.position = origin + ndir * bestT;
 
-        // ŠÈˆÕ–@üi’†S‚©‚ç‚Ì•ûŒüj
+        // ç°¡æ˜“æ³•ç·šï¼ˆä¸­å¿ƒã‹ã‚‰ã®æ–¹å‘ï¼‰
         outHit.normal = outHit.position - bestObj->GetPosition();
         if (outHit.normal.LengthSquared() > 1e-6f)
             outHit.normal.Normalize();
@@ -282,21 +283,20 @@ bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
 
 void GameScene::Init()
 {    
-    //ƒfƒoƒbƒOMODE SELECT
+    //ãƒ‡ãƒãƒƒã‚°MODE SELECT
     DebugUI::RedistDebugFunction([this]() {DebugCollisionMode();});
 
     DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed();});
     
     DebugUI::RedistDebugFunction([this]() {DebugSetAimDistance();});
 
-    //DebugRenderer‚Ì‰Šú‰»
+    //DebugRendererã®åˆæœŸåŒ–
     m_debugRenderer = std::make_unique<DebugRenderer>();
     m_debugRenderer->Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext(),
         L"DebugLineVS.cso", L"DebugLinePS.cso");
-
-    //--------------------------ƒvƒŒƒCƒ„[ì¬---------------------------------
+    //--------------------------ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ä½œæˆ---------------------------------
     m_playArea = std::make_shared<PlayAreaComponent>();
-    m_playArea->SetScene(this); // PlayArea ‚ªƒV[ƒ“‚ğ—˜—p‚·‚éê‡
+    m_playArea->SetScene(this); // PlayArea ãŒã‚·ãƒ¼ãƒ³ã‚’åˆ©ç”¨ã™ã‚‹å ´åˆ
     m_playArea->SetBounds({ -150.0f, -1.0f, -150.0f }, { 150.0f, 150.0f, 150.0f });
     m_playArea->SetGroundY(-7.0f);
     
@@ -310,10 +310,10 @@ void GameScene::Init()
 
     if (moveComp)
     {
-        // PlayArea ‚ğ“n‚·iPlayArea ‚Í shared_ptr ‚ÅƒV[ƒ“‚ª•Û‚µ‚Ä‚¢‚éj
+        // PlayArea ã‚’æ¸¡ã™ï¼ˆPlayArea ã¯ shared_ptr ã§ã‚·ãƒ¼ãƒ³ãŒä¿æŒã—ã¦ã„ã‚‹ï¼‰
         moveComp->SetPlayArea(m_playArea.get());
 
-        // obstacleTester ‚ğ PlayArea ‚Ì RaycastObstacle ‚ÉÚ‘±
+        // obstacleTester ã‚’ PlayArea ã® RaycastObstacle ã«æ¥ç¶š
         moveComp->SetObstacleTester([this](const DirectX::SimpleMath::Vector3& start,
             const DirectX::SimpleMath::Vector3& dir,
             float len,
@@ -325,7 +325,7 @@ void GameScene::Init()
             });
     }
 
-    //-------------------------“G¶¬--------------------------------
+    //-------------------------æ•µç”Ÿæˆ--------------------------------
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
     m_enemySpawner->patrolCfg.spawnCount = 1;
 
@@ -358,20 +358,20 @@ void GameScene::Init()
     m_enemySpawner->fleeCfg.feelerSpread = DirectX::XM_PI / 4.0f;
     m_enemySpawner->fleeCfg.player = m_player;
 
-    m_enemySpawner->EnsureFleeCount();
-    //------------------ƒXƒJƒCƒh[ƒ€ì¬-------------------------
+    //m_enemySpawner->EnsureFleeCount();
+    //------------------ã‚¹ã‚«ã‚¤ãƒ‰ãƒ¼ãƒ ä½œæˆ-------------------------
 
     m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_03.png");
     m_SkyDome->Initialize();
 
-    //-----------------------°§ì------------------------------
+    //-----------------------åºŠåˆ¶ä½œ------------------------------
 
     auto floorObj = std::make_shared<GameObject>();
     floorObj->SetPosition(Vector3(0, -5, 0));
     floorObj->SetRotation(Vector3(0, 0, 0));
     floorObj->SetScale(Vector3(75, 75, 75));
 
-    // AddComponent ‚Å°ƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’Ç‰ÁiƒeƒNƒXƒ`ƒƒƒpƒX‚Í”CˆÓj
+    // AddComponent ã§åºŠã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’è¿½åŠ ï¼ˆãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹ã¯ä»»æ„ï¼‰
     auto floorComp = floorObj->AddComponent<FloorComponent>();
 
     floorComp->SetGridTexture("Asset/Texture/grid01.jpeg", 1, 1);
@@ -380,29 +380,29 @@ void GameScene::Init()
 
     AddObject(floorObj);
 
-    //--------------------------Œš•¨¶¬-----------------------------
+    //--------------------------å»ºç‰©ç”Ÿæˆ-----------------------------
 
-    //m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
-    //BuildingConfig bc;
-    //bc.modelPath = "Asset/Build/wooden watch tower2.obj";
-    //bc.count = 5;
-    //bc.areaWidth = 300.0f;
-    //bc.areaDepth = 300.0f;
-    //bc.spacing = 30.0f;          //Œš•¨ŠÔ‚É20’PˆÊ‚Ì—]—T‚ğ“ü‚ê‚é
-    //bc.randomizeRotation = true;
-    //bc.minScale = 5.0f;
-    //bc.maxScale = 10.0f;
-    //bc.footprintSizeX = 6.0f;    //•K—v‚È‚çƒ‚ƒfƒ‹‚É‡‚í‚¹‚Ä’²®
-    //bc.footprintSizeZ = 6.0f;
-    //bc.baseColliderSize = { 3.0f, 17.0f, 3.0f };
-    //bc.maxAttemptsPerBuilding = 50;
+    m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
+    BuildingConfig bc;
+    bc.modelPath = "Asset/Build/wooden watch tower2.obj";
+    bc.count = 6;
+    bc.areaWidth = 300.0f;
+    bc.areaDepth = 300.0f;
+    bc.spacing = 30.0f;          //å»ºç‰©é–“ã«20å˜ä½ã®ä½™è£•ã‚’å…¥ã‚Œã‚‹
+    bc.randomizeRotation = true;
+    bc.minScale = 5.0f;
+    bc.maxScale = 10.0f;
+    bc.footprintSizeX = 6.0f;    //å¿…è¦ãªã‚‰ãƒ¢ãƒ‡ãƒ«ã«åˆã‚ã›ã¦èª¿æ•´
+    bc.footprintSizeZ = 6.0f;
+    bc.baseColliderSize = { 3.0f, 17.0f, 3.0f };
+    bc.maxAttemptsPerBuilding = 50;
 
-    //int placed = m_buildingSpawner->Spawn(bc);
+    int placed = m_buildingSpawner->Spawn(bc);
 
-    //bc.modelPath = "Asset/Build/Rock1.obj";
-    //m_buildingSpawner->Spawn(bc);
+    /*bc.modelPath = "Asset/Build/Rock1.obj";
+    m_buildingSpawner->Spawn(bc);*/
 
-    //-------------------------ƒŒƒeƒBƒNƒ‹ì¬-------------------------------------
+    //-------------------------ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ä½œæˆ-------------------------------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
     RECT rc{};
     GetClientRect(Application::GetWindow(), &rc);
@@ -410,17 +410,17 @@ void GameScene::Init()
     float y = (rc.bottom - rc.top) / 2;
     m_reticle->Initialize();
     
-	//--------------------------HPƒo[ì¬-------------------------------------
+	//--------------------------HPãƒãƒ¼ä½œæˆ-------------------------------------
 	auto hpUI = std::make_shared<HPBar>(L"Asset/UI/HPBar01.png", L"Asset/UI/HPGauge01.png", 100.0f, 475.0f);
 	hpUI->SetScreenPos(30.0f, 200.0f);
     hpUI->Initialize();
 
-    //------------------------------’Ç”öƒJƒƒ‰ì¬---------------------------------
+    //------------------------------è¿½å°¾ã‚«ãƒ¡ãƒ©ä½œæˆ---------------------------------
     m_FollowCamera = std::make_shared<CameraObject>();
     m_FollowCamera->Initialize();
     
     auto shootComp = m_player->GetComponent<ShootingComponent>();
-    //ShootingComponent ‚É thisiŒ»İ‚ÌƒV[ƒ“j‚ğ“n‚·
+    //ShootingComponent ã« thisï¼ˆç¾åœ¨ã®ã‚·ãƒ¼ãƒ³ï¼‰ã‚’æ¸¡ã™
     if (shootComp)
     {
         shootComp->SetScene(this);
@@ -441,17 +441,17 @@ void GameScene::Init()
 
     if (cameraComp)
     {
-        m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* ‚ğó‚¯æ‚éê‡
+        m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* ã‚’å—ã‘å–ã‚‹å ´åˆ
         cameraComp->SetPlayArea(m_playArea.get());
         cameraComp->SetDistance(5.0f);
     }
 
 
-    // ãQÆ‚ğì‚éiƒ‰ƒ€ƒ_“à‚Å lock ‚µ‚Äg‚¤j
+    // å¼±å‚ç…§ã‚’ä½œã‚‹ï¼ˆãƒ©ãƒ ãƒ€å†…ã§ lock ã—ã¦ä½¿ã†ï¼‰
     std::weak_ptr<HPBar> wHpUI = hpUI;
 
-    // cameraComp ‚ª¶ƒ|ƒCƒ“ƒ^irawj‚È‚ç‚»‚Ì‚Ü‚ÜƒLƒƒƒvƒ`ƒƒ‚µ‚Ä—Ç‚¢B
-    // cameraComp ‚ª shared_ptr ‚È‚ç“¯—l‚É weak_ptr ‚É‚µ‚Ä‚¨‚­‚Ì‚ªˆÀ‘SB
+    // cameraComp ãŒç”Ÿãƒã‚¤ãƒ³ã‚¿ï¼ˆrawï¼‰ãªã‚‰ãã®ã¾ã¾ã‚­ãƒ£ãƒ—ãƒãƒ£ã—ã¦è‰¯ã„ã€‚
+    // cameraComp ãŒ shared_ptr ãªã‚‰åŒæ§˜ã« weak_ptr ã«ã—ã¦ãŠãã®ãŒå®‰å…¨ã€‚
     auto hp = m_player->GetComponent<HitPointComponent>();
     if (hp)
     {
@@ -461,25 +461,25 @@ void GameScene::Init()
 
         hp->SetOnDamaged([wHpUI, wPlayerHP, cameraComp](const DamageInfo& info)
             {
-                // ƒJƒƒ‰ƒVƒFƒCƒNicameraComp ‚ª raw pointer ‚È‚ç null ƒ`ƒFƒbƒNj
+                // ã‚«ãƒ¡ãƒ©ã‚·ã‚§ã‚¤ã‚¯ï¼ˆcameraComp ãŒ raw pointer ãªã‚‰ null ãƒã‚§ãƒƒã‚¯ï¼‰
                 if (cameraComp)
                 {
                     cameraComp->Shake(7.5f, 0.5f , FollowCameraComponent::ShakeMode::Horizontal);
                 }
 
-                 //HPUI XVF‚Ü‚¸ weak -> shared ‚É‚·‚é
+                 //HPUI æ›´æ–°ï¼šã¾ãš weak -> shared ã«ã™ã‚‹
                 if (auto bar = wHpUI.lock())
                 {
                     if (auto playerHP = wPlayerHP.lock())
                     {
-                        // HitPointComponent ‘¤‚É GetHP/GetMaxHP ‚ª‚ ‚ê‚Îg‚¤
+                        // HitPointComponent å´ã« GetHP/GetMaxHP ãŒã‚ã‚Œã°ä½¿ã†
                         float cur = playerHP->GetHP();
                         float max = playerHP->GetMaxHP();
                         bar->SetHP(cur, max);
                     }
                     else
                     {
-                        // –œ‚ªˆê playerHP ‚ª–³‚¯‚ê‚Î DamageInfo ‚É current/max ‚ª“ü‚Á‚Ä‚¢‚ê‚Îg‚¤
+                        // ä¸‡ãŒä¸€ playerHP ãŒç„¡ã‘ã‚Œã° DamageInfo ã« current/max ãŒå…¥ã£ã¦ã„ã‚Œã°ä½¿ã†
                     }
                 }
             });
@@ -504,7 +504,7 @@ void GameScene::Init()
         m_FollowCamera->GetCameraComponent()->SetReticleScreenPos(screenPos);
     }
 
-    // —á: Renderer::Init() ‚ÌŒã
+    // ä¾‹: Renderer::Init() ã®å¾Œ
     DebugRenderer::Get().Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext());
 
 }
@@ -512,11 +512,49 @@ void GameScene::Init()
 void GameScene::Update(float deltatime)
 {
 
+    static float currentBlur = 0.0f;
 
-    //ƒtƒŒ[ƒ€æ“ª‚Å‘OƒtƒŒ[ƒ€‚Ì“o˜^‚ğÁ‚·
+    // MoveComponent ã‚’ã‚­ãƒ£ãƒƒã‚·ãƒ¥
+    if (!m_playerMove)
+    {
+        m_playerMove = m_player->GetComponent<MoveComponent>();
+    }
+
+    if (m_playerMove)
+    {
+        //--- ä»Šãƒ–ãƒ¼ã‚¹ãƒˆä¸­ã‹ï¼Ÿ
+        bool boosting = m_playerMove->GetBoostingState();
+
+        //--- ãƒ–ãƒ©ãƒ¼ã®ç›®æ¨™å€¤
+        float targetBlur = boosting ? 1.0f : 0.0f; // ã‚¬ãƒƒãƒ„ãƒªãªã‚‰ 1.0f
+
+        //--- è£œé–“é€Ÿåº¦
+        float interpSpeed = 8.0f;
+
+        //--- currentBlur ã‚’ç›®æ¨™å€¤ã¸è£œé–“ï¼ˆæŒ‡æ•°è£œé–“ï¼‰
+        currentBlur += (targetBlur - currentBlur) * std::min(1.0f, interpSpeed * deltatime);
+
+        //---------------------------------------------------------
+        // â˜… Renderer ã®ãƒã‚¹ãƒˆãƒ—ãƒ­ã‚»ã‚¹è¨­å®šã«åæ˜ ã™ã‚‹
+        //---------------------------------------------------------
+        PostProcessSettings pp = Renderer::GetPostProcessSettings();
+
+        // ãƒ–ãƒ©ãƒ¼å¼·åº¦
+        pp.motionBlurAmount = currentBlur;        // 0ã€œ1
+
+        // ç”»é¢ä¸Šã®ä¼¸ã³ã‚‹æ–¹å‘ï¼ˆä»®ä¾‹ï¼šå‰æ–¹å‘ï¼‰
+        pp.motionBlurDir = { 0.0f, -1.0f };       // å¥¥æ–¹å‘ã«ä¼¸ã°ã—ãŸã„å ´åˆ
+
+        // ãƒ–ãƒ©ãƒ¼ã®é•·ã•ï¼ˆå¤§ãã„ã»ã© â€œãƒ‰ãƒãƒ¼ãƒƒâ€ ã¨ä¼¸ã³ã‚‹ï¼‰
+        pp.motionBlurStretch = 0.03f;             // ï¼ˆèª¿æ•´ãƒã‚¤ãƒ³ãƒˆï¼‰
+
+        Renderer::SetPostProcessSettings(pp);
+    }
+
+    //ãƒ•ãƒ¬ãƒ¼ãƒ å…ˆé ­ã§å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã®ç™»éŒ²ã‚’æ¶ˆã™
     CollisionManager::Clear();
 
-    //V‹KƒIƒuƒWƒFƒNƒg‚ğGameScene‚ÌƒIƒuƒWƒFƒNƒg”z—ñ‚É’Ç‰Á‚·‚é
+    //æ–°è¦ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’GameSceneã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆé…åˆ—ã«è¿½åŠ ã™ã‚‹
     SetSceneObject();
 
     auto PlayerMove = m_player->GetComponent<MoveComponent>();
@@ -526,7 +564,7 @@ void GameScene::Update(float deltatime)
     }
 
 
-    //----------------- ƒŒƒeƒBƒNƒ‹‚Ìƒhƒ‰ƒbƒOˆ— -----------------
+    //----------------- ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ã®ãƒ‰ãƒ©ãƒƒã‚°å‡¦ç† -----------------
     if (Input::IsMouseLeftPressed())
     {
         m_isDragging = true;
@@ -543,7 +581,7 @@ void GameScene::Update(float deltatime)
         m_isDragging = false;
     }
 
-    //ƒJƒƒ‰‚ÉƒŒƒeƒBƒNƒ‹À•W‚ğ“n‚·iÅV‚Ì‚à‚Ì‚ğ“n‚·j
+    //ã‚«ãƒ¡ãƒ©ã«ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«åº§æ¨™ã‚’æ¸¡ã™ï¼ˆæœ€æ–°ã®ã‚‚ã®ã‚’æ¸¡ã™ï¼‰
     if (m_FollowCamera && m_FollowCamera->GetCameraComponent())
     {
         m_FollowCamera->GetCameraComponent()->SetReticleScreenPos(Vector2((float)m_lastDragPos.x, (float)m_lastDragPos.y));
@@ -551,13 +589,13 @@ void GameScene::Update(float deltatime)
 
     //------------------------------------------------------------------
 
-    //‘SƒIƒuƒWƒFƒNƒg Update ‚ğˆê‰ñ‚¾‚¯Àsid—vj
+    //å…¨ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ Update ã‚’ä¸€å›ã ã‘å®Ÿè¡Œï¼ˆé‡è¦ï¼‰
     for (auto& obj : m_GameObjects)
     {
         if (obj) obj->Update(deltatime);
     }
 
-    //‘SƒIƒuƒWƒFƒNƒg Update ‚ğˆê‰ñ‚¾‚¯Àsid—vj
+    //å…¨ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ Update ã‚’ä¸€å›ã ã‘å®Ÿè¡Œï¼ˆé‡è¦ï¼‰
     for (auto& obj : m_TextureObjects)
     {
         if (obj) obj->Update(deltatime);
@@ -573,52 +611,39 @@ void GameScene::Update(float deltatime)
         }
     }
 
-    //std::cout << "Player‚ÌHP : " << m_player->GetComponent<HitPointComponent>()->GetHP() << std::endl;
-
-    /*if (enemyCount <= 0 || m_player->GetComponent<HitPointComponent>()->GetHP() <= 0)
-    {
-        SceneManager::SetChangeScene("TitleScene");
-    }*/
-
-	//“–‚½‚è”»’èƒ`ƒFƒbƒNÀs
+    //å½“ãŸã‚Šåˆ¤å®šãƒã‚§ãƒƒã‚¯å®Ÿè¡Œ
     CollisionManager::CheckCollisions();
+
+    //-------------------------------------------------
+    // â˜… è¡çªã§æºœã‚ãŸ MTV ã‚’ 1 å›ã ã‘é©ç”¨ã™ã‚‹
+    //-------------------------------------------------
+    if (!m_playerMove && m_player)
+    {
+        m_playerMove = m_player->GetComponent<MoveComponent>();
+    }
+    if (m_playerMove)
+    {
+        m_playerMove->ApplyCollisionPush();
+    }
 
 }
 
-void GameScene::Draw(float deltatime)
+void GameScene::Draw(float dt)
 {
-    //’Êí‚ÌƒIƒuƒWƒFƒNƒg•`‰æ
+    DrawWorld(dt);
+    DrawUI(dt);
+}
+
+void GameScene::DrawWorld(float deltatime)
+{
     for (auto& obj : m_GameObjects)
     {
-
         if (!obj) { continue; }
         if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; }
         obj->Draw(deltatime);
     }
 
-    for (auto& obj : m_TextureObjects)
-    {
-
-        if (!obj) { continue; }
-
-        if (std::dynamic_pointer_cast<Reticle>(obj)) continue; // HUD ‚Í‚ ‚Æ‚Å•`‚­
-        obj->Draw(deltatime);
-    }
-
-    //HUD(ƒŒƒeƒBƒNƒ‹)‚ğÅŒã‚É•`‚­([“x‚âƒuƒŒƒ“ƒhØ‚è‘Ö‚¦‚Í“à•”‚Åˆ—)
-    if (m_reticle)
-    {
-        m_reticle->Draw(deltatime);
-    }
-
-    //(‚à‚µ m_reticleTex Œo—R‚Ì‹Œ•`‰æ‚ª‚ ‚é‚È‚çA‚»‚ê‚àÅŒã‚É)
-    if (m_reticleTex && m_reticleTex->GetSRV())
-    {
-        Vector2 size(m_reticleW, m_reticleH);
-        Renderer::DrawReticle(m_reticleTex->GetSRV(), m_lastDragPos, size);
-    }
-
-
+    // ã‚³ãƒªã‚¸ãƒ§ãƒ³ãƒ‡ãƒãƒƒã‚°æç”»ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰ç©ºé–“ãªã®ã§ã“ã“ã«å…¥ã‚Œã‚‹ï¼‰
     if (isCollisionDebugMode)
     {
         if (m_debugRenderer && m_FollowCamera && m_FollowCamera->GetCameraComponent())
@@ -627,33 +652,55 @@ void GameScene::Draw(float deltatime)
             Matrix view = camComp->GetView();
             Matrix proj = camComp->GetProj();
 
-            //ŠeƒIƒuƒWƒFƒNƒg‚ÌƒRƒ‰ƒCƒ_[‚ğ“o˜^
+            // å„ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’ç™»éŒ²
             for (auto& obj : m_GameObjects)
             {
                 if (!obj) continue;
                 auto col = obj->GetComponent<ColliderComponent>();
                 if (!col) continue;
 
-                //Fi“–‚½‚Á‚Ä‚¢‚é‚È‚çÔA‚»‚¤‚Å‚È‚¯‚ê‚Î—Î”¼“§–¾j
                 bool hit = col->IsHitThisFrame();
                 Vector4 color = hit ? Vector4(1, 0, 0, 1) : Vector4(0, 1, 0, 0.6f);
 
                 Vector3 center = col->GetCenter();
-                Vector3 size = col->GetSize();         
-                Matrix rot = col->GetRotationMatrix(); 
+                Vector3 size = col->GetSize();
+                Matrix  rot = col->GetRotationMatrix();
 
-                //DebugRenderer::AddBox ‚Í size ‚ª fullSize ‚ğŠú‘Ò‚µ‚Ü‚·
                 m_debugRenderer->AddBox(center, size, rot, color);
             }
 
-            // •`‰æi“à•”‚Å Clear ‚µ‚Ä‚¢‚é‚Ì‚Å AddBox ‚Í–ˆƒtƒŒ[ƒ€ŒÄ‚Ôj
-            m_debugRenderer->Draw(m_FollowCamera->GetCameraComponent()->GetView(),
-                m_FollowCamera->GetCameraComponent()->GetProj());
+            // ãƒ‡ãƒãƒƒã‚°ãƒœãƒƒã‚¯ã‚¹æç”»
+            m_debugRenderer->Draw(
+                m_FollowCamera->GetCameraComponent()->GetView(),
+                m_FollowCamera->GetCameraComponent()->GetProj()
+            );
         }
-
     }
-    
 }
+
+void GameScene::DrawUI(float deltatime)
+{
+    for (auto& obj : m_TextureObjects)
+    {
+        if (!obj) { continue; }
+        if (std::dynamic_pointer_cast<Reticle>(obj)) continue; // HUD ã¯ã‚ã¨ã§æã
+        obj->Draw(deltatime);
+    }
+
+    // HUD(ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«)ã‚’æœ€å¾Œã«æã
+    if (m_reticle)
+    {
+        m_reticle->Draw(deltatime);
+    }
+
+    // æ—§ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«æç”»ãŒæ®‹ã£ã¦ã„ã‚‹å ´åˆ
+    if (m_reticleTex && m_reticleTex->GetSRV())
+    {
+        Vector2 size(m_reticleW, m_reticleH);
+        Renderer::DrawReticle(m_reticleTex->GetSRV(), m_lastDragPos, size);
+    }
+}
+
 
 void GameScene::Uninit()
 {
@@ -662,7 +709,7 @@ void GameScene::Uninit()
         m_enemySpawner.reset();
     }
 
-    //DebugRenderer ‚ğƒNƒŠƒA‚µ‚Ä”jŠü
+    //DebugRenderer ã‚’ã‚¯ãƒªã‚¢ã—ã¦ç ´æ£„
     if (m_debugRenderer)
     {
         m_debugRenderer->Clear();
@@ -670,16 +717,16 @@ void GameScene::Uninit()
         m_debugRenderer.reset();
     }
 
-    //GameObject‰ğ•ú
+    //GameObjectè§£æ”¾
     for (auto& obj : m_GameObjects)
     {
         if (!obj) { continue; }
-        // GameObject::Uninit ‚ğÀ‘•‚µ‚Ä‚¨‚­‚±‚Æi‰º‚Å—á¦j
+        // GameObject::Uninit ã‚’å®Ÿè£…ã—ã¦ãŠãã“ã¨ï¼ˆä¸‹ã§ä¾‹ç¤ºï¼‰
         obj->Uninit();
         obj->SetScene(nullptr);
     }
 
-    //ƒeƒNƒXƒ`ƒƒƒIƒuƒWƒFƒNƒg‰ğ•ú
+    //ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆè§£æ”¾
     for (auto& obj : m_TextureObjects)
     {
         if (!obj) { continue; }
@@ -687,13 +734,13 @@ void GameScene::Uninit()
         obj->SetScene(nullptr);
     }
 
-    //vectors ‚ğƒNƒŠƒA‚µ‚Ä shared_ptr ‚ÌQÆƒJƒEƒ“ƒg‚ğ‰º‚°‚é
+    //vectors ã‚’ã‚¯ãƒªã‚¢ã—ã¦ shared_ptr ã®å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã‚’ä¸‹ã’ã‚‹
     m_GameObjects.clear();
     m_TextureObjects.clear();
     m_AddObjects.clear();
     m_DeleteObjects.clear();
 
-    //ŒÂ•Êƒƒ“ƒoiplayer, camera, etc.j‚ğ reset
+    //å€‹åˆ¥ãƒ¡ãƒ³ãƒï¼ˆplayer, camera, etc.ï¼‰ã‚’ reset
     m_player.reset();
     m_FollowCamera.reset();
     m_SkyDome.reset();
@@ -709,11 +756,11 @@ void GameScene::AddObject(std::shared_ptr<GameObject> obj)
         return; 
     }
 
-    //Šù‚ÉƒV[ƒ““à‚É‚¢‚é‚©pending‚É‚¢‚é‚©ƒ`ƒFƒbƒN
+    //æ—¢ã«ã‚·ãƒ¼ãƒ³å†…ã«ã„ã‚‹ã‹pendingã«ã„ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
     auto itInScene = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
        [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
     
-    //Šù‚ÉÀ‘Ì‚ª‚ ‚é
+    //æ—¢ã«å®Ÿä½“ãŒã‚ã‚‹
     if (itInScene != m_GameObjects.end())
     {
         return;
@@ -722,16 +769,16 @@ void GameScene::AddObject(std::shared_ptr<GameObject> obj)
     auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
         [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
     
-    // ’Ç‰Á—\’è‚É‚·‚Å‚É‚ ‚é
+    // è¿½åŠ äºˆå®šã«ã™ã§ã«ã‚ã‚‹
     if (itPending != m_AddObjects.end())
     {
         return;
     }
 
-    //Š‘®‚µ‚Ä‚¢‚éScene‚ğ“o˜^
+    //æ‰€å±ã—ã¦ã„ã‚‹Sceneã‚’ç™»éŒ²
     obj->SetScene(this);
     
-    //ÀÛ‚É”z—ñ‚ÉƒvƒbƒVƒ…‚·‚é
+    //å®Ÿéš›ã«é…åˆ—ã«ãƒ—ãƒƒã‚·ãƒ¥ã™ã‚‹
     m_AddObjects.push_back(obj);
 }
 
@@ -742,30 +789,30 @@ void GameScene::AddTextureObject(std::shared_ptr<GameObject> obj)
         return;
     }
 
-    //Šù‚ÉƒV[ƒ““à‚É‚¢‚é‚©pending‚É‚¢‚é‚©ƒ`ƒFƒbƒN
+    //æ—¢ã«ã‚·ãƒ¼ãƒ³å†…ã«ã„ã‚‹ã‹pendingã«ã„ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
     auto itInScene = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
         [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
 
-    //Šù‚ÉÀ‘Ì‚ª‚ ‚é
+    //æ—¢ã«å®Ÿä½“ãŒã‚ã‚‹
     if (itInScene != m_GameObjects.end())
     {
         return;
     }
 
-    //Š‘®‚µ‚Ä‚¢‚éScene‚ğ“o˜^
+    //æ‰€å±ã—ã¦ã„ã‚‹Sceneã‚’ç™»éŒ²
     obj->SetScene(this);
 
-    //ÀÛ‚É”z—ñ‚ÉƒvƒbƒVƒ…‚·‚é
+    //å®Ÿéš›ã«é…åˆ—ã«ãƒ—ãƒƒã‚·ãƒ¥ã™ã‚‹
     m_TextureObjects.push_back(obj);
 }
 
 void GameScene::RemoveObject(GameObject* obj)
 {
-    //ƒ|ƒCƒ“ƒ^‚ª‚È‚¢‚È‚çˆ—I‚í‚è
+    //ãƒã‚¤ãƒ³ã‚¿ãŒãªã„ãªã‚‰å‡¦ç†çµ‚ã‚ã‚Š
     if (!obj) { return; }
 
     //------------------------------
-	// ƒRƒ‰ƒCƒ_[“o˜^‰ğœ
+	// ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ç™»éŒ²è§£é™¤
     //------------------------------
     if (auto col = obj->GetComponent<ColliderComponent>())
     {
@@ -773,8 +820,8 @@ void GameScene::RemoveObject(GameObject* obj)
     }
 
     //------------------------------
-    // m_AddObjects‚É‚¢‚é‚©Šm”F
-    // ‚¢‚é‚È‚çæ‚èÁ‚·
+    // m_AddObjectsã«ã„ã‚‹ã‹ç¢ºèª
+    // ã„ã‚‹ãªã‚‰å–ã‚Šæ¶ˆã™
     //------------------------------
    auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
        [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj; });
@@ -784,14 +831,14 @@ void GameScene::RemoveObject(GameObject* obj)
        return;
    }
     //---------------------------------
-    // m_GameObjects‚É‚¢‚é‚©Šm”F
-    // ‚¢‚é‚È‚çm_DeleteObjects ‚É“o˜^
+    // m_GameObjectsã«ã„ã‚‹ã‹ç¢ºèª
+    // ã„ã‚‹ãªã‚‰m_DeleteObjects ã«ç™»éŒ²
     // ---------------------------------
     auto itInScene = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
         [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj; });
     if (itInScene != m_GameObjects.end())
     {
-        // “ñd“o˜^–h~
+        // äºŒé‡ç™»éŒ²é˜²æ­¢
         auto already = std::find_if(m_DeleteObjects.begin(), m_DeleteObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj; });
         if (already == m_DeleteObjects.end())
@@ -804,12 +851,12 @@ void GameScene::RemoveObject(GameObject* obj)
 
 void GameScene::FinishFrameCleanup()
 {
-    //m_DeleteObjects‚É‚ ‚éƒAƒCƒeƒ€‚ğíœ
+    //m_DeleteObjectsã«ã‚ã‚‹ã‚¢ã‚¤ãƒ†ãƒ ã‚’å‰Šé™¤
     for (auto& delSp : m_DeleteObjects)
     {
         if (!delSp){ continue; }
 
-        //m_GameObjects ‚©‚ç’T‚·
+        //m_GameObjects ã‹ã‚‰æ¢ã™
         auto it = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
 
@@ -823,18 +870,18 @@ void GameScene::FinishFrameCleanup()
             //Uninit
             (*it)->Uninit();
 
-            //ƒV[ƒ“QÆ‚ğØ‚é
+            //ã‚·ãƒ¼ãƒ³å‚ç…§ã‚’åˆ‡ã‚‹
             (*it)->SetScene(nullptr);
 
             m_GameObjects.erase(it);
         }
 
-        //m_AddObjects‚É‚Ü‚¾‚ ‚é‚È‚çíœ
+        //m_AddObjectsã«ã¾ã ã‚ã‚‹ãªã‚‰å‰Šé™¤
         auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
         if (itPending != m_AddObjects.end())
         {
-            // ’Ç‰Á‘O‚Éíœ—\’è‚¾‚Á‚½ƒIƒuƒWƒFƒNƒg‚È‚ç Uninit ‚µ‚Ä erase
+            // è¿½åŠ å‰ã«å‰Šé™¤äºˆå®šã ã£ãŸã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãªã‚‰ Uninit ã—ã¦ erase
             (*itPending)->Uninit();
             (*itPending)->SetScene(nullptr);
             m_AddObjects.erase(itPending);
@@ -849,7 +896,7 @@ void GameScene::SetSceneObject()
 { 
     if (!m_AddObjects.empty())
     { 
-        //ˆêŠ‡’Ç‰Á
+        //ä¸€æ‹¬è¿½åŠ 
         m_GameObjects.reserve(m_GameObjects.size() + m_AddObjects.size()); 
         m_GameObjects.insert(m_GameObjects.end(), std::make_move_iterator(m_AddObjects.begin()), std::make_move_iterator(m_AddObjects.end())); 
         m_AddObjects.clear();

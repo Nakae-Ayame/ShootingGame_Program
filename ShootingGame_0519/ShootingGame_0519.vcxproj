@@ -160,7 +160,10 @@
     <ClCompile Include="CollisionResponse.cpp" />
     <ClCompile Include="ComputeAABBvsOBBMTV.cpp" />
     <ClCompile Include="DebugGlobals.cpp" />
+    <ClCompile Include="DebugMoveComponent.cpp" />
+    <ClCompile Include="DebugPlayer.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
+    <ClCompile Include="DebugScene.cpp" />
     <ClCompile Include="DebugUI.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="EnemyAIComponent.cpp" />
@@ -231,7 +234,10 @@
     <ClInclude Include="commontypes.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="DebugGlobals.h" />
+    <ClInclude Include="DebugMoveComponent.h" />
+    <ClInclude Include="DebugPlayer.h" />
     <ClInclude Include="DebugRenderer.h" />
+    <ClInclude Include="DebugScene.h" />
     <ClInclude Include="DebugUI.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyAIComponent.h" />
@@ -290,6 +296,7 @@
     <ClInclude Include="transform.h" />
     <ClInclude Include="TransitionManager.h" />
     <ClInclude Include="TransitionRenderer.h" />
+    <ClInclude Include="VisualSettings.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPixelShader.hlsl">
@@ -362,6 +369,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VSMain</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VSMain</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="MotionBlurPixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PSMain</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PSMain</EntryPointName>
     </FxCompile>
     <FxCompile Include="TexturePixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

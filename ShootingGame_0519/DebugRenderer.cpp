@@ -154,6 +154,59 @@ void DebugRenderer::AddBox(const Vector3& center, const Vector3& size, const Mat
     }
 }
 
+void DebugRenderer::AddSphere(const Vector3& center, float radius, const Vector4& color, int segments)
+{
+    if (segments < 4) segments = 4;
+
+    // XY 平面の円
+    for (int i = 0; i < segments; ++i)
+    {
+        float a0 = XM_2PI * (float)i / segments;
+        float a1 = XM_2PI * (float)(i + 1) / segments;
+
+        Vector3 p0(center.x + radius * std::cos(a0),
+            center.y + radius * std::sin(a0),
+            center.z);
+        Vector3 p1(center.x + radius * std::cos(a1),
+            center.y + radius * std::sin(a1),
+            center.z);
+
+        AddLine(p0, p1, color);
+    }
+
+    // XZ 平面の円
+    for (int i = 0; i < segments; ++i)
+    {
+        float a0 = XM_2PI * (float)i / segments;
+        float a1 = XM_2PI * (float)(i + 1) / segments;
+
+        Vector3 p0(center.x + radius * std::cos(a0),
+            center.y,
+            center.z + radius * std::sin(a0));
+        Vector3 p1(center.x + radius * std::cos(a1),
+            center.y,
+            center.z + radius * std::sin(a1));
+
+        AddLine(p0, p1, color);
+    }
+
+    // YZ 平面の円
+    for (int i = 0; i < segments; ++i)
+    {
+        float a0 = XM_2PI * (float)i / segments;
+        float a1 = XM_2PI * (float)(i + 1) / segments;
+
+        Vector3 p0(center.x,
+            center.y + radius * std::cos(a0),
+            center.z + radius * std::sin(a0));
+        Vector3 p1(center.x,
+            center.y + radius * std::cos(a1),
+            center.z + radius * std::sin(a1));
+
+        AddLine(p0, p1, color);
+    }
+}
+
 void DebugRenderer::Draw(const Matrix& view, const Matrix& proj)
 {
     if (m_lineVerts.empty()) return;

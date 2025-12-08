@@ -22,6 +22,12 @@ public:
 	//Draw関数(uint64_t deltaは前回からの経過時間)
 	virtual void Draw(float delta) = 0;	 
 
+	//3Dワールド上のDraw関数
+	virtual void DrawWorld(float dt) {};
+
+	//UI上のDraw関数
+	virtual void DrawUI(float dt) {};
+
 	//Init関数
 	virtual void Init() = 0;				 
 

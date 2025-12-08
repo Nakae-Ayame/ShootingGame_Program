@@ -8,7 +8,7 @@
 #include <SimpleMath.h>
 #include "CommonTypes.h"
 #include "Transform.h"
-//#include "NonCopyable.h"
+#include "VisualSettings.h"
 using namespace DirectX;
 
  // リンクすべき外部ライブラリ
@@ -131,12 +131,36 @@ private:
 
     static int m_IndexCount;
 
+    //-------------------------------ポストプロセス用------------------------------
+    static PostProcessSettings s_PostProcess;
+
+    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_SceneColorTex;    
+    static Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_SceneColorRTV;
+    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SceneColorSRV;
+
+    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_PrevSceneColorTex;
+    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PrevSceneColorSRV;
+
+    static Microsoft::WRL::ComPtr<ID3D11PixelShader>        m_MotionBlurPixelShader;
+    static Microsoft::WRL::ComPtr<ID3D11Buffer>             m_PostProcessBuffer;
+
+    
+
+    //-----------------------------------------------------------------------------
+
 public:
     static Renderer& Get();
     static void Init();
     static void Uninit();
     static void Begin();
     static void End();
+	static void Present();
+
+	static void BeginSceneRenderTarget();
+	static void BeginBackBuffer();
+    static void ApplyMotionBlur(); // End() から呼ぶ内部処理
+
+    //-----------------------Set関数関連--------------------------------------
     static void SetDepthEnable(bool Enable);
     static void SetDepthAllwaysWrite();
     static void SetATCEnable(bool Enable);
@@ -162,6 +186,10 @@ public:
     static ID3D11Buffer* GetWorldBuffer(){ return m_WorldBuffer.Get(); }
     static ID3D11Buffer* GetProjectionBuffer(){ return m_ProjectionBuffer.Get(); }
 
+    static void SetPostProcessSettings(const PostProcessSettings& settings);
+    static const PostProcessSettings& GetPostProcessSettings();
+
+
     //レティクル用の関数
     static void DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size);
 
@@ -179,6 +207,8 @@ public:
 
     static void DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size);
 
+
+
     static ComPtr<ID3D11VertexShader> m_VertexShader;
     static ComPtr<ID3D11PixelShader>  m_PixelShader;
     static ComPtr<ID3D11InputLayout>  m_InputLayout;
@@ -189,6 +219,8 @@ public:
     static ComPtr<ID3D11PixelShader>  m_TexturePixelShader;
     static ComPtr<ID3D11InputLayout>  m_TextureInputLayout;
 
+    static D3D11_VIEWPORT m_Viewport;                // シーン描画用ビューポート
+    static Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterizerState; // 標準ラスタライザ
 
     // Grid専用のシェーダー
     static ComPtr<ID3D11VertexShader> m_GridVertexShader;

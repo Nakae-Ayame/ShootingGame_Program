@@ -27,6 +27,7 @@ public:
 
     void AddLine(const Vector3& a, const Vector3& b, const Vector4& color);
     void AddBox(const Vector3& center, const Vector3& size, const Matrix& rot, const Vector4& color);
+    void AddSphere(const Vector3& center, float radius, const Vector4& color, int segments = 24);
 
     // view/proj ‚ğ–ˆƒtƒŒ[ƒ€—^‚¦‚Ä•`‰æ
     void Draw(const Matrix& view, const Matrix& proj);

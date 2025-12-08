@@ -17,6 +17,7 @@
 #include "EnemySpawner.h"
 #include "BuildingSpawner.h"
 #include "PlayAreaComponent.h"
+#include "MoveComponent.h"
 
 //---------------------------------
 //IScene‚ğŒp³‚µ‚½GameScene
@@ -28,8 +29,12 @@ public:
 	
 	//XVŠÖ”
 	void Update(float deltatime) override;
-	//•`ÊŠÖ”
+	//•`‰æŠÖ”
 	void Draw(float deltatime) override;
+	//3Dƒ[ƒ‹ƒhã‚Ì•`‰æŠÖ”
+	void DrawWorld(float deltatime) override;
+	//UIã‚Ì•`‰æŠÖ”
+	void DrawUI(float deltatime) override;
 	//‰Šú‰»ŠÖ”
 	void Init() override;
 	//I—¹ŠÖ”
@@ -134,4 +139,6 @@ private:
 	int enemyCount = 0;
 
 	std::shared_ptr<PlayAreaComponent> m_playArea;
+
+	std::shared_ptr<MoveComponent> m_playerMove;
 };

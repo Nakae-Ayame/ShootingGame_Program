@@ -1,6 +1,7 @@
 #pragma once
 #include "GameObject.h"
 #include "OBBColliderComponent.h"
+#include "AABBColliderComponent.h"
 
 class Player : public GameObject
 {

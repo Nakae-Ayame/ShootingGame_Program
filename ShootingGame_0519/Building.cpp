@@ -11,4 +11,8 @@ void Building::Update(float dt)
     //コンポーネント等のUpdate
     GameObject::Update(dt);
 
+    auto AABB = GetComponent<AABBColliderComponent>();
+
+    bool AABBbool = AABB->IsStatic();
+
 }

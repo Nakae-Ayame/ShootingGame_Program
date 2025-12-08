@@ -5,6 +5,7 @@
 #include "GameScene.h"
 #include "TitleScene.h"
 #include "ResultScene.h"
+#include "DebugScene.h"
 #include "CollisionManager.h"
 #include "Application.h" 
        
@@ -83,6 +84,8 @@ void SceneManager::Init()
     RegisterScene("GameScene", std::make_unique<GameScene>());
 
     RegisterScene("ResultScene", std::make_unique<ResultScene>());
+    
+    RegisterScene("DebugScene", std::make_unique<DebugScene>());
 
     //初期シーンにTitleSceneを設定
     m_currentSceneName = "TitleScene";
@@ -121,14 +124,14 @@ void SceneManager::Update(float deltatime)
 
 void SceneManager::Draw(float deltatime)
 {
-    // 1) 現在シーンを描画
+    //現在シーンを描画
     if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
     {
         m_scenes[m_currentSceneName]->Draw(deltatime);
     }
 
-    // 2) 遷移オーバーレイを上に重ねる（例：フェード）
-    TransitionManager::Draw(deltatime);
+        // デバッグUIの描画
+    DebugUI::Render();
 }
 
 

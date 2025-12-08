@@ -267,16 +267,19 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     // 1) 基本距離・高さ決定（ブースト要求がある時だけ距離を伸ばす）
     float desiredDist;
     float height;
-    if (m_IsAiming) {
+    if (m_IsAiming)
+    {
         desiredDist = m_AimDistance;
         height = m_AimHeight;
     }
-    else {
+    else 
+    {
         desiredDist = m_DefaultDistance;
         height = m_DefaultHeight;
     }
-    if (m_boostRequested) {
-        desiredDist += m_boostAimDistanceAdd; // ブースト時のみ距離を伸ばす
+    if (m_boostRequested)
+    {
+        //desiredDist += m_boostAimDistanceAdd; // ブースト時のみ距離を伸ばす
     }
 
     // 2) プレイヤー情報取得

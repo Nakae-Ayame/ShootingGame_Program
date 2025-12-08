@@ -37,8 +37,13 @@ public:
     void SetHitThisFrame(bool hit) { m_hitThisFrame = hit; }
     bool IsHitThisFrame() const { return m_hitThisFrame; }
 
+    bool isStatic = false; // ★追加
+
+    bool IsStatic() const { return isStatic; }
+
 protected:
     ColliderType m_Type;
     bool m_hitThisFrame = false; //毎フレームの衝突状態
-	bool m_enabled = true;       //当たり判定の有効/無効
+	bool m_enabled = true;       //当たり判定の有効/無効 
+   
 };

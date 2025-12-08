@@ -64,6 +64,9 @@
     <Filter Include="ソース ファイル\Component\Enemy">
       <UniqueIdentifier>{a7fd4800-7bbf-4c47-bbb1-b2f87c68f86d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\Visual">
+      <UniqueIdentifier>{d12a37a6-a96b-4e04-8100-e296c370f841}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -248,6 +251,15 @@
     </ClCompile>
     <ClCompile Include="EnemyAIComponent.cpp">
       <Filter>ソース ファイル\Component\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugScene.cpp">
+      <Filter>ソース ファイル\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugPlayer.cpp">
+      <Filter>ヘッダー ファイル\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugMoveComponent.cpp">
+      <Filter>ヘッダー ファイル\Debug</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -479,6 +491,18 @@
     <ClInclude Include="EnemyAIComponent.h">
       <Filter>ソース ファイル\Component\Enemy</Filter>
     </ClInclude>
+    <ClInclude Include="VisualSettings.h">
+      <Filter>ヘッダー ファイル\Visual</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugScene.h">
+      <Filter>ソース ファイル\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugPlayer.h">
+      <Filter>ヘッダー ファイル\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugMoveComponent.h">
+      <Filter>ヘッダー ファイル\Debug</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicVertexShader.hlsl">
@@ -509,6 +533,9 @@
       <Filter>リソース ファイル</Filter>
     </FxCompile>
     <FxCompile Include="FullScreenVertexShader.hlsl">
+      <Filter>リソース ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="MotionBlurPixelShader.hlsl">
       <Filter>リソース ファイル</Filter>
     </FxCompile>
   </ItemGroup>

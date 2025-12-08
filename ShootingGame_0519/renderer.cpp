@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <d3dcompiler.h>
 #include <iostream>
+#include <algorithm>
 #include "renderer.h"
 #include "Application.h"
 
@@ -54,23 +55,27 @@ ComPtr<ID3D11DeviceContext> Renderer::m_pContext; // ‰Šú‰»Ï‚İ‚ÌƒfƒoƒCƒXƒRƒ“ƒeƒ
 ComPtr<ID3D11BlendState> Renderer::m_pBlendState; // ƒAƒ‹ƒtƒ@ƒuƒŒƒ“ƒh—p
 ComPtr<ID3D11Buffer> Renderer::m_pVertexBuffer; // ƒtƒ‹ƒXƒNƒŠ[ƒ“—p’¸“_ƒoƒbƒtƒ@
 
-//------------------------------------------------------------------------------
-// Renderer ƒNƒ‰ƒX‚ÌŠeŠÖ”‚ÌÀ‘•
-//------------------------------------------------------------------------------
+D3D11_VIEWPORT Renderer::m_Viewport;                // ƒV[ƒ“•`‰æ—pƒrƒ…[ƒ|[ƒg
+ComPtr<ID3D11RasterizerState> Renderer::m_RasterizerState;
+
+PostProcessSettings Renderer::s_PostProcess{};
+
+ComPtr<ID3D11Texture2D>        Renderer::m_SceneColorTex;
+ComPtr<ID3D11RenderTargetView> Renderer::m_SceneColorRTV;
+ComPtr<ID3D11ShaderResourceView> Renderer::m_SceneColorSRV;
+
+ComPtr<ID3D11Texture2D>        Renderer::m_PrevSceneColorTex;
+ComPtr<ID3D11ShaderResourceView> Renderer::m_PrevSceneColorSRV;
+
+ComPtr<ID3D11PixelShader>      Renderer::m_MotionBlurPixelShader;
+ComPtr<ID3D11Buffer>           Renderer::m_PostProcessBuffer;
 
 
- //Direct3D ƒfƒoƒCƒX‚ÆƒXƒƒbƒvƒ`ƒF[ƒ“‚Ìì¬AƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgƒrƒ…[AƒfƒvƒXƒXƒeƒ“ƒVƒ‹ƒrƒ…[A
- //ƒrƒ…[ƒ|[ƒgAƒ‰ƒXƒ^ƒ‰ƒCƒUAƒuƒŒƒ“ƒhƒXƒe[ƒgA[“xƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒgAƒTƒ“ƒvƒ‰[ƒXƒe[ƒgA
- //’è”ƒoƒbƒtƒ@‚Ì¶¬A‰Šúƒ‰ƒCƒg‚¨‚æ‚Ñƒ}ƒeƒŠƒAƒ‹‚Ìİ’è‚È‚Ç‚ğÀ{‚µ‚Ü‚·B
-
-// ƒwƒ‹ƒp[FCSO ‚©‚ç ID3DBlob ‚ğƒ[ƒh
-//static ComPtr<ID3DBlob> LoadCSO(const wchar_t* path)
-//{
-//    ComPtr<ID3DBlob> blob;
-//    HRESULT hr = D3DReadFileToBlob(path, blob.GetAddressOf());
-//    assert(SUCCEEDED(hr) && "CSO load failed");
-//    return blob;
-//}
+struct MotionBlurParams
+{
+    float motionBlurAmount;
+    float padding[3]; // 16ƒoƒCƒg‹«ŠE‚É‘µ‚¦‚é‚½‚ß‚Ìƒ_ƒ~[
+};
 
 void Renderer::Init()
 {
@@ -148,14 +153,90 @@ void Renderer::Init()
 
     m_DeviceContext->OMSetRenderTargets(1, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
 
-    D3D11_VIEWPORT viewport;
-    viewport.Width = static_cast<FLOAT>(Application::GetWidth());
-    viewport.Height = static_cast<FLOAT>(Application::GetHeight());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
-    viewport.TopLeftX = 0;
-    viewport.TopLeftY = 0;
-    m_DeviceContext->RSSetViewports(1, &viewport);
+    //-----------------------------
+    // ƒV[ƒ“•`‰æ—pƒeƒNƒXƒ`ƒƒì¬
+    //-----------------------------
+
+    D3D11_TEXTURE2D_DESC sceneDesc{};
+    sceneDesc.Width = swapChainDesc.BufferDesc.Width;
+    sceneDesc.Height = swapChainDesc.BufferDesc.Height;
+    sceneDesc.MipLevels = 1;
+    sceneDesc.ArraySize = 1;
+    sceneDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sceneDesc.SampleDesc = swapChainDesc.SampleDesc;
+    sceneDesc.Usage = D3D11_USAGE_DEFAULT;
+    sceneDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+    hr = m_Device->CreateTexture2D(&sceneDesc, nullptr, m_SceneColorTex.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create scene color texture"); }
+
+    hr = m_Device->CreateRenderTargetView(m_SceneColorTex.Get(), nullptr, m_SceneColorRTV.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create scene RTV"); }
+
+    hr = m_Device->CreateShaderResourceView(m_SceneColorTex.Get(), nullptr, m_SceneColorSRV.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create scene SRV"); }
+
+    // =========================
+    // š ‘OƒtƒŒ[ƒ€—pƒeƒNƒXƒ`ƒƒì¬
+    // =========================
+    D3D11_TEXTURE2D_DESC prevDesc = sceneDesc;
+    prevDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // ‘‚«‚İ‚Í CopyResource ‚Ås‚¤‚Ì‚Å RTV ‚Í•s—v
+
+    hr = m_Device->CreateTexture2D(&prevDesc, nullptr, m_PrevSceneColorTex.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create prev scene texture"); }
+
+    hr = m_Device->CreateShaderResourceView(m_PrevSceneColorTex.Get(), nullptr, m_PrevSceneColorSRV.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create prev scene SRV"); }
+
+    // =========================
+    // š ƒ|ƒXƒgƒvƒƒZƒX—p’è”ƒoƒbƒtƒ@
+    // =========================
+    D3D11_BUFFER_DESC ppDesc{};
+    ppDesc.ByteWidth = sizeof(MotionBlurParams);
+    ppDesc.Usage = D3D11_USAGE_DEFAULT;
+    ppDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    ppDesc.CPUAccessFlags = 0;
+    ppDesc.MiscFlags = 0;
+    ppDesc.StructureByteStride = 0;
+
+    hr = m_Device->CreateBuffer(&ppDesc, nullptr, m_PostProcessBuffer.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create postprocess constant buffer"); }
+
+    // =========================
+    // š ƒ‚[ƒVƒ‡ƒ“ƒuƒ‰[—pƒsƒNƒZƒ‹ƒVƒF[ƒ_‚ÌƒRƒ“ƒpƒCƒ‹
+    // =========================
+    {
+        ComPtr<ID3DBlob> blurPsBlob;
+        ComPtr<ID3DBlob> blurErr;
+
+        hr = D3DCompileFromFile(
+            L"MotionBlurPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            "PSMain", "ps_5_0", D3DCOMPILE_DEBUG, 0,
+            blurPsBlob.GetAddressOf(), blurErr.GetAddressOf());
+
+        if (FAILED(hr))
+        {
+            if (blurErr) OutputDebugStringA((char*)blurErr->GetBufferPointer());
+            throw std::runtime_error("MotionBlur pixel shader compile failed");
+        }
+
+        hr = m_Device->CreatePixelShader(
+            blurPsBlob->GetBufferPointer(), blurPsBlob->GetBufferSize(),
+            nullptr, m_MotionBlurPixelShader.GetAddressOf());
+
+        if (FAILED(hr))
+        {
+            throw std::runtime_error("Failed to create MotionBlur pixel shader");
+        }
+    }
+
+    m_Viewport.Width = static_cast<FLOAT>(Application::GetWidth());
+    m_Viewport.Height = static_cast<FLOAT>(Application::GetHeight());
+    m_Viewport.MinDepth = 0.0f;
+    m_Viewport.MaxDepth = 1.0f;
+    m_Viewport.TopLeftX = 0;
+    m_Viewport.TopLeftY = 0;
+    m_DeviceContext->RSSetViewports(1, &m_Viewport);
 
 
     // --- ƒ‰ƒXƒ^ƒ‰ƒCƒUƒXƒe[ƒgİ’è ---
@@ -164,9 +245,9 @@ void Renderer::Init()
     rasterizerDesc.CullMode = D3D11_CULL_NONE;
     rasterizerDesc.DepthClipEnable = TRUE;
 
-    ComPtr<ID3D11RasterizerState> rs;
-    m_Device->CreateRasterizerState(&rasterizerDesc, rs.GetAddressOf());
-    m_DeviceContext->RSSetState(rs.Get());
+    m_Device->CreateRasterizerState(&rasterizerDesc, m_RasterizerState.GetAddressOf());
+    // İ’èiÅ‰‚ÌƒtƒŒ[ƒ€j
+    m_DeviceContext->RSSetState(m_RasterizerState.Get());
 
     //-----------------------ƒuƒŒƒ“ƒhƒXƒe[ƒg‚Ì¶¬-----------------------
     D3D11_BLEND_DESC BlendDesc{};
@@ -406,22 +487,26 @@ void Renderer::Uninit()
  
 void Renderer::Begin()
 {
-    float clearColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-    m_DeviceContext->ClearRenderTargetView(m_RenderTargetView.Get(), clearColor);
-    m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+    ID3D11RenderTargetView* rtv = m_SceneColorRTV.Get();
+    m_DeviceContext->OMSetRenderTargets(1, &rtv, m_DepthStencilView.Get());
+
+    float clearColor[4] = { 0, 0, 0, 1 };
+    m_DeviceContext->ClearRenderTargetView(m_SceneColorRTV.Get(), clearColor);
+    m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(),
+        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+        1.0f, 0);
 }
 
-
-//Present‚ÅƒoƒbƒNƒoƒbƒtƒ@‚Æƒtƒƒ“ƒgƒoƒbƒtƒ@‚ğ“ü‚ê‘Ö‚¦‚Ü‚·B
- 
 void Renderer::End()
 {
+    ApplyMotionBlur();
     m_SwapChain->Present(1, 0);
 }
 
-//[“xƒeƒXƒgiZƒoƒbƒtƒ@j‚Ì—LŒø/–³Œø‚ğØ‚è‘Ö‚¦‚Ü‚·B
-//true‚È‚ç—LŒøAfalse‚È‚ç–³Œø
-//[“xƒeƒXƒg‚ÍA‰œ‚É‚ ‚é‚à‚Ì‚ğ³‚µ‚­è‘O‚Ì‚à‚Ì‚Ì— ‚É•`‰æ‚·‚é‚½‚ß‚Ì‹@”\‚Å‚·B
+void Renderer::Present()
+{
+    m_SwapChain->Present(1, 0);
+}
 
 void Renderer::SetDepthEnable(bool Enable)
 {
@@ -595,6 +680,16 @@ void Renderer::SetDepthAllwaysWrite()
     }
 }
 
+void Renderer::SetPostProcessSettings(const PostProcessSettings& settings)
+{
+    s_PostProcess = settings;
+}
+
+const PostProcessSettings& Renderer::GetPostProcessSettings()
+{
+    return s_PostProcess;
+}
+
 /**
  * @brief ƒeƒNƒXƒ`ƒƒ‚ğ‰æ–Êã‚Ìw’èˆÊ’uEƒTƒCƒY‚É•`‰æ‚µ‚Ü‚·B
  * @param texture •`‰æ‘ÎÛ‚ÌƒeƒNƒXƒ`ƒƒiShaderResourceViewj
@@ -753,6 +848,194 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
     //std::cout << "[Renderer] DrawTexture end\n";
 }
 
+void Renderer::ApplyMotionBlur()
+{
+    if (!m_SceneColorTex || !m_SceneColorSRV || !m_PrevSceneColorSRV)
+    {
+        return;
+    }
+
+    // ƒuƒ‰[—Ê‚ğ 0`1 ‚É§ŒÀ
+    float blur = std::clamp(s_PostProcess.motionBlurAmount, 0.0f, 1.0f);
+
+    // BackBuffer ‚ÌƒŠƒ\[ƒXæ“¾iCopyResource ‚Ég‚¤j
+    ID3D11Resource* backRes = nullptr;
+    m_RenderTargetView->GetResource(&backRes);
+
+    // ƒuƒ‰[—Ê‚ª‚Ù‚Úƒ[ƒ ¨ ƒV[ƒ“‰æ‘œ‚ğƒRƒs[‚·‚é‚¾‚¯
+    if (blur <= 0.001f)
+    {
+        if (backRes)
+        {
+            // ƒoƒbƒNƒoƒbƒtƒ@‚ÉƒV[ƒ“‰æ‘œ‚ğƒRƒs[
+            m_DeviceContext->CopyResource(backRes, m_SceneColorTex.Get());
+
+            // ŸƒtƒŒ[ƒ€—p‚É prev ‚É‚àƒRƒs[
+            m_DeviceContext->CopyResource(m_PrevSceneColorTex.Get(), m_SceneColorTex.Get());
+
+            backRes->Release();
+        }
+        return;
+    }
+
+    // ================================
+    //  GPU ƒXƒe[ƒg•Û‘¶
+    // ================================
+    ID3D11VertexShader* prevVS = nullptr;
+    ID3D11PixelShader* prevPS = nullptr;
+    ID3D11InputLayout* prevIL = nullptr;
+    ID3D11Buffer* prevVSCB[1] = { nullptr };
+    ID3D11Buffer* prevPSCB[1] = { nullptr };
+    ID3D11BlendState* prevBlend = nullptr;
+    FLOAT               prevBlendFactor[4] = { 0,0,0,0 };
+    UINT                prevSampleMask = 0xFFFFFFFF;
+    ID3D11DepthStencilState* prevDSS = nullptr;
+    UINT prevStencilRef = 0;
+    ID3D11RasterizerState* prevRS = nullptr;
+    D3D11_PRIMITIVE_TOPOLOGY prevTopo = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    ID3D11Buffer* prevVBs[1] = { nullptr };
+    UINT prevStrides[1] = { 0 };
+    UINT prevOffsets[1] = { 0 };
+    ID3D11ShaderResourceView* prevPSRV[2] = { nullptr, nullptr };
+    ID3D11SamplerState* prevSampler[1] = { nullptr };
+
+    m_DeviceContext->VSGetShader(&prevVS, nullptr, nullptr);
+    m_DeviceContext->PSGetShader(&prevPS, nullptr, nullptr);
+    m_DeviceContext->IAGetInputLayout(&prevIL);
+    m_DeviceContext->VSGetConstantBuffers(0, 1, prevVSCB);
+    m_DeviceContext->PSGetConstantBuffers(0, 1, prevPSCB);
+    m_DeviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_DeviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+    m_DeviceContext->RSGetState(&prevRS);
+    m_DeviceContext->IAGetPrimitiveTopology(&prevTopo);
+    m_DeviceContext->IAGetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_DeviceContext->PSGetShaderResources(0, 2, prevPSRV);
+    m_DeviceContext->PSGetSamplers(0, 1, prevSampler);
+
+    // ================================
+    // ƒoƒbƒNƒoƒbƒtƒ@‚Ö•`‰æ‚·‚é
+    // ================================
+    ID3D11RenderTargetView* backRTV = m_RenderTargetView.Get();
+    m_DeviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
+
+    // ================================
+    // ƒtƒ‹ƒXƒNƒŠ[ƒ“ƒNƒAƒbƒhì¬
+    // ================================
+    struct Vertex { Vector3 pos; Vector2 uv; };
+    float w = (float)Application::GetWidth();
+    float h = (float)Application::GetHeight();
+
+    Vertex vertices[6] =
+    {
+        {{0, 0, 0}, {0, 0}},
+        {{w, 0, 0}, {1, 0}},
+        {{0, h, 0}, {0, 1}},
+
+        {{w, 0, 0}, {1, 0}},
+        {{w, h, 0}, {1, 1}},
+        {{0, h, 0}, {0, 1}},
+    };
+
+    ComPtr<ID3D11Buffer> vb;
+    D3D11_BUFFER_DESC vbDesc{};
+    vbDesc.Usage = D3D11_USAGE_DEFAULT;
+    vbDesc.ByteWidth = sizeof(vertices);
+    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA init{};
+    init.pSysMem = vertices;
+
+    HRESULT hr = m_Device->CreateBuffer(&vbDesc, &init, vb.GetAddressOf());
+    if (FAILED(hr))
+    {
+        if (backRes) backRes->Release();
+        return;
+    }
+
+    // ================================
+    // MotionBlur ƒVƒF[ƒ_[İ’è
+    // ================================
+    m_DeviceContext->IASetInputLayout(m_TextureInputLayout.Get());
+    m_DeviceContext->VSSetShader(m_TextureVertexShader.Get(), nullptr, 0);
+    m_DeviceContext->PSSetShader(m_MotionBlurPixelShader.Get(), nullptr, 0);
+
+    SetWorldViewProjection2D();
+
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    ID3D11Buffer* vbPtr = vb.Get();
+    m_DeviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
+    m_DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // ================================
+    // SRV ‚ğƒZƒbƒgiSceneTex & PrevTexj
+    // ================================
+    ID3D11ShaderResourceView* srvs[2] =
+    {
+        m_SceneColorSRV.Get(),      // t0
+        m_PrevSceneColorSRV.Get(),  // t1
+    };
+    m_DeviceContext->PSSetShaderResources(0, 2, srvs);
+
+    // ================================
+    // š ’è”ƒoƒbƒtƒ@XViÅd—vƒ|ƒCƒ“ƒgjš
+    // ================================
+    PostProcessSettings cbData = s_PostProcess;
+    cbData.motionBlurAmount = blur;  // ƒNƒ‰ƒ“ƒvÏ‚İ‚É‘‚«Š·‚¦
+
+    m_DeviceContext->UpdateSubresource(
+        m_PostProcessBuffer.Get(), 0, nullptr, &cbData, 0, 0
+    );
+
+    ID3D11Buffer* ppCB = m_PostProcessBuffer.Get();
+    m_DeviceContext->PSSetConstantBuffers(0, 1, &ppCB);
+
+    // ================================
+    // •`‰æ
+    // ================================
+    m_DeviceContext->Draw(6, 0);
+
+    // SRV ‰ğ•ú
+    ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+    m_DeviceContext->PSSetShaderResources(0, 2, nullSRV);
+
+    // ================================
+    // GPU ‚ÌƒXƒe[ƒg‚ğ‚·‚×‚Ä•œŒ³
+    // ================================
+    m_DeviceContext->PSSetSamplers(0, 1, prevSampler);
+    m_DeviceContext->PSSetShaderResources(0, 2, prevPSRV);
+    m_DeviceContext->IASetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_DeviceContext->IASetPrimitiveTopology(prevTopo);
+    m_DeviceContext->RSSetState(prevRS);
+    m_DeviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+    m_DeviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_DeviceContext->VSSetConstantBuffers(0, 1, prevVSCB);
+    m_DeviceContext->PSSetConstantBuffers(0, 1, prevPSCB);
+    m_DeviceContext->VSSetShader(prevVS, nullptr, 0);
+    m_DeviceContext->PSSetShader(prevPS, nullptr, 0);
+    m_DeviceContext->IASetInputLayout(prevIL);
+
+    if (prevVS) prevVS->Release();
+    if (prevPS) prevPS->Release();
+    if (prevIL) prevIL->Release();
+    if (prevVSCB[0]) prevVSCB[0]->Release();
+    if (prevPSCB[0]) prevPSCB[0]->Release();
+    if (prevBlend) prevBlend->Release();
+    if (prevDSS) prevDSS->Release();
+    if (prevRS) prevRS->Release();
+    if (prevVBs[0]) prevVBs[0]->Release();
+    if (prevSampler[0]) prevSampler[0]->Release();
+    for (auto& p : prevPSRV) if (p) p->Release();
+
+    // ================================
+    // ÅŒã‚Éu¡‚ÌƒtƒŒ[ƒ€‰æ‘œv‚ğ prev ‚É•Û‘¶
+    // ================================
+    if (backRes)
+    {
+        m_DeviceContext->CopyResource(m_PrevSceneColorTex.Get(), m_SceneColorTex.Get());
+        backRes->Release();
+    }
+}
 
 void Renderer::DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size)
 {
@@ -785,6 +1068,38 @@ void Renderer::DrawReticle(ID3D11ShaderResourceView* texture, const POINT& cente
     if (prevDSS) prevDSS->Release();
     if (prevBlend) prevBlend->Release();
 }
+
+void Renderer::BeginSceneRenderTarget()
+{
+    ID3D11RenderTargetView* rtv = m_SceneColorRTV.Get();
+    ID3D11DepthStencilView* dsv = m_DepthStencilView.Get();
+
+    // ƒV[ƒ“—pRTV + [“x
+    m_DeviceContext->OMSetRenderTargets(1, &rtv, dsv);
+
+    float clearColor[4] = { 0, 0, 0, 1 };
+    m_DeviceContext->ClearRenderTargetView(rtv, clearColor);
+    m_DeviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    // ƒV[ƒ“—pƒXƒe[ƒg
+    m_DeviceContext->RSSetState(m_RasterizerState.Get());
+    m_DeviceContext->RSSetViewports(1, &m_Viewport);
+}
+
+
+void Renderer::BeginBackBuffer()
+{
+    ID3D11RenderTargetView* rtv = m_RenderTargetView.Get();
+    m_DeviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+
+    float clearColor[4] = { 0, 0, 0, 1 };
+    m_DeviceContext->ClearRenderTargetView(rtv, clearColor);
+
+    // UI ‚Å‚Í Z ‚Í•s—v‚È‚Ì‚Å[“x‚Í–³‚µ
+    // ƒ‰ƒXƒ^ƒ‰ƒCƒU‚Æƒrƒ…[ƒ|[ƒg‚àƒfƒtƒHƒ‹ƒg‚Å OK
+}
+
+
 
 
 
