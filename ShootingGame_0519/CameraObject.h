@@ -9,26 +9,26 @@ using namespace DirectX;
 class CameraObject : public GameObject
 {
 public:
-	SimpleMath::Matrix viewMatrix;
-	SimpleMath::Matrix projMatrix;
-
 	CameraObject() = default;
 	~CameraObject() override = default;
 
 	void Initialize() override;
 
-	std::shared_ptr<FollowCameraComponent> GetCameraComponent() const
+	//---------------------Set関数関連------------------------
+	void SetCameraComponent(const std::shared_ptr<CameraComponentBase>& cameraComponent);
+	template<class T>
+	std::shared_ptr<T> AddCameraComponent()
 	{
-		return m_FollowCameraComponent;
+		auto comp = std::make_shared<T>();
+		AddComponent(comp);
+		m_CameraComponent = comp;
+		return comp;
 	}
 
-	//void Update() override;
-private:
-	std::shared_ptr<FollowCameraComponent> m_FollowCameraComponent;
+	//---------------------Get関数関連-------------------------
+	std::shared_ptr<CameraComponentBase> GetCameraComponent() const { return m_CameraComponent; }
+	std::shared_ptr<FollowCameraComponent> GetFollowCameraComponent() const { return std::dynamic_pointer_cast<FollowCameraComponent>(m_CameraComponent);};
 
-	//2025/07/23 Sasakure
-	//時間があればComponentクラスを継承したFollowCameraComponentではなく
-	//Componentクラスを継承したBaseCameraComponentを継承したFollowCameraComponentにするとかを検討
-	//そしたら中身の差し替え簡単かなって……
-	
+private:
+	std::shared_ptr<CameraComponentBase> m_CameraComponent;
 };

@@ -2,7 +2,13 @@
 
 void CameraObject::Initialize()
 {
-    // FollowCameraComponentÇê∂ê¨Åïí«â¡
-    m_FollowCameraComponent = std::make_shared<FollowCameraComponent>();
-    AddComponent(m_FollowCameraComponent);
+    GameObject::Initialize();
+}
+
+void CameraObject::SetCameraComponent(const std::shared_ptr<CameraComponentBase>& cameraComponent)
+{
+    if (!cameraComponent) { return; }
+
+    m_CameraComponent = cameraComponent;
+    AddComponent(m_CameraComponent);
 }
