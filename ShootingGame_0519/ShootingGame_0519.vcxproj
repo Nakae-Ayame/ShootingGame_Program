@@ -78,6 +78,17 @@
     <IncludePath>/assimp/5.2.5/include;DirectXTK/include;$(IncludePath)</IncludePath>
     <LibraryPath>assimp/5.2.5/lib;DirectXTK/lib/x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgUseStatic>false</VcpkgUseStatic>
+    <VcpkgTriplet>x64-windows-static</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgUseStatic>false</VcpkgUseStatic>
+    <VcpkgTriplet>x64-windows-static</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -121,6 +132,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3dcompiler.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,7 +145,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../assimp/143/include/assimp;../DirectXTK/Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)assimp/143/include;../DirectXTK/Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +153,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3dcompiler.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>assimp/143/lib/assimp-vc143-mt.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)assimp\143\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,6 +164,7 @@
     <ClCompile Include="BuildingSpawner.cpp" />
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="BulletComponent.cpp" />
+    <ClCompile Include="CameraComponentBase.cpp" />
     <ClCompile Include="CameraObject.cpp" />
     <ClCompile Include="CircularPatrolComponent.cpp" />
     <ClCompile Include="ColliderComponent.cpp" />
@@ -172,9 +185,11 @@
     </ClCompile>
     <ClCompile Include="EnemySpawner.cpp" />
     <ClCompile Include="FloorComponent.cpp" />
+    <ClCompile Include="FreeCameraComponent.cpp" />
     <ClCompile Include="HitPointCompornent.cpp" />
     <ClCompile Include="ModelResource.cpp" />
     <ClCompile Include="PlayAreaComponent.cpp" />
+    <ClCompile Include="ResultLooseScene.cpp" />
     <ClCompile Include="system\imgui\imgui.cpp" />
     <ClCompile Include="system\imgui\imgui_demo.cpp" />
     <ClCompile Include="system\imgui\imgui_draw.cpp" />
@@ -225,6 +240,7 @@
     <ClInclude Include="BuildingSpawner.h" />
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="BulletComponent.h" />
+    <ClInclude Include="CameraComponentBase.h" />
     <ClInclude Include="CameraObject.h" />
     <ClInclude Include="CircularPatrolComponent.h" />
     <ClInclude Include="ColliderComponent.h" />
@@ -249,11 +265,13 @@
     </ClInclude>
     <ClInclude Include="EnemySpawner.h" />
     <ClInclude Include="FloorComponent.h" />
+    <ClInclude Include="FreeCameraComponent.h" />
     <ClInclude Include="HitPointCompornent.h" />
     <ClInclude Include="ModelCache.h" />
     <ClInclude Include="ModelResource.h" />
     <ClInclude Include="PlayAreaComponent.h" />
     <ClInclude Include="RaycastHit.h" />
+    <ClInclude Include="ResultLooseScene.h" />
     <ClInclude Include="system\imgui\imconfig.h" />
     <ClInclude Include="system\imgui\imgui.h" />
     <ClInclude Include="system\imgui\imgui_impl_dx11.h" />

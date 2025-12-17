@@ -67,6 +67,15 @@
     <Filter Include="ヘッダー ファイル\Visual">
       <UniqueIdentifier>{d12a37a6-a96b-4e04-8100-e296c370f841}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Component\Camera">
+      <UniqueIdentifier>{8033c4a6-f1fd-4a1f-b477-336ab6915ab0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Component\Camera">
+      <UniqueIdentifier>{42a4f637-4b2f-4c06-ad69-f192f9212693}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Component\Enemy">
+      <UniqueIdentifier>{2f135d3d-e6a4-4baa-a148-53d1e7f341e6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -97,9 +106,6 @@
       <Filter>ソース ファイル\Component</Filter>
     </ClCompile>
     <ClCompile Include="ModelComponent.cpp">
-      <Filter>ソース ファイル\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="FollowCameraComponent.cpp">
       <Filter>ソース ファイル\Component</Filter>
     </ClCompile>
     <ClCompile Include="GameObject.cpp">
@@ -264,6 +270,18 @@
     <ClCompile Include="EnemyMoveComponent.cpp">
       <Filter>ソース ファイル\Component\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="ResultLooseScene.cpp">
+      <Filter>ソース ファイル\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="FollowCameraComponent.cpp">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="FreeCameraComponent.cpp">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraComponentBase.cpp">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -341,9 +359,6 @@
     <ClInclude Include="SkyDomeComponent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
     </ClInclude>
-    <ClInclude Include="FollowCameraComponent.h">
-      <Filter>ヘッダー ファイル\Component</Filter>
-    </ClInclude>
     <ClInclude Include="SkyDome.h">
       <Filter>ヘッダー ファイル\GameObject</Filter>
     </ClInclude>
@@ -373,9 +388,6 @@
     </ClInclude>
     <ClInclude Include="Building.h">
       <Filter>ヘッダー ファイル\GameObject</Filter>
-    </ClInclude>
-    <ClInclude Include="PatrolComponent.h">
-      <Filter>ヘッダー ファイル\Component</Filter>
     </ClInclude>
     <ClInclude Include="CircularPatrolComponent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
@@ -446,9 +458,6 @@
     <ClInclude Include="GameObject.h">
       <Filter>ヘッダー ファイル\BaseClass</Filter>
     </ClInclude>
-    <ClInclude Include="FixedTurretComponent.h">
-      <Filter>ヘッダー ファイル\Component</Filter>
-    </ClInclude>
     <ClInclude Include="BuildingSpawner.h">
       <Filter>ソース ファイル\Spawner</Filter>
     </ClInclude>
@@ -491,9 +500,6 @@
     <ClInclude Include="CollisionResponse.h">
       <Filter>ソース ファイル\Collision</Filter>
     </ClInclude>
-    <ClInclude Include="EnemyAIComponent.h">
-      <Filter>ソース ファイル\Component\Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="VisualSettings.h">
       <Filter>ヘッダー ファイル\Visual</Filter>
     </ClInclude>
@@ -506,8 +512,29 @@
     <ClInclude Include="DebugMoveComponent.h">
       <Filter>ヘッダー ファイル\Debug</Filter>
     </ClInclude>
+    <ClInclude Include="ResultLooseScene.h">
+      <Filter>ソース ファイル\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="FollowCameraComponent.h">
+      <Filter>ヘッダー ファイル\Component\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="FreeCameraComponent.h">
+      <Filter>ヘッダー ファイル\Component\Camera</Filter>
+    </ClInclude>
     <ClInclude Include="EnemyMoveComponent.h">
-      <Filter>ソース ファイル\Component\Enemy</Filter>
+      <Filter>ヘッダー ファイル\Component\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemyAIComponent.h">
+      <Filter>ヘッダー ファイル\Component\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="FixedTurretComponent.h">
+      <Filter>ヘッダー ファイル\Component\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="PatrolComponent.h">
+      <Filter>ヘッダー ファイル\Component\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraComponentBase.h">
+      <Filter>ヘッダー ファイル\Component\Camera</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
