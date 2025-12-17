@@ -3,6 +3,7 @@
 #include "commontypes.h"
 #include "GameObject.h"
 #include "SpringVector3.h"
+#include "CameraComponentBase.h"
 #include "ICameraViewProvider.h"
 #include <DirectXMath.h>
 #include <SimpleMath.h>
@@ -13,7 +14,7 @@ using namespace DirectX::SimpleMath;
 
 class PlayAreaComponent;
 
-class FollowCameraComponent : public Component, public ICameraViewProvider
+class FollowCameraComponent : public CameraComponentBase
 {
 public:
 
