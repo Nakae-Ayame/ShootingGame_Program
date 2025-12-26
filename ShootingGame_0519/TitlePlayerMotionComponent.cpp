@@ -37,14 +37,16 @@ void TitlePlayerMotionComponent::Update(float dt)
     float pitch = -std::atan2(dir.y, std::sqrt(dir.x * dir.x + dir.z * dir.z));
 
     // まずこれを試す（前後反転）
-    yaw -= DirectX::XM_PIDIV2;
+    yaw += m_ModelYawOffset;
+    pitch += m_ModelPitchOffset;
+    float roll = m_ModelRollOffset;
 
     // スムーズ回転
     float lerpRate = 8.0f;
     float a = std::min(1.0f, lerpRate * dt);
 
     DirectX::SimpleMath::Vector3 curRot = owner->GetRotation();
-    DirectX::SimpleMath::Vector3 targetRot(pitch/* + -0.9f*/, yaw, 0.0f);
+    DirectX::SimpleMath::Vector3 targetRot(pitch, yaw, roll);
     DirectX::SimpleMath::Vector3 newRot = curRot + (targetRot - curRot) * a;
 
     owner->SetRotation(newRot);

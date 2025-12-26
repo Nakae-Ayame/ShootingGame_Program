@@ -43,6 +43,19 @@ private:
 
 	std::shared_ptr<TitlePlayerMotionComponent> m_TitleMotion;
 	bool m_IsLogoShown = false;				//2DÉçÉSÇ™ï\é¶Ç≥ÇÍÇΩÇ©Ç«Ç§Ç©
+
+	//--------------ÉçÉSì_ñ≈ä÷òA------------------
+	float m_BlinkTimer = 0.0f;
+	float m_BlinkInterval = 0.5f;
+	bool m_BlinkVisible = true;
+
+	std::vector<BezierPath> m_PlayerPaths;
+	int m_CurrentPathIndex = 0;
+	bool m_LoopPaths = true;
+
+	void SetupPlayerPaths();
+	void ApplyCurrentPlayerPath();
+	void AdvancePlayerPath();
 };
 
 
