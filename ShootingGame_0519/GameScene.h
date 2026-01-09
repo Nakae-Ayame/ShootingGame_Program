@@ -23,6 +23,13 @@
 //---------------------------------
 //ISceneを継承したGameScene
 //---------------------------------
+enum class GameState
+{
+	Playing,
+	Clear,
+	GameOver
+};
+
 class GameScene : public IScene
 {
 public:
@@ -89,6 +96,8 @@ public:
 	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
 
 private:
+	GameState m_GameState = GameState::Playing;
+
 	float m_aimMarginX = 80.0f;  // 左右マージン（好きな値に変えてOK）
 	float m_aimMarginY = 45.0f;   // 上下マージン
 

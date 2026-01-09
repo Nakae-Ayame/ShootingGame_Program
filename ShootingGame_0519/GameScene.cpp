@@ -303,7 +303,7 @@ void GameScene::Init()
 
     //-------------------------敵生成--------------------------------
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 2;
+    m_enemySpawner->patrolCfg.spawnCount = 3;
 	m_enemySpawner->circleCfg.spawnCount = 0;
     m_enemySpawner->turretCfg.spawnCount = 0;
     m_enemySpawner->fleeCfg.spawnCount = 0;
@@ -318,6 +318,13 @@ void GameScene::Init()
           { 40.0f, 20.0f, 80.0f },});
 
     m_enemySpawner->SetWaypoints(
+        { { 80.0f, 40.0f,  0.0f },
+          { 40.0f, 40.0f,-80.0f },
+          {-40.0f, 40.0f,-80.0f },
+          {-80.0f, 40.0f,  0.0f },
+          { 40.0f, 40.0f, 80.0f }, });
+
+    m_enemySpawner->SetWaypoints(
         { { 125.0f, 90.0f,    0.0f },
           {  62.5f, 90.0f, -125.0f },
           { -62.5f, 90.0f,  125.0f },
@@ -327,6 +334,12 @@ void GameScene::Init()
           {-125.0f, 90.0f,   62.5f }});
 
     m_enemySpawner->EnsurePatrolCount();
+	m_enemySpawner->turretCfg.target = m_player;
+	m_enemySpawner->turretCfg.bulletSpeed = 80.0f;
+    m_enemySpawner->SetTurretPos({ 100.0f,100.0f,0.0f });
+    m_enemySpawner->SetTurretPos({ -100.0f,100.0f,0.0f });
+
+	m_enemySpawner->EnsureTurretCount();
     //------------------スカイドーム作成-------------------------
 
     m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_03.png");
