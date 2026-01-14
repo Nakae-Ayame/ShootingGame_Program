@@ -1,14 +1,14 @@
 #include <iostream>
-#include "ResultScene.h"
+#include "ResultLooseScene.h"
 #include "Input.h"
 #include "Player.h"
 #include "TitleBackGround.h"
 #include "Input.h"
 #include "TransitionManager.h"
 
-void ResultScene::Init()
+void ResultLooseScene::Init()
 {
-    auto background01 = std::make_shared<TitleBackGround>(L"Asset/UI/ResultBackGround_Clear.jpg", 1280);
+    auto background01 = std::make_shared<TitleBackGround>(L"Asset/UI/ResultBackGround_Loose.jpg", 1280);
     //auto background02 = std::make_shared<TitleBackGround>(L"Asset/UI/TitleText.png", 1280);
     AddObject(background01);
     //AddObject(background02);
@@ -19,7 +19,7 @@ void ResultScene::Init()
     }
 }
 
-void ResultScene::Update(float deltatime)
+void ResultLooseScene::Update(float deltatime)
 {
     //Input::Update();
 
@@ -39,7 +39,7 @@ void ResultScene::Update(float deltatime)
     }
 }
 
-void ResultScene::Draw(float deltatime)
+void ResultLooseScene::Draw(float deltatime)
 {
     for (auto& obj : m_GameObjects)
     {
@@ -47,13 +47,13 @@ void ResultScene::Draw(float deltatime)
     }
 }
 
-void ResultScene::Uninit()
+void ResultLooseScene::Uninit()
 {
 
 }
 
 
-void ResultScene::AddObject(std::shared_ptr<GameObject> obj)
+void ResultLooseScene::AddObject(std::shared_ptr<GameObject> obj)
 {
     if (!obj) return;
     // シーン参照を GameObject に教えておく（後述）
@@ -62,19 +62,19 @@ void ResultScene::AddObject(std::shared_ptr<GameObject> obj)
 }
 
 
-void ResultScene::RemoveObject(std::shared_ptr<GameObject> obj)
+void ResultLooseScene::RemoveObject(std::shared_ptr<GameObject> obj)
 {
     m_DeleteObjects.push_back(obj);
 }
 
-void ResultScene::RemoveObject(GameObject* obj)
+void ResultLooseScene::RemoveObject(GameObject* obj)
 {
     //if (!obj) return;
     //// 重複追加を防ぎたい場合チェックしてから push_back してもよい
     //m_DeleteObjects.push_back(obj);
 }
 
-void ResultScene::FinishFrameCleanup()
+void ResultLooseScene::FinishFrameCleanup()
 {
     for (auto& p : m_DeleteObjects) // p は shared_ptr<GameObject>
     {
@@ -85,7 +85,7 @@ void ResultScene::FinishFrameCleanup()
     m_DeleteObjects.clear();
 }
 
-void ResultScene::SetSceneObject()
+void ResultLooseScene::SetSceneObject()
 {
     if (!m_AddObjects.empty())
     {
