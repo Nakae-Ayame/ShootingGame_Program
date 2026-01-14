@@ -79,7 +79,7 @@ void Primitive::CreateBox(ID3D11Device* device, float width, float height, float
     CreateBuffers(device);
 }
 
-void Primitive::CreatePlane(ID3D11Device* device, float width, float depth, int sx, int sz, const XMFLOAT4& color, bool genUV)
+void Primitive::CreatePlane(ID3D11Device* device, float width, float depth, float  sx, float  sz, const XMFLOAT4& color, bool genUV)
 {
     vertices.clear();
     indices.clear();
@@ -108,23 +108,15 @@ void Primitive::CreatePlane(ID3D11Device* device, float width, float depth, int 
 
 void Primitive::CreateBuffers(ID3D11Device* device)
 {
-    // safety checks
-    if (!device)
+    if (vertexBuffer)
     {
-        OutputDebugStringA("Primitive::CreateBuffers - device is null\n");
-        return;
-    }
-    if (vertices.empty() || indices.empty())
-    {
-        char buf[256];
-        sprintf_s(buf, "Primitive::CreateBuffers - empty verts=%zu idx=%zu\n", vertices.size(), indices.size());
-        OutputDebugStringA(buf);
-        return;
+        vertexBuffer->Release(); vertexBuffer = nullptr;
     }
 
-    // release old buffers if any
-    if (vertexBuffer) { vertexBuffer->Release(); vertexBuffer = nullptr; }
-    if (indexBuffer) { indexBuffer->Release();  indexBuffer = nullptr; }
+    if (indexBuffer)
+    {
+        indexBuffer->Release();  indexBuffer = nullptr; 
+    }
 
     // Vertex buffer
     D3D11_BUFFER_DESC vbDesc{};
@@ -135,11 +127,12 @@ void Primitive::CreateBuffers(ID3D11Device* device)
     D3D11_SUBRESOURCE_DATA vbData{};
     vbData.pSysMem = vertices.data();
     HRESULT hr = device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
-    if (FAILED(hr) || !vertexBuffer) {
-        char buf[256];
-        sprintf_s(buf, "Primitive::CreateBuffers - CreateBuffer(VB) failed hr=0x%08X\n", static_cast<unsigned int>(hr));
-        OutputDebugStringA(buf);
-        if (vertexBuffer) { vertexBuffer->Release(); vertexBuffer = nullptr; }
+    if (FAILED(hr) || !vertexBuffer)
+    {
+        if (vertexBuffer) 
+        {
+            vertexBuffer->Release(); vertexBuffer = nullptr;
+        }
         return;
     }
 
@@ -154,17 +147,14 @@ void Primitive::CreateBuffers(ID3D11Device* device)
     hr = device->CreateBuffer(&ibDesc, &ibData, &indexBuffer);
     if (FAILED(hr) || !indexBuffer) {
         char buf[256];
-        sprintf_s(buf, "Primitive::CreateBuffers - CreateBuffer(IB) failed hr=0x%08X\n", static_cast<unsigned int>(hr));
-        OutputDebugStringA(buf);
+        //sprintf_s(buf, "Primitive::CreateBuffers - CreateBuffer(IB) failed hr=0x%08X\n", static_cast<unsigned int>(hr));
+        //OutputDebugStringA(buf);
         if (indexBuffer) { indexBuffer->Release(); indexBuffer = nullptr; }
         // We keep vertexBuffer valid (or release it depending on semantics)
         return;
     }
 
-    char buf[256];
-    sprintf_s(buf, "Primitive::CreateBuffers OK verts=%zu idx=%zu vb=%p ib=%p\n",
-        vertices.size(), indices.size(), vertexBuffer, indexBuffer);
-    OutputDebugStringA(buf);
+
 }
 
 

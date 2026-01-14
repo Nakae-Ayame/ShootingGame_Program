@@ -33,7 +33,7 @@ public:
     void CreateBox   (ID3D11Device* device, float width, float height, float depth);
 
     //î¬Çê∂ê¨Ç∑ÇÈä÷êî
-    void CreatePlane(ID3D11Device* device,float width, float depth,int subdivisionsX = 1, int subdivisionsZ = 1,const DirectX::XMFLOAT4& color = { 1,1,1,1 },bool generateUVs = true);
+    void CreatePlane(ID3D11Device* device,float width, float depth, float  subdivisionsX = 1.0f, float  subdivisionsZ = 1.0f,const DirectX::XMFLOAT4& color = { 1,1,1,1 },bool generateUVs = true);
 
     //ï`âÊ
     void Draw(ID3D11DeviceContext* context);
