@@ -4,7 +4,7 @@
 #include <cfloat>       
 #include <DirectXMath.h>
 #include <SimpleMath.h> 
-
+#include "Player.h"
 #include "CollisionManager.h"
 #include "Collision.h"
 #include "CollisionResolver.h"
@@ -12,6 +12,7 @@
 #include "renderer.h"
 #include "GameObject.h"
 #include "MoveComponent.h"
+#include "PushOutComponent.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -241,91 +242,76 @@ void CollisionManager::CheckCollisions()
 
         //押し出しがいらないなら
         if (!resolved){ continue; }
-
+        
         if (resolved)
         {
-            bool aStatic = colA->IsStatic();
-            bool bStatic = colB->IsStatic();
+            auto pushAComp = ownerA->GetComponent<PushOutComponent>();
+            auto pushBComp = ownerB->GetComponent<PushOutComponent>();
 
-            // 押し出し方向ベクトル（法線っぽいもの）を求める
-            Vector3 normalA = pushA;
-            if (normalA.LengthSquared() > 1e-6f)
+            float massA;
+            if (colA->IsStatic())
             {
-                normalA.Normalize();
+                massA = FLT_MAX;
             }
             else
             {
-                normalA = DirectX::SimpleMath::Vector3::Up;
+                massA = pushAComp->GetMass();
             }
-            Vector3 normalB = -normalA;
-
-            auto mvA = ownerA->GetComponent<MoveComponent>();
-            auto mvB = ownerB->GetComponent<MoveComponent>();
-
-            // ① どちらも Static → 何も動かさない
-            if (aStatic && bStatic)
+            
+            float massB;
+            if (colB->IsStatic())
             {
-                // 位置補正もしない
+                massB = FLT_MAX;
             }
-            // ② A が Static, B が Dynamic → B だけ押し出す
-            else if (aStatic && !bStatic)
-            {
-                if (mvB)
-                {
-                    // B（ownerB）が動くキャラなら、押し出し量を積む
-                    mvB->HandleCollisionCorrection(pushB, normalB);
-                }
-                else
-                {
-                    // MoveComponent が無いなら直接位置を動かす
-                    ownerB->SetPosition(ownerB->GetPosition() + pushB);
-                }
-            }
-            // ③ A が Dynamic, B が Static → A だけ押し出す
-            else if (!aStatic && bStatic)
-            {
-                if (mvA)
-                {
-                    mvA->HandleCollisionCorrection(pushA, normalA);
-                }
-                else
-                {
-                    ownerA->SetPosition(ownerA->GetPosition() + pushA);
-                }
-            }
-            // ④ どちらも Dynamic（例：Player vs Enemy） → 半分ずつ押し出す
             else
             {
-                Vector3 halfA = pushA * 0.5f;
-                Vector3 halfB = pushB * 0.5f;
-
-                if (mvA)
-                {
-                    mvA->HandleCollisionCorrection(halfA, normalA);
-                }
-                else
-                {
-                    ownerA->SetPosition(ownerA->GetPosition() + halfA);
-                }
-
-                if (mvB)
-                {
-                    mvB->HandleCollisionCorrection(halfB, normalB);
-                }
-                else
-                {
-                    ownerB->SetPosition(ownerB->GetPosition() + halfB);
-                }
+                massB = pushBComp->GetMass();
             }
+
+            float invA;
+            if (massA >= FLT_MAX)
+            {
+                invA = 0.0f;
+            }
+            else
+            {
+				invA = 1.0f / massA;
+            }
+
+            float invB;
+            if (massB >= FLT_MAX)
+            {
+                invB = 0.0f;
+            }
+            else
+            {
+                invB = 1.0f / massB;
+            }
+
+            float sumInv = invA + invB;
+            if (sumInv <= 1e-6f) { continue; }
+
+            Vector3 mtv = pushA; 
+
+            Vector3 finalPushA = mtv * (invA / sumInv);
+            Vector3 finalPushB = -mtv * (invB / sumInv);
+
+            if (pushAComp) 
+            {
+                pushAComp->AddPush(finalPushA); 
+            }
+            if (pushBComp)
+            {
+                pushBComp->AddPush(finalPushB);
+            }
+
+            colA->SetHitThisFrame(true);
+            colB->SetHitThisFrame(true);
+
+            ownerA->OnCollision(ownerB);
+            ownerB->OnCollision(ownerA);
         }
 
-        //衝突フラグ
-        colA->SetHitThisFrame(true);
-        colB->SetHitThisFrame(true);
-
-        //ユーザー側の OnCollision イベント通知
-        ownerA->OnCollision(ownerB);
-        ownerB->OnCollision(ownerA);
     }
 
 }

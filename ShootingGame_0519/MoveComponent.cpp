@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <DirectXMath.h>
 
+
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
@@ -96,6 +97,9 @@ void MoveComponent::Update(float dt)
     if (dt <= 0.0f) { return; }
 
     GameObject* owner = GetOwner();
+
+    m_totalPushThisFrame = Vector3::Zero;
+    m_hasPushThisFrame = false;
 
     //現在位置・回転取得
     Vector3 pos = owner->GetPosition();
@@ -410,8 +414,6 @@ void MoveComponent::Update(float dt)
         }
     }
 
-    owner->SetPosition(pos);
-
     if (m_externalVelocity.LengthSquared() > 1e-8f)
     {
         float decay = std::exp(-m_externalDamping * dt);
@@ -424,57 +426,48 @@ void MoveComponent::Update(float dt)
         }
     }
 
+    owner->SetPosition(pos);
     m_currentPitch = currentPitch;
-
-
 }
-void MoveComponent::HandleCollisionCorrection(
-    const DirectX::SimpleMath::Vector3& push,
-    const DirectX::SimpleMath::Vector3& contactNormal)
+
+void MoveComponent::HandleCollisionCorrection(const DirectX::SimpleMath::Vector3& push,
+                                              const DirectX::SimpleMath::Vector3& contactNormal)
 {
     using namespace DirectX::SimpleMath;
 
     GameObject* owner = GetOwner();
-    if (!owner) { return; }
-
-    // 押し出しがほぼゼロなら無視
-    if (push.LengthSquared() < 1e-8f){ return; }
-
-    // --- 押し出し方向ベクトル（法線）を決める ---
-    Vector3 n;
-
-    if (contactNormal.LengthSquared() > 1e-8f)
+    if (!owner)
     {
-        n = contactNormal;
+        return;
+    }
+
+    // 押し出しがほぼゼロなら何もしない
+    float lenSq = push.LengthSquared();
+    if (lenSq < 1e-8f)
+    {
+        return;
+    }
+
+    // 1) 押し出しを蓄積する（位置はここでは変えない）
+    m_totalPushThisFrame = m_totalPushThisFrame + push;
+    m_hasPushThisFrame = true;
+
+    // 2) 速度の内向き成分を削る（壁の方向へ進まないようにする）
+    Vector3 n = contactNormal;
+    if (n.LengthSquared() > 1e-6f)
+    {
         n.Normalize();
     }
     else
     {
-        // contactNormal が変なら push 方向から作る
-        Vector3 tmp = push;
-        if (tmp.LengthSquared() > 1e-8f)
-        {
-            tmp.Normalize();
-        }
-        else
-        {
-
-            tmp = Vector3::Up;
-        }
-        n = tmp;
+        // 安全な法線
+        n = Vector3(0, 1, 0);
     }
 
-    //位置補正
-    m_totalPushThisFrame += push;
-    m_hasPushThisFrame = true;
-
-    //壁の内側に向かう速度成分を削る
+    // 内向き成分を消すヘルパ
     auto KillInwardComponent = [&](Vector3& v)
         {
-            if (v.LengthSquared() < 1e-8f) return;
-
             float vn = v.Dot(n);
-            // vn < 0 → 法線の逆向き（中に向かっている）
             if (vn < 0.0f)
             {
                 v = v - n * vn;
@@ -487,17 +480,8 @@ void MoveComponent::HandleCollisionCorrection(
 
 void MoveComponent::ApplyCollisionPush()
 {
-    using namespace DirectX::SimpleMath;
+    if (!m_hasPushThisFrame || !GetOwner()){ return; }
 
-    if (!m_hasPushThisFrame || !GetOwner())
-    {
-        // 何もなければリセットだけ
-        m_totalPushThisFrame = Vector3::Zero;
-        m_hasPushThisFrame = false;
-        return;
-    }
-
-    // 1フレーム分まとめて位置を押し出す
     Vector3 pos = GetOwner()->GetPosition();
     pos += m_totalPushThisFrame;
     GetOwner()->SetPosition(pos);

@@ -9,6 +9,7 @@
 #include "BulletComponent.h"
 #include "Collision.h" 
 #include "Enemy.h"
+#include "PushOutComponent.h"
 #include <iostream>
 
 void Player::Initialize()
@@ -30,6 +31,8 @@ void Player::Initialize()
     auto HPComp = std::make_shared<HitPointComponent>(20);
     HPComp->SetInvincibilityOnHit(1.5f);
 
+    auto push = std::make_shared<PushOutComponent>();
+
     //コライダーコンポーネントの生成
     m_Collider = std::make_shared<OBBColliderComponent>();
     m_Collider -> SetSize({ 6.0f, 1.5f, 8.0f }); // モデルに合わせて調整
@@ -42,6 +45,7 @@ void Player::Initialize()
     AddComponent(shootComp);
     AddComponent(HPComp);
     AddComponent(m_Collider);
+    AddComponent(push);
   //----------------------------------------------
     
     SetPosition({ 0.0f, 0.0f, 125.0f });

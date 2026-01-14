@@ -556,35 +556,57 @@ namespace Collision
         return true;
     }
 
-    bool ComputeOBBMTV(
-        const OBBColliderComponent* a, const OBBColliderComponent* b,
-        Vector3& outPushForA, Vector3& outPushForB)
+    bool ComputeOBBMTV(const OBBColliderComponent* a, 
+                       const OBBColliderComponent* b,
+                       Vector3& outPushForA, Vector3& outPushForB)
     {
-        if (!a || !b) return false;
-        
+        using namespace DirectX::SimpleMath;
+
+        if (!a || !b)
+        {
+            return false;
+        }
+
+        // 基本データ取得
         Vector3 centerA = a->GetCenter();
         Vector3 centerB = b->GetCenter();
         Matrix rotA = a->GetRotationMatrix();
         Matrix rotB = b->GetRotationMatrix();
         Vector3 halfA = a->GetSize() * 0.5f;
         Vector3 halfB = b->GetSize() * 0.5f;
-        
-        // 軸抽出
-        Vector3 axesA[3], axesB[3];
-        // 使用済みユーティリティ (CollisionHelpers::ExtractAxesFromRotation と同等)
-        axesA[0] = Vector3(rotA._11, rotA._12, rotA._13);
-        axesA[1] = Vector3(rotA._21, rotA._22, rotA._23);
-        axesA[2] = Vector3(rotA._31, rotA._32, rotA._33);
-        axesB[0] = Vector3(rotB._11, rotB._12, rotB._13);
-        axesB[1] = Vector3(rotB._21, rotB._22, rotB._23);
-        axesB[2] = Vector3(rotB._31, rotB._32, rotB._33);
-        for (int i = 0; i < 3; ++i) { if (axesA[i].LengthSquared() > 1e-6f) axesA[i].Normalize(); }
-        for (int i = 0; i < 3; ++i) { if (axesB[i].LengthSquared() > 1e-6f) axesB[i].Normalize(); }
-        
+
+        // 軸抽出（Right, Up, Forward）
+        Vector3 axesA[3] = 
+        {
+            Vector3(rotA._11, rotA._12, rotA._13),
+            Vector3(rotA._21, rotA._22, rotA._23),
+            Vector3(rotA._31, rotA._32, rotA._33)
+        };
+
+        Vector3 axesB[3] = 
+        {
+            Vector3(rotB._11, rotB._12, rotB._13),
+            Vector3(rotB._21, rotB._22, rotB._23),
+            Vector3(rotB._31, rotB._32, rotB._33)
+        };
+
+        for (int i = 0; i < 3; ++i)
+        {
+            if (axesA[i].LengthSquared() > 1e-6f)
+            {
+                axesA[i].Normalize();
+            }
+            if (axesB[i].LengthSquared() > 1e-6f)
+            {
+                axesB[i].Normalize();
+            }
+        }
+
         Vector3 tWorld = centerB - centerA;
-        
-        float R[3][3], AbsR[3][3];
+
         const float EPS = 1e-6f;
+        float R[3][3];
+        float AbsR[3][3];
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
@@ -593,23 +615,26 @@ namespace Collision
                 AbsR[i][j] = std::fabs(R[i][j]) + EPS;
             }
         }
-        
+
         float tA[3] = { tWorld.Dot(axesA[0]), tWorld.Dot(axesA[1]), tWorld.Dot(axesA[2]) };
+
         float aHalf[3] = { halfA.x, halfA.y, halfA.z };
         float bHalf[3] = { halfB.x, halfB.y, halfB.z };
-        
+
         float minOverlap = FLT_MAX;
         Vector3 minAxis = Vector3::Zero;
         bool anyOverlap = false;
-        
-        auto consider = [&](const Vector3& axis, float overlap, const Vector3& dir)
+
+        auto considerAxis = [&](const Vector3& axis, float overlap, const Vector3& dir) -> bool
             {
                 if (overlap <= 0.0f)
                 {
                     anyOverlap = false;
                     return false;
                 }
+
                 anyOverlap = true;
+
                 if (overlap < minOverlap)
                 {
                     minOverlap = overlap;
@@ -617,64 +642,123 @@ namespace Collision
                 }
                 return true;
             };
-        
-        // A の軸
+
         for (int i = 0; i < 3; ++i)
         {
             float ra = aHalf[i];
             float rb = bHalf[0] * AbsR[i][0] + bHalf[1] * AbsR[i][1] + bHalf[2] * AbsR[i][2];
             float overlap = ra + rb - std::fabs(tA[i]);
-            Vector3 dir = axesA[i] * (tA[i] >= 0.0f ? 1.0f : -1.0f);
-            if (!consider(axesA[i], overlap, dir)) return false;
+
+            // 符号方向を決める（tA[i] の符号に依存）
+            float sign = 1.0f;
+            if (tA[i] < 0.0f)
+            {
+                sign = -1.0f;
+            }
+            Vector3 dir = axesA[i] * sign;
+
+            if (!considerAxis(axesA[i], overlap, dir))
+            {
+                return false;
+            }
         }
-        
-        // B の軸
+
         for (int i = 0; i < 3; ++i)
         {
             float ra = aHalf[0] * AbsR[0][i] + aHalf[1] * AbsR[1][i] + aHalf[2] * AbsR[2][i];
-            float proj = std::fabs(tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i]);
-            float overlap = ra + bHalf[i] - proj;
-            float projVal = (tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i]);
-            Vector3 dir = axesB[i] * (projVal >= 0.0f ? 1.0f : -1.0f);
-            if (!consider(axesB[i], overlap, dir)) return false;
+            float rb = bHalf[i];
+
+            float proj = tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i];
+            float tProj = std::fabs(proj);
+
+            float overlap = ra + rb - tProj;
+
+            float projSign = 1.0f;
+            if (proj < 0.0f)
+            {
+                projSign = -1.0f;
+            }
+            Vector3 dir = axesB[i] * projSign;
+
+            if (!considerAxis(axesB[i], overlap, dir))
+            {
+                return false;
+            }
         }
-        
-        // 交差軸 Ai x Bj
+
+        // --- 交差軸 Ai x Bj チェック (9個) ---
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
             {
                 Vector3 axis = axesA[i].Cross(axesB[j]);
                 float axisLenSq = axis.LengthSquared();
-                if (axisLenSq < 1e-8f) continue;
+                if (axisLenSq < 1e-8f)
+                {
+                    // 並行に近い軸はスキップ
+                    continue;
+                }
                 axis.Normalize();
-        
-                int i1 = (i + 1) % 3, i2 = (i + 2) % 3;
-                int j1 = (j + 1) % 3, j2 = (j + 2) % 3;
-        
+
+                int i1 = (i + 1) % 3;
+                int i2 = (i + 2) % 3;
+                int j1 = (j + 1) % 3;
+                int j2 = (j + 2) % 3;
+
                 float ra = aHalf[i1] * AbsR[i2][j] + aHalf[i2] * AbsR[i1][j];
                 float rb = bHalf[j1] * AbsR[i][j2] + bHalf[j2] * AbsR[i][j1];
-        
+
                 float tProj = std::fabs(tA[i2] * R[i1][j] - tA[i1] * R[i2][j]);
                 float overlap = ra + rb - tProj;
-        
+
                 float s = tWorld.Dot(axis);
-                Vector3 dir = axis * (s >= 0.0f ? 1.0f : -1.0f);
-                if (!consider(axis, overlap, dir)) return false;
+                float sign = 1.0f;
+                if (s < 0.0f)
+                {
+                    sign = -1.0f;
+                }
+                Vector3 dir = axis * sign;
+
+                if (!considerAxis(axis, overlap, dir))
+                {
+                    return false;
+                }
             }
         }
-        
-        if (!anyOverlap) return false;
-        
+
+        if (!anyOverlap)
+        {
+            return false;
+        }
+
+        // minAxis を法線として MTV を作る
         Vector3 mtv = minAxis;
-        if (mtv.LengthSquared() > EPS) mtv.Normalize(); else mtv = Vector3::Zero;
-        
+        if (mtv.LengthSquared() > EPS)
+        {
+            mtv.Normalize();
+        }
+        else
+        {
+            mtv = Vector3::Zero;
+        }
+
         Vector3 push = mtv * minOverlap;
+
+        // safety clamp: とても大きな push は禁止（デバッグ目的で入れておくと良い）
+        const float maxPush = 50.0f;
+        if (push.Length() > maxPush)
+        {
+            push = push * (maxPush / push.Length());
+        }
+
         outPushForA = push;
         outPushForB = -push;
+
+        /*float totalWeight = weightA + weightB;
+          Vector3 pushA =  MTV * (weightB / totalWeight);
+          Vector3 pushB = -MTV * (weightA / totalWeight);*/
+
         return true;
-
-
     }
 
 

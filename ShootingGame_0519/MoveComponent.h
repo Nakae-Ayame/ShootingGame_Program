@@ -33,8 +33,12 @@ public:
 
     //-----------------------------------その他関数関連------------------------------------
     void AddImpulse(const DirectX::SimpleMath::Vector3& impulse) { m_externalVelocity += impulse; }
+
+    //削除予定
     void HandleCollisionCorrection(const DirectX::SimpleMath::Vector3& push,
         const DirectX::SimpleMath::Vector3& contactNormal);
+
+    //削除予定
     void ApplyCollisionPush();
 
 	//-------------------------入力取得関連------------------------
@@ -94,9 +98,13 @@ private:
     float m_pitchSaturationFactor  = 6.0f;    // atan の分母などに使う（垂直速度のスケール）
 
     //--------------衝突・押し出し関連------------------
+    //削除予定
     DirectX::SimpleMath::Vector3 m_accumulatedPush = DirectX::SimpleMath::Vector3::Zero;
+    //削除予定
     bool m_hadCollisionThisFrame = false;
+    //削除予定
     DirectX::SimpleMath::Vector3 m_totalPushThisFrame = DirectX::SimpleMath::Vector3::Zero;
+    //削除予定
     bool m_hasPushThisFrame = false;
 
     float m_externalDamping = 6.0f;   

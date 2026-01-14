@@ -5,6 +5,7 @@
 #include "BoxComponent.h"
 #include "OBBColliderComponent.h"
 #include "ModelCache.h"
+#include "PushOutComponent.h"
 #include "Building.h"
 #include <random>
 #include <cmath>
@@ -191,6 +192,9 @@ int BuildingSpawner::Spawn(const BuildingConfig& cfg)
         auto mc = std::make_shared<ModelComponent>();
         mc->LoadModel(cfg.modelPath);
         obj->AddComponent(mc);
+
+        auto push = std::make_shared<PushOutComponent>();
+        obj->AddComponent(push);
 
         obj->Initialize();
         m_scene->AddObject(obj);

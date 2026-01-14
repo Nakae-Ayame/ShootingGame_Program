@@ -8,6 +8,7 @@
 #include "FixedTurretComponent.h"
 #include "EnemyAIComponent.h"
 #include "HitPointCompornent.h"
+#include "PushOutComponent.h"
 
 EnemySpawner::EnemySpawner(GameScene* scene) : m_scene(scene)
 {
@@ -67,6 +68,9 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(const PatrolConfig& c
 
     //コンポーネント追加(HP)
     enemy->AddComponent(hp);
+
+    auto push = std::make_shared<PushOutComponent>();
+    enemy -> AddComponent(push);
    
     //初期化
     enemy->Initialize();
@@ -104,6 +108,16 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnCircleEnemy(const CircleConfig& c
     circ->SetClockwise(cfg.clockwise);
     enemy->AddComponent(circ);
 
+    //HP設定
+    auto hp = std::make_shared<HitPointComponent>(1);
+    hp->SetInvincibilityOnHit(0.0f);
+
+    //コンポーネント追加(HP)
+    enemy->AddComponent(hp);
+
+    auto push = std::make_shared<PushOutComponent>();
+    enemy->AddComponent(push);
+
     m_scene->AddObject(enemy);
 
     return enemy;
@@ -123,7 +137,7 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnTurretEnemy(const TurretConfig& c
     enemy->AddComponent(model);
 
     //当たり判定の設定を行い、Componentを付ける
-    auto col = std::make_shared<OBBColliderComponent>();
+    auto col = std::make_shared<AABBColliderComponent>();
     col->SetSize({ 3,3,3 });
     enemy->AddComponent(col);
 
@@ -133,6 +147,13 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnTurretEnemy(const TurretConfig& c
     turt->SetBulletSpeed(turretCfg.bulletSpeed);
     turt->SetTarget(turretCfg.target);
     enemy->AddComponent(turt);
+
+    //HP設定
+    auto hp = std::make_shared<HitPointComponent>(1);
+    hp->SetInvincibilityOnHit(0.0f);
+
+    //コンポーネント追加(HP)
+    enemy->AddComponent(hp);
 
     m_scene->AddObject(enemy);
 
