@@ -14,6 +14,8 @@ void Game::GameInit()
 
     //DirectXのレンダラーを初期化
     Renderer::Init();
+    
+    Sound::Init();
 
     TransitionManager::Init();
 
@@ -21,10 +23,6 @@ void Game::GameInit()
 
     // デバッグUIの初期化
     DebugUI::Init(Renderer::GetDevice(), Renderer::GetDeviceContext());
-
-    Sound::Init();
-
-    Sound::PlayBgmWav(L"Asset/Sound/bgm.wav", 0.6f);
 }
 
 void Game::GameUninit()
@@ -39,7 +37,11 @@ void Game::GameUninit()
 
 void Game::GameUpdate(float deltaTime)
 {
-    SceneManager::Update(deltaTime); //シーンマネージャーの終了処理
+    Sound::Update(deltaTime);
+
+    SceneManager::Update(deltaTime); //シーンマネージャーの終了処理 
+
+    TransitionManager::Update(deltaTime);
 }
 
 void Game::GameDraw(float deltaTime)
@@ -48,24 +50,8 @@ void Game::GameDraw(float deltaTime)
     Renderer::Begin();
     //シーンマネージャーの描画処理
     SceneManager::Draw(deltaTime);
+    TransitionManager::Draw(deltaTime);
+
     //フレームの終了
     Renderer::End();
-
-    // --- 3Dシーン（ブラー対象） ---
-    /*Renderer::BeginScene();              // SceneColorRTV + DSV をセット＆クリア
-    SceneManager::DrawWorld(deltaTime);  // 3Dだけ描画
-
-    // --- モーションブラー（SceneColor → BackBuffer） ---
-    Renderer::ApplyMotionBlur();
-
-    // --- UI／ImGui（非ブラー） ---
-    Renderer::BeginUI();                 // BackBufferRTV をセット（クリアなし）
-    SceneManager::DrawUI(deltaTime);     // HPバー、レティクルなど 2D/UI
-
-    // ImGui を使っているならここで
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-    // --- Present ---
-    Renderer::EndFrame();*/
-
 }
