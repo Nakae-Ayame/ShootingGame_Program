@@ -8,6 +8,7 @@
 #include "DebugScene.h"
 #include "CollisionManager.h"
 #include "Application.h" 
+#include "ResultLooseScene.h"
        
 std::unordered_map<std::string, std::unique_ptr<IScene>> SceneManager::m_scenes;
 
@@ -35,6 +36,8 @@ void SceneManager::SetCurrentScene(const std::string& name)
     // 新しいシーン名をセット＆Init
     m_currentSceneName = name;
     m_scenes[m_currentSceneName]->Init();
+    Sound::StopBgm();
+    Sound::StopAllSe();
 
     // ウィンドウタイトルも変更（std::string → wchar_t* へ変換）
     int wlen = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), -1, nullptr, 0);
@@ -84,6 +87,8 @@ void SceneManager::Init()
     RegisterScene("GameScene", std::make_unique<GameScene>());
 
     RegisterScene("ResultScene", std::make_unique<ResultScene>());
+
+    RegisterScene("ResultScene02", std::make_unique<ResultLooseScene>());
     
     RegisterScene("DebugScene", std::make_unique<DebugScene>());
 
@@ -97,41 +102,39 @@ void SceneManager::Update(float deltatime)
 {
     Input::Update();
 
-    TransitionManager::Update(deltatime);
-
-    if (!TransitionManager::IsActive())
+    if (!TransitionManager::IsTransitioning())
     {
-        // snapshot (not strictly required if SetCurrentScene sets flag)
-        // call scene Update
         if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
         {
             m_scenes[m_currentSceneName]->Update(deltatime);
         }
-
-        // if scene changed during Update, skip collision / cleanup to avoid using freed data
+        
         if (m_sceneChangedThisFrame)
         {
             m_sceneChangedThisFrame = false;
-            return; // short-circuit: next frame will start clean
+            return; 
         }
 
         if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
         {
             m_scenes[m_currentSceneName]->FinishFrameCleanup();
         }
-    }
+    } 
+
 }
 
 void SceneManager::Draw(float deltatime)
 {
+
     //現在シーンを描画
     if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
     {
         m_scenes[m_currentSceneName]->Draw(deltatime);
     }
 
-        // デバッグUIの描画
+    //デバッグUIの描画
     DebugUI::Render();
+
 }
 
 void SceneManager::DrawWorld(float deltatime)

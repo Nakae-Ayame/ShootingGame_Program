@@ -1,5 +1,4 @@
 #pragma once
-//DirectXレンダリングで使用する各種構造体とRendererクラスの宣言
 #include <d3d11.h>
 #include <io.h>
 #include <string>
@@ -9,6 +8,8 @@
 #include "CommonTypes.h"
 #include "Transform.h"
 #include "VisualSettings.h"
+#include "Sound.h"
+
 using namespace DirectX;
 
  // リンクすべき外部ライブラリ
@@ -102,6 +103,12 @@ struct CBBoneCombMatrix
     DirectX::XMFLOAT4X4 BoneCombMtx[MAX_BONE];  ///< ボーンコンビネーション行列の配列
 };
 
+struct CBTextureAlpha
+{
+    float Alpha;
+    float Padding[3];
+};
+
 // @brief DirectXレンダリング処理を管理するレンダラクラス
 //このクラスは、Direct3Dデバイス、コンテキスト、スワップチェーンなどの管理と、
 //レンダリング処理の初期化、開始、終了などの機能を提供します。
@@ -109,44 +116,47 @@ struct CBBoneCombMatrix
 class Renderer// : NonCopyable
 {
 private:
-    static D3D_FEATURE_LEVEL m_FeatureLevel;
+    static D3D_FEATURE_LEVEL m_featureLevel;
 
-    static ComPtr<ID3D11Device> m_Device;
-    static ComPtr<ID3D11DeviceContext> m_DeviceContext;
-    static ComPtr<IDXGISwapChain> m_SwapChain;
-    static ComPtr<ID3D11RenderTargetView> m_RenderTargetView;
-    static ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
+    static ComPtr<ID3D11Device> m_device;
+    static ComPtr<ID3D11DeviceContext> m_deviceContext;
+    static ComPtr<IDXGISwapChain> m_swapChain;
+    static ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+    static ComPtr<ID3D11DepthStencilView> m_depthStencilView;
 
-    static ComPtr<ID3D11Buffer> m_WorldBuffer;
-    static ComPtr<ID3D11Buffer> m_ViewBuffer;
-    static ComPtr<ID3D11Buffer> m_ProjectionBuffer;
-    static ComPtr<ID3D11Buffer> m_MaterialBuffer;
-    static ComPtr<ID3D11Buffer> m_LightBuffer;
+    static ComPtr<ID3D11Buffer> m_worldBuffer;
+    static ComPtr<ID3D11Buffer> m_viewBuffer;
+    static ComPtr<ID3D11Buffer> m_projectionBuffer;
+    static ComPtr<ID3D11Buffer> m_materialBuffer;
+    static ComPtr<ID3D11Buffer> m_lightBuffer;
 
-    static ComPtr<ID3D11DepthStencilState> m_DepthStateEnable;
-    static ComPtr<ID3D11DepthStencilState> m_DepthStateDisable;
+    static ComPtr<ID3D11DepthStencilState> m_depthStateEnable;
+    static ComPtr<ID3D11DepthStencilState> m_depthStateDisable;
 
-    static ComPtr<ID3D11BlendState> m_BlendState[MAX_BLENDSTATE];
-    static ComPtr<ID3D11BlendState> m_BlendStateATC;
+    static ComPtr<ID3D11BlendState> m_blendState[MAX_BLENDSTATE];
+    static ComPtr<ID3D11BlendState> m_blendStateATC;
 
-    static int m_IndexCount;
+    static int m_indexCount;
 
     //-------------------------------ポストプロセス用------------------------------
-    static PostProcessSettings s_PostProcess;
+    static PostProcessSettings s_postProcess;
 
-    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_SceneColorTex;    
-    static Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_SceneColorRTV;
-    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SceneColorSRV;
+    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_sceneColorTex;    
+    static Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_sceneColorRTV;
+    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_sceneColorSRV;
 
-    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_PrevSceneColorTex;
-    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PrevSceneColorSRV;
+    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_prevSceneColorTex;
+    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_prevSceneColorSRV;
 
-    static Microsoft::WRL::ComPtr<ID3D11PixelShader>        m_MotionBlurPixelShader;
-    static Microsoft::WRL::ComPtr<ID3D11Buffer>             m_PostProcessBuffer;
-
-    
+    static Microsoft::WRL::ComPtr<ID3D11PixelShader>        m_motionBlurPixelShader;
+    static Microsoft::WRL::ComPtr<ID3D11Buffer>             m_postProcessBuffer;
 
     //-----------------------------------------------------------------------------
+
+    //シェーダコンパイルの共通ヘルパ
+    static Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const wchar_t* filePath,
+                                                          const char* entryPoint,
+                                                          const char* target);
 
 public:
     static Renderer& Get();
@@ -160,6 +170,8 @@ public:
 	static void BeginBackBuffer();
     static void ApplyMotionBlur(); // End() から呼ぶ内部処理
 
+
+
     //-----------------------Set関数関連--------------------------------------
     static void SetDepthEnable(bool Enable);
     static void SetDepthAllwaysWrite();
@@ -170,25 +182,26 @@ public:
     static void SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix);
     static void SetMaterial(MATERIAL Material);
     static void SetLight(LIGHT Light);
-    static void SetTexture(ID3D11ShaderResourceView* texture){m_DeviceContext->PSSetShaderResources(0, 1, &texture);}
-    static ID3D11Device* GetDevice(void) { return m_Device.Get(); }
-    static ID3D11DeviceContext* GetDeviceContext(void) { return m_DeviceContext.Get(); }
+    static void SetTexture(ID3D11ShaderResourceView* texture){m_deviceContext->PSSetShaderResources(0, 1, &texture);}
+    static ID3D11Device* GetDevice(void) { return m_device.Get(); }
+    static ID3D11DeviceContext* GetDeviceContext(void) { return m_deviceContext.Get(); }
     static void SetBlendState(int nBlendState);
-    static IDXGISwapChain* GetSwapChain() { return m_SwapChain.Get(); }
+    static IDXGISwapChain* GetSwapChain() { return m_swapChain.Get(); }
     static void ClearDepthBuffer()
     {
-        m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+        m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
     }
     static void DisableCulling(bool cullflag = false);
     static void SetFillMode(D3D11_FILL_MODE FillMode);
-    static int GetIndexCount() { return m_IndexCount; }
-    static ID3D11Buffer* GetViewBuffer(){ return m_ViewBuffer.Get(); }
-    static ID3D11Buffer* GetWorldBuffer(){ return m_WorldBuffer.Get(); }
-    static ID3D11Buffer* GetProjectionBuffer(){ return m_ProjectionBuffer.Get(); }
+    static int GetIndexCount() { return m_indexCount; }
+    static ID3D11Buffer* GetViewBuffer(){ return m_viewBuffer.Get(); }
+    static ID3D11Buffer* GetWorldBuffer(){ return m_worldBuffer.Get(); }
+    static ID3D11Buffer* GetProjectionBuffer(){ return m_projectionBuffer.Get(); }
 
     static void SetPostProcessSettings(const PostProcessSettings& settings);
     static const PostProcessSettings& GetPostProcessSettings();
 
+    static void SetTextureAlpha(float alpha);
 
     //レティクル用の関数
     static void DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size);
@@ -196,35 +209,36 @@ public:
     // マテリアル用定数バッファのポインタを取得
     static ID3D11Buffer* GetMaterialCB()
     {
-        return m_MaterialBuffer.Get();
+        return m_materialBuffer.Get();
     }
 
     // マテリアル用定数バッファのアドレス（ID3D11Buffer**）を取得
     static ID3D11Buffer** GetMaterialCBAddress()
     {
-        return m_MaterialBuffer.GetAddressOf();
+        return m_materialBuffer.GetAddressOf();
     }
 
     static void DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size);
 
 
 
-    static ComPtr<ID3D11VertexShader> m_VertexShader;
-    static ComPtr<ID3D11PixelShader>  m_PixelShader;
-    static ComPtr<ID3D11InputLayout>  m_InputLayout;
-    static ComPtr<ID3D11InputLayout>  m_AxisInputLayout;
+    static ComPtr<ID3D11VertexShader> m_vertexShader;
+    static ComPtr<ID3D11PixelShader>  m_pixelShader;
+    static ComPtr<ID3D11InputLayout>  m_inputLayout;
+    static ComPtr<ID3D11InputLayout>  m_axisInputLayout;
 
     //テクスチャ描画用のシェーダーとレイアウト
-    static ComPtr<ID3D11VertexShader> m_TextureVertexShader;
-    static ComPtr<ID3D11PixelShader>  m_TexturePixelShader;
-    static ComPtr<ID3D11InputLayout>  m_TextureInputLayout;
+    static ComPtr<ID3D11VertexShader> m_textureVertexShader;
+    static ComPtr<ID3D11PixelShader>  m_texturePixelShader;
+    static ComPtr<ID3D11InputLayout>  m_textureInputLayout;
+    static ComPtr<ID3D11Buffer>       m_textureAlphaBuffer;
 
-    static D3D11_VIEWPORT m_Viewport;                // シーン描画用ビューポート
-    static Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterizerState; // 標準ラスタライザ
+    static D3D11_VIEWPORT m_viewport;                // シーン描画用ビューポート
+    static Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState; // 標準ラスタライザ
 
     // Grid専用のシェーダー
-    static ComPtr<ID3D11VertexShader> m_GridVertexShader;
-    static ComPtr<ID3D11PixelShader>  m_GridPixelShader;
+    static ComPtr<ID3D11VertexShader> m_gridVertexShader;
+    static ComPtr<ID3D11PixelShader>  m_gridPixelShader;
 
     static ComPtr<ID3D11DeviceContext>  m_pContext; // 初期化済みのデバイスコンテキスト
     static ComPtr<ID3D11BlendState>     m_pBlendState; // アルファブレンド用

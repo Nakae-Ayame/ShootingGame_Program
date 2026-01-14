@@ -12,63 +12,65 @@
 #include <algorithm>
 #include "renderer.h"
 #include "Application.h"
+#include "TransitionManager.h"
 
 
 //------------------------------------------------------------------------------
 // スタティックメンバ変数の初期化
 //------------------------------------------------------------------------------
 
-D3D_FEATURE_LEVEL       Renderer::m_FeatureLevel = D3D_FEATURE_LEVEL_11_0;
+D3D_FEATURE_LEVEL       Renderer::m_featureLevel = D3D_FEATURE_LEVEL_11_0;
 
-ComPtr<ID3D11Device> Renderer::m_Device;
-ComPtr<ID3D11DeviceContext> Renderer::m_DeviceContext;
-ComPtr<IDXGISwapChain> Renderer::m_SwapChain;
-ComPtr<ID3D11RenderTargetView> Renderer::m_RenderTargetView;
-ComPtr<ID3D11DepthStencilView> Renderer::m_DepthStencilView;
+ComPtr<ID3D11Device> Renderer::m_device;
+ComPtr<ID3D11DeviceContext> Renderer::m_deviceContext;
+ComPtr<IDXGISwapChain> Renderer::m_swapChain;
+ComPtr<ID3D11RenderTargetView> Renderer::m_renderTargetView;
+ComPtr<ID3D11DepthStencilView> Renderer::m_depthStencilView;
 
-ComPtr<ID3D11Buffer> Renderer::m_WorldBuffer;
-ComPtr<ID3D11Buffer> Renderer::m_ViewBuffer;
-ComPtr<ID3D11Buffer> Renderer::m_ProjectionBuffer;
-ComPtr<ID3D11Buffer> Renderer::m_MaterialBuffer;
-ComPtr<ID3D11Buffer> Renderer::m_LightBuffer;
+ComPtr<ID3D11Buffer> Renderer::m_worldBuffer;
+ComPtr<ID3D11Buffer> Renderer::m_viewBuffer;
+ComPtr<ID3D11Buffer> Renderer::m_projectionBuffer;
+ComPtr<ID3D11Buffer> Renderer::m_materialBuffer;
+ComPtr<ID3D11Buffer> Renderer::m_lightBuffer;
 
-ComPtr<ID3D11DepthStencilState> Renderer::m_DepthStateEnable;
-ComPtr<ID3D11DepthStencilState> Renderer::m_DepthStateDisable;
+ComPtr<ID3D11DepthStencilState> Renderer::m_depthStateEnable;
+ComPtr<ID3D11DepthStencilState> Renderer::m_depthStateDisable;
 
-ComPtr<ID3D11BlendState> Renderer::m_BlendState[MAX_BLENDSTATE];
-ComPtr<ID3D11BlendState> Renderer::m_BlendStateATC;
+ComPtr<ID3D11BlendState> Renderer::m_blendState[MAX_BLENDSTATE];
+ComPtr<ID3D11BlendState> Renderer::m_blendStateATC;
 
-ComPtr<ID3D11VertexShader> Renderer::m_VertexShader;
-ComPtr<ID3D11PixelShader>  Renderer::m_PixelShader;
-ComPtr<ID3D11InputLayout>  Renderer::m_InputLayout;
-ComPtr<ID3D11InputLayout>  Renderer::m_AxisInputLayout;
+ComPtr<ID3D11VertexShader> Renderer::m_vertexShader;
+ComPtr<ID3D11PixelShader>  Renderer::m_pixelShader;
+ComPtr<ID3D11InputLayout>  Renderer::m_inputLayout;
+ComPtr<ID3D11InputLayout>  Renderer::m_axisInputLayout;
 
-ComPtr<ID3D11VertexShader> Renderer::m_GridVertexShader;
-ComPtr<ID3D11PixelShader>  Renderer::m_GridPixelShader;
+ComPtr<ID3D11VertexShader> Renderer::m_gridVertexShader;
+ComPtr<ID3D11PixelShader>  Renderer::m_gridPixelShader;
 
 //テクスチャ描画用のシェーダーとレイアウト
-ComPtr<ID3D11VertexShader> Renderer::m_TextureVertexShader;
-ComPtr<ID3D11PixelShader>  Renderer::m_TexturePixelShader;
-ComPtr<ID3D11InputLayout>  Renderer::m_TextureInputLayout;
+ComPtr<ID3D11VertexShader> Renderer::m_textureVertexShader;
+ComPtr<ID3D11PixelShader>  Renderer::m_texturePixelShader;
+ComPtr<ID3D11InputLayout>  Renderer::m_textureInputLayout;
+ComPtr<ID3D11Buffer>  Renderer::m_textureAlphaBuffer;
 
 ComPtr<ID3D11DeviceContext> Renderer::m_pContext; // 初期化済みのデバイスコンテキスト
 ComPtr<ID3D11BlendState> Renderer::m_pBlendState; // アルファブレンド用
 ComPtr<ID3D11Buffer> Renderer::m_pVertexBuffer; // フルスクリーン用頂点バッファ
 
-D3D11_VIEWPORT Renderer::m_Viewport;                // シーン描画用ビューポート
-ComPtr<ID3D11RasterizerState> Renderer::m_RasterizerState;
+D3D11_VIEWPORT Renderer::m_viewport;                // シーン描画用ビューポート
+ComPtr<ID3D11RasterizerState> Renderer::m_rasterizerState;
 
-PostProcessSettings Renderer::s_PostProcess{};
+PostProcessSettings Renderer::s_postProcess{};
 
-ComPtr<ID3D11Texture2D>        Renderer::m_SceneColorTex;
-ComPtr<ID3D11RenderTargetView> Renderer::m_SceneColorRTV;
-ComPtr<ID3D11ShaderResourceView> Renderer::m_SceneColorSRV;
+ComPtr<ID3D11Texture2D>        Renderer::m_sceneColorTex;
+ComPtr<ID3D11RenderTargetView> Renderer::m_sceneColorRTV;
+ComPtr<ID3D11ShaderResourceView> Renderer::m_sceneColorSRV;
 
-ComPtr<ID3D11Texture2D>        Renderer::m_PrevSceneColorTex;
-ComPtr<ID3D11ShaderResourceView> Renderer::m_PrevSceneColorSRV;
+ComPtr<ID3D11Texture2D>        Renderer::m_prevSceneColorTex;
+ComPtr<ID3D11ShaderResourceView> Renderer::m_prevSceneColorSRV;
 
-ComPtr<ID3D11PixelShader>      Renderer::m_MotionBlurPixelShader;
-ComPtr<ID3D11Buffer>           Renderer::m_PostProcessBuffer;
+ComPtr<ID3D11PixelShader>      Renderer::m_motionBlurPixelShader;
+ComPtr<ID3D11Buffer>           Renderer::m_postProcessBuffer;
 
 
 struct MotionBlurParams
@@ -76,6 +78,45 @@ struct MotionBlurParams
     float motionBlurAmount;
     float padding[3]; // 16バイト境界に揃えるためのダミー
 };
+
+Microsoft::WRL::ComPtr<ID3DBlob> Renderer::CompileShader(
+    const wchar_t* filePath,
+    const char* entryPoint,
+    const char* target)
+{
+    Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+    UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined(_DEBUG) || defined(DEBUG)
+    compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+    HRESULT hr = D3DCompileFromFile(
+        filePath,
+        nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        entryPoint,
+        target,
+        compileFlags,
+        0,
+        shaderBlob.GetAddressOf(),
+        errorBlob.GetAddressOf());
+
+    if (FAILED(hr))
+    {
+        if (errorBlob)
+        {
+            // エラーメッセージを出力（デバッグ用）
+            OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
+        }
+
+        // 失敗時は例外を投げる（呼び出し側でキャッチ/ハンドルする想定）
+        throw std::runtime_error("Shader compile failed");
+    }
+
+    return shaderBlob;
+}
 
 void Renderer::Init()
 {
@@ -102,10 +143,10 @@ void Renderer::Init()
     hr = D3D11CreateDeviceAndSwapChain(
         nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
         nullptr, 0, D3D11_SDK_VERSION, &swapChainDesc,
-        m_SwapChain.GetAddressOf(),
-        m_Device.GetAddressOf(),
-        &m_FeatureLevel,
-        m_DeviceContext.GetAddressOf());
+        m_swapChain.GetAddressOf(),
+        m_device.GetAddressOf(),
+        &m_featureLevel,
+        m_deviceContext.GetAddressOf());
     if (FAILED(hr))
     {
         OutputDebugStringA("DirectXの初期化に失敗しました。\n");
@@ -113,9 +154,9 @@ void Renderer::Init()
 
     //-----------------Direct3D デバイス・スワップチェーン・デバイスコンテキストをを作成する-----------------
     ComPtr<ID3D11Texture2D> renderTarget;
-    hr = m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(renderTarget.GetAddressOf()));
+    hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(renderTarget.GetAddressOf()));
     if (SUCCEEDED(hr) && renderTarget) {
-        m_Device->CreateRenderTargetView(renderTarget.Get(), nullptr, m_RenderTargetView.GetAddressOf());
+        m_device->CreateRenderTargetView(renderTarget.Get(), nullptr, m_renderTargetView.GetAddressOf());
     }
     else 
     {
@@ -133,7 +174,7 @@ void Renderer::Init()
     textureDesc.SampleDesc = swapChainDesc.SampleDesc;
     textureDesc.Usage = D3D11_USAGE_DEFAULT;
     textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    hr = m_Device->CreateTexture2D(&textureDesc, nullptr, depthStencil.GetAddressOf());
+    hr = m_device->CreateTexture2D(&textureDesc, nullptr, depthStencil.GetAddressOf());
     if (FAILED(hr))
     {
         throw std::runtime_error("Failed to create depthStencil.");
@@ -143,15 +184,15 @@ void Renderer::Init()
     D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
     depthStencilViewDesc.Format = textureDesc.Format;
     depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    hr = m_Device->CreateDepthStencilView(depthStencil.Get(),                   //元となる深度テクスチャ
+    hr = m_device->CreateDepthStencilView(depthStencil.Get(),                   //元となる深度テクスチャ
                                           &depthStencilViewDesc,                //上で作ったビュー設定
-                                          m_DepthStencilView.GetAddressOf());   //生成したビューを格納する場所
+                                          m_depthStencilView.GetAddressOf());   //生成したビューを格納する場所
     if (FAILED(hr)) 
     {
         throw std::runtime_error("Failed to create depthStencilView.");
     }
 
-    m_DeviceContext->OMSetRenderTargets(1, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
+    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
     //-----------------------------
     // シーン描画用テクスチャ作成
@@ -167,13 +208,13 @@ void Renderer::Init()
     sceneDesc.Usage = D3D11_USAGE_DEFAULT;
     sceneDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-    hr = m_Device->CreateTexture2D(&sceneDesc, nullptr, m_SceneColorTex.GetAddressOf());
+    hr = m_device->CreateTexture2D(&sceneDesc, nullptr, m_sceneColorTex.GetAddressOf());
     if (FAILED(hr)) { throw std::runtime_error("Failed to create scene color texture"); }
 
-    hr = m_Device->CreateRenderTargetView(m_SceneColorTex.Get(), nullptr, m_SceneColorRTV.GetAddressOf());
+    hr = m_device->CreateRenderTargetView(m_sceneColorTex.Get(), nullptr, m_sceneColorRTV.GetAddressOf());
     if (FAILED(hr)) { throw std::runtime_error("Failed to create scene RTV"); }
 
-    hr = m_Device->CreateShaderResourceView(m_SceneColorTex.Get(), nullptr, m_SceneColorSRV.GetAddressOf());
+    hr = m_device->CreateShaderResourceView(m_sceneColorTex.Get(), nullptr, m_sceneColorSRV.GetAddressOf());
     if (FAILED(hr)) { throw std::runtime_error("Failed to create scene SRV"); }
 
     // =========================
@@ -182,10 +223,10 @@ void Renderer::Init()
     D3D11_TEXTURE2D_DESC prevDesc = sceneDesc;
     prevDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // 書き込みは CopyResource で行うので RTV は不要
 
-    hr = m_Device->CreateTexture2D(&prevDesc, nullptr, m_PrevSceneColorTex.GetAddressOf());
+    hr = m_device->CreateTexture2D(&prevDesc, nullptr, m_prevSceneColorTex.GetAddressOf());
     if (FAILED(hr)) { throw std::runtime_error("Failed to create prev scene texture"); }
 
-    hr = m_Device->CreateShaderResourceView(m_PrevSceneColorTex.Get(), nullptr, m_PrevSceneColorSRV.GetAddressOf());
+    hr = m_device->CreateShaderResourceView(m_prevSceneColorTex.Get(), nullptr, m_prevSceneColorSRV.GetAddressOf());
     if (FAILED(hr)) { throw std::runtime_error("Failed to create prev scene SRV"); }
 
     // =========================
@@ -199,44 +240,33 @@ void Renderer::Init()
     ppDesc.MiscFlags = 0;
     ppDesc.StructureByteStride = 0;
 
-    hr = m_Device->CreateBuffer(&ppDesc, nullptr, m_PostProcessBuffer.GetAddressOf());
+    hr = m_device->CreateBuffer(&ppDesc, nullptr, m_postProcessBuffer.GetAddressOf());
     if (FAILED(hr)) { throw std::runtime_error("Failed to create postprocess constant buffer"); }
 
     // =========================
     // ★ モーションブラー用ピクセルシェーダのコンパイル
     // =========================
+    auto blurPsBlob = CompileShader( L"MotionBlurPixelShader.hlsl",
+                                     "PSMain", "ps_5_0");
+
+     hr = m_device->CreatePixelShader(
+        blurPsBlob->GetBufferPointer(),
+        blurPsBlob->GetBufferSize(),
+        nullptr,
+        m_motionBlurPixelShader.GetAddressOf());
+
+    if (FAILED(hr))
     {
-        ComPtr<ID3DBlob> blurPsBlob;
-        ComPtr<ID3DBlob> blurErr;
-
-        hr = D3DCompileFromFile(
-            L"MotionBlurPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "PSMain", "ps_5_0", D3DCOMPILE_DEBUG, 0,
-            blurPsBlob.GetAddressOf(), blurErr.GetAddressOf());
-
-        if (FAILED(hr))
-        {
-            if (blurErr) OutputDebugStringA((char*)blurErr->GetBufferPointer());
-            throw std::runtime_error("MotionBlur pixel shader compile failed");
-        }
-
-        hr = m_Device->CreatePixelShader(
-            blurPsBlob->GetBufferPointer(), blurPsBlob->GetBufferSize(),
-            nullptr, m_MotionBlurPixelShader.GetAddressOf());
-
-        if (FAILED(hr))
-        {
-            throw std::runtime_error("Failed to create MotionBlur pixel shader");
-        }
+        throw std::runtime_error("Failed to create MotionBlur pixel shader");
     }
 
-    m_Viewport.Width = static_cast<FLOAT>(Application::GetWidth());
-    m_Viewport.Height = static_cast<FLOAT>(Application::GetHeight());
-    m_Viewport.MinDepth = 0.0f;
-    m_Viewport.MaxDepth = 1.0f;
-    m_Viewport.TopLeftX = 0;
-    m_Viewport.TopLeftY = 0;
-    m_DeviceContext->RSSetViewports(1, &m_Viewport);
+    m_viewport.Width = static_cast<FLOAT>(Application::GetWidth());
+    m_viewport.Height = static_cast<FLOAT>(Application::GetHeight());
+    m_viewport.MinDepth = 0.0f;
+    m_viewport.MaxDepth = 1.0f;
+    m_viewport.TopLeftX = 0;
+    m_viewport.TopLeftY = 0;
+    m_deviceContext->RSSetViewports(1, &m_viewport);
 
 
     // --- ラスタライザステート設定 ---
@@ -245,9 +275,9 @@ void Renderer::Init()
     rasterizerDesc.CullMode = D3D11_CULL_NONE;
     rasterizerDesc.DepthClipEnable = TRUE;
 
-    m_Device->CreateRasterizerState(&rasterizerDesc, m_RasterizerState.GetAddressOf());
+    m_device->CreateRasterizerState(&rasterizerDesc, m_rasterizerState.GetAddressOf());
     // 設定（最初のフレーム）
-    m_DeviceContext->RSSetState(m_RasterizerState.Get());
+    m_deviceContext->RSSetState(m_rasterizerState.Get());
 
     //-----------------------ブレンドステートの生成-----------------------
     D3D11_BLEND_DESC BlendDesc{};
@@ -262,16 +292,16 @@ void Renderer::Init()
     BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-    m_Device->CreateBlendState(&BlendDesc, m_BlendState[0].GetAddressOf());
+    m_device->CreateBlendState(&BlendDesc, m_blendState[0].GetAddressOf());
     BlendDesc.RenderTarget[0].BlendEnable = TRUE;
-    m_Device->CreateBlendState(&BlendDesc, m_BlendState[1].GetAddressOf());
-    m_Device->CreateBlendState(&BlendDesc, m_BlendStateATC.GetAddressOf());
+    m_device->CreateBlendState(&BlendDesc, m_blendState[1].GetAddressOf());
+    m_device->CreateBlendState(&BlendDesc, m_blendStateATC.GetAddressOf());
 
     BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-    m_Device->CreateBlendState(&BlendDesc, m_BlendState[2].GetAddressOf());
+    m_device->CreateBlendState(&BlendDesc, m_blendState[2].GetAddressOf());
 
     BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
-    m_Device->CreateBlendState(&BlendDesc, m_BlendState[3].GetAddressOf());
+    m_device->CreateBlendState(&BlendDesc, m_blendState[3].GetAddressOf());
 
     SetBlendState(BS_ALPHABLEND);
 
@@ -282,13 +312,13 @@ void Renderer::Init()
     depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
     depthStencilDesc.StencilEnable = FALSE;
 
-    m_Device->CreateDepthStencilState(&depthStencilDesc, m_DepthStateEnable.GetAddressOf());
+    m_device->CreateDepthStencilState(&depthStencilDesc, m_depthStateEnable.GetAddressOf());
 
     depthStencilDesc.DepthEnable = FALSE;
     depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-    m_Device->CreateDepthStencilState(&depthStencilDesc, m_DepthStateDisable.GetAddressOf());
+    m_device->CreateDepthStencilState(&depthStencilDesc, m_depthStateDisable.GetAddressOf());
 
-    m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable.Get(), 0);
+    m_deviceContext->OMSetDepthStencilState(m_depthStateEnable.Get(), 0);
 
     //-----------------------サンプラーステート設定-----------------------
     D3D11_SAMPLER_DESC samplerDesc{};
@@ -300,8 +330,8 @@ void Renderer::Init()
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
     ComPtr<ID3D11SamplerState> samplerState;
-    m_Device->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
-    m_DeviceContext->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+    m_device->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
+    m_deviceContext->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 
     //-----------------------定数バッファ生成-----------------------
     D3D11_BUFFER_DESC bufferDesc{};
@@ -312,56 +342,74 @@ void Renderer::Init()
     bufferDesc.MiscFlags = 0;
     bufferDesc.StructureByteStride = sizeof(float);
 
-    m_Device->CreateBuffer(&bufferDesc, nullptr, m_WorldBuffer.GetAddressOf());
-    m_DeviceContext->VSSetConstantBuffers(0, 1, m_WorldBuffer.GetAddressOf());
+    m_device->CreateBuffer(&bufferDesc, nullptr, m_worldBuffer.GetAddressOf());
+    m_deviceContext->VSSetConstantBuffers(0, 1, m_worldBuffer.GetAddressOf());
 
-    m_Device->CreateBuffer(&bufferDesc, nullptr, m_ViewBuffer.GetAddressOf());
-    m_DeviceContext->VSSetConstantBuffers(1, 1, m_ViewBuffer.GetAddressOf());
+    m_device->CreateBuffer(&bufferDesc, nullptr, m_viewBuffer.GetAddressOf());
+    m_deviceContext->VSSetConstantBuffers(1, 1, m_viewBuffer.GetAddressOf());
 
-    m_Device->CreateBuffer(&bufferDesc, nullptr, m_ProjectionBuffer.GetAddressOf());
-    m_DeviceContext->VSSetConstantBuffers(2, 1, m_ProjectionBuffer.GetAddressOf());
+    m_device->CreateBuffer(&bufferDesc, nullptr, m_projectionBuffer.GetAddressOf());
+    m_deviceContext->VSSetConstantBuffers(2, 1, m_projectionBuffer.GetAddressOf());
     
     bufferDesc.ByteWidth = sizeof(MATERIAL);
-    m_Device->CreateBuffer(&bufferDesc, nullptr, m_MaterialBuffer.GetAddressOf());
-    m_DeviceContext->VSSetConstantBuffers(3, 1, m_MaterialBuffer.GetAddressOf());
-    m_DeviceContext->PSSetConstantBuffers(3, 1, m_MaterialBuffer.GetAddressOf());
+    m_device->CreateBuffer(&bufferDesc, nullptr, m_materialBuffer.GetAddressOf());
+    m_deviceContext->VSSetConstantBuffers(3, 1, m_materialBuffer.GetAddressOf());
+    m_deviceContext->PSSetConstantBuffers(3, 1, m_materialBuffer.GetAddressOf());
 
     bufferDesc.ByteWidth = sizeof(LIGHT);
-    m_Device->CreateBuffer(&bufferDesc, nullptr, m_LightBuffer.GetAddressOf());
-    m_DeviceContext->VSSetConstantBuffers(4, 1, m_LightBuffer.GetAddressOf());
-    m_DeviceContext->PSSetConstantBuffers(4, 1, m_LightBuffer.GetAddressOf());
+    m_device->CreateBuffer(&bufferDesc, nullptr, m_lightBuffer.GetAddressOf());
+    m_deviceContext->VSSetConstantBuffers(4, 1, m_lightBuffer.GetAddressOf());
+    m_deviceContext->PSSetConstantBuffers(4, 1, m_lightBuffer.GetAddressOf());
+
+    D3D11_BUFFER_DESC alphaDesc{};
+    alphaDesc.ByteWidth = sizeof(CBTextureAlpha); // 16バイト境界に合わせたサイズ
+    alphaDesc.Usage = D3D11_USAGE_DEFAULT;
+    alphaDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    alphaDesc.CPUAccessFlags = 0;
+    alphaDesc.MiscFlags = 0;
+    alphaDesc.StructureByteStride = 0;
+
+    hr = m_device->CreateBuffer(&alphaDesc, nullptr, m_textureAlphaBuffer.GetAddressOf());
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create texture alpha constant buffer");
+    }
 
     //-----------------------シェーダーのコンパイル-----------------------
-    ComPtr<ID3DBlob> vsBlob;
-    ComPtr<ID3DBlob> psBlob;
-    ComPtr<ID3DBlob> errBlob;
+  
+    auto vsBlob = CompileShader(L"BasicVertexShader.hlsl",
+		                            "VSMain", "vs_5_0"); 
 
-    // 頂点シェーダーをコンパイル
-    hr = D3DCompileFromFile(
-        L"BasicVertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "VSMain", "vs_5_0", D3DCOMPILE_DEBUG, 0,
-        vsBlob.GetAddressOf(), errBlob.GetAddressOf());
-    if (FAILED(hr)) {
-        if (errBlob) {
-            OutputDebugStringA((char*)errBlob->GetBufferPointer());
-        }
-        throw std::runtime_error("頂点シェーダーのコンパイルに失敗");
+     hr = m_device->CreateVertexShader(
+        vsBlob->GetBufferPointer(),
+        vsBlob->GetBufferSize(),
+        nullptr,
+        m_vertexShader.GetAddressOf());
+
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Basic vertex shader");
     }
-    // ピクセルシェーダーをコンパイル
-    hr = D3DCompileFromFile(
-        L"BasicPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "PSMain", "ps_5_0", D3DCOMPILE_DEBUG, 0,
-        psBlob.GetAddressOf(), errBlob.GetAddressOf());
-    if (FAILED(hr)) {
-        if (errBlob) {
-            OutputDebugStringA((char*)errBlob->GetBufferPointer());
-        }
-        throw std::runtime_error("ピクセルシェーダーのコンパイルに失敗");
+
+    auto psBlob = CompileShader(
+        L"BasicPixelShader.hlsl",
+        "PSMain",
+        "ps_5_0");
+
+    hr = m_device->CreatePixelShader(
+        psBlob->GetBufferPointer(),
+        psBlob->GetBufferSize(),
+        nullptr,
+        m_pixelShader.GetAddressOf());
+
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Basic pixel shader");
     }
 
     //-----------------------シェーダーオブジェクト作成-----------------------
-    m_Device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_VertexShader.GetAddressOf());
-    m_Device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_PixelShader.GetAddressOf());
+    m_device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_vertexShader.GetAddressOf());
+    m_device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_pixelShader.GetAddressOf());
 
     //-----------------------頂点レイアウトを作成-----------------------
     // BasicVertexShader.hlsl の VS_Input に合わせて
@@ -376,67 +424,88 @@ void Renderer::Init()
     };
 
 
-    m_Device->CreateInputLayout(layoutDesc, _countof(layoutDesc),vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),m_InputLayout.GetAddressOf());
+    m_device->CreateInputLayout(layoutDesc, _countof(layoutDesc),vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),m_inputLayout.GetAddressOf());
 
     //-----------------------最後にシェーダー／レイアウトをセット-----------------------
-    m_DeviceContext->IASetInputLayout(m_InputLayout.Get());
-    m_DeviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0);
-    m_DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0);
+    m_deviceContext->IASetInputLayout(m_inputLayout.Get());
+    m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+    m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
     //グリッド用の頂点シェーダーをコンパイル
-    hr = D3DCompileFromFile(
-        L"GridVertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "VSMain", "vs_5_0", D3DCOMPILE_DEBUG, 0,
-        vsBlob.GetAddressOf(), errBlob.GetAddressOf());
+    auto vsGridBlob = CompileShader(
+        L"GridVertexShader.hlsl",
+        "VSMain",
+        "vs_5_0");
+
+    hr = m_device->CreateVertexShader(
+        vsGridBlob->GetBufferPointer(),
+        vsGridBlob->GetBufferSize(),
+        nullptr,
+        m_gridVertexShader.GetAddressOf());
+
     if (FAILED(hr))
     {
-        if (errBlob) OutputDebugStringA((char*)errBlob->GetBufferPointer());
-        throw std::runtime_error("Grid頂点シェーダーのコンパイルに失敗");
+        throw std::runtime_error("Failed to create Grid vertex shader");
     }
 
-    //グリッド用のピクセルシェーダーをコンパイル
-    hr = D3DCompileFromFile(
-        L"GridPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "PSMain", "ps_5_0", D3DCOMPILE_DEBUG, 0,
-        psBlob.GetAddressOf(), errBlob.GetAddressOf());
+    auto psGridBlob = CompileShader(
+        L"GridPixelShader.hlsl",
+        "PSMain",
+        "ps_5_0");
+
+    hr = m_device->CreatePixelShader(
+        psGridBlob->GetBufferPointer(),
+        psGridBlob->GetBufferSize(),
+        nullptr,
+        m_gridPixelShader.GetAddressOf());
+
     if (FAILED(hr))
     {
-        if (errBlob) OutputDebugStringA((char*)errBlob->GetBufferPointer());
-        throw std::runtime_error("Gridピクセルシェーダーのコンパイルに失敗");
+        throw std::runtime_error("Failed to create Grid pixel shader");
     }
 
     // シェーダーオブジェクト作成
-    m_Device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_GridVertexShader.GetAddressOf());
-    m_Device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_GridPixelShader.GetAddressOf());
+    m_device->CreateVertexShader(vsGridBlob->GetBufferPointer(), vsGridBlob->GetBufferSize(), nullptr, m_gridVertexShader.GetAddressOf());
+    m_device->CreatePixelShader(psGridBlob->GetBufferPointer(), psGridBlob->GetBufferSize(), nullptr,  m_gridPixelShader.GetAddressOf());
 
     // --- テクスチャ用シェーダーのコンパイル ---
-    ComPtr<ID3DBlob> texVsBlob;
-    ComPtr<ID3DBlob> texPsBlob;
-    ComPtr<ID3DBlob> texErrBlob;
 
-    // 頂点シェーダーコンパイル
-    hr = D3DCompileFromFile(
-        L"TextureVertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "VSMain", "vs_5_0", D3DCOMPILE_DEBUG, 0,
-        texVsBlob.GetAddressOf(), texErrBlob.GetAddressOf());
-    if (FAILED(hr)) {
-        if (texErrBlob) OutputDebugStringA((char*)texErrBlob->GetBufferPointer());
-        throw std::runtime_error("Texture vertex shader compile failed");
+    auto texVsBlob = CompileShader(
+        L"TextureVertexShader.hlsl",
+        "VSMain",
+        "vs_5_0");
+
+    hr = m_device->CreateVertexShader(
+        texVsBlob->GetBufferPointer(),
+        texVsBlob->GetBufferSize(),
+        nullptr,
+        m_textureVertexShader.GetAddressOf());
+
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Texture vertex shader");
     }
 
-    // ピクセルシェーダーコンパイル
-    hr = D3DCompileFromFile(
-        L"TexturePixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "PSMain", "ps_5_0", D3DCOMPILE_DEBUG, 0,
-        texPsBlob.GetAddressOf(), texErrBlob.GetAddressOf());
-    if (FAILED(hr)) {
-        if (texErrBlob) OutputDebugStringA((char*)texErrBlob->GetBufferPointer());
-        throw std::runtime_error("Texture pixel shader compile failed");
+    
+    auto texPsBlob = CompileShader(
+        L"TexturePixelShader.hlsl",
+        "PSMain",
+        "ps_5_0");
+
+    hr = m_device->CreatePixelShader(
+        texPsBlob->GetBufferPointer(),
+        texPsBlob->GetBufferSize(),
+        nullptr,
+        m_texturePixelShader.GetAddressOf());
+
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Texture pixel shader");
     }
 
     // シェーダーオブジェクト作成
-    m_Device->CreateVertexShader(texVsBlob->GetBufferPointer(), texVsBlob->GetBufferSize(), nullptr, m_TextureVertexShader.GetAddressOf());
-    m_Device->CreatePixelShader(texPsBlob->GetBufferPointer(), texPsBlob->GetBufferSize(), nullptr, m_TexturePixelShader.GetAddressOf());
+    m_device->CreateVertexShader(texVsBlob->GetBufferPointer(), texVsBlob->GetBufferSize(), nullptr, m_textureVertexShader.GetAddressOf());
+    m_device->CreatePixelShader(texPsBlob->GetBufferPointer(), texPsBlob->GetBufferSize(), nullptr, m_texturePixelShader.GetAddressOf());
 
     // 入力レイアウト（位置(float3) + UV(float2)）
     D3D11_INPUT_ELEMENT_DESC texLayoutDesc[] =
@@ -445,8 +514,8 @@ void Renderer::Init()
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
-    m_Device->CreateInputLayout(texLayoutDesc, _countof(texLayoutDesc),
-        texVsBlob->GetBufferPointer(), texVsBlob->GetBufferSize(), m_TextureInputLayout.GetAddressOf());
+    m_device->CreateInputLayout(texLayoutDesc, _countof(texLayoutDesc),
+        texVsBlob->GetBufferPointer(), texVsBlob->GetBufferSize(), m_textureInputLayout.GetAddressOf());
 
 
 }
@@ -456,43 +525,41 @@ void Renderer::Init()
 //ComPtr::Reset()で安全にリソースを開放しています。
 void Renderer::Uninit()
 {
-    for (auto& bs : m_BlendState)
+    for (auto& bs : m_blendState)
     {
         bs.Reset();
     }
-    m_BlendStateATC.Reset();
-    m_DepthStateEnable.Reset();
-    m_DepthStateDisable.Reset();
-    m_WorldBuffer.Reset();
-    m_ViewBuffer.Reset();
-    m_ProjectionBuffer.Reset();
-    m_LightBuffer.Reset();
-    m_MaterialBuffer.Reset();
-    m_RenderTargetView.Reset();
-    m_SwapChain.Reset();
-    m_DeviceContext.Reset();
-    m_Device.Reset();
+    m_blendStateATC.Reset();
+    m_depthStateEnable.Reset();
+    m_depthStateDisable.Reset();
+    m_worldBuffer.Reset();
+    m_viewBuffer.Reset();
+    m_projectionBuffer.Reset();
+    m_lightBuffer.Reset();
+    m_materialBuffer.Reset();
+    m_renderTargetView.Reset();
+    m_swapChain.Reset();
+    m_deviceContext.Reset();
+    m_device.Reset();
 
     char buf[256];
-    sprintf_s(buf, "Uninit: device=%p context=%p\n", m_Device.Get(), m_pContext.Get());
+    sprintf_s(buf, "Uninit: device=%p context=%p\n", m_device.Get(), m_pContext.Get());
     OutputDebugStringA(buf);
     m_pContext.Reset();
-    m_Device.Reset();
+    m_device.Reset();
 }
 
-
- //画面を指定色（青色）でクリア
- //深度バッファも初期化
- //毎フレーム必ず呼び出して、前のフレームの残像を消します。
- 
+//画面を指定色（青色）でクリア
+//深度バッファも初期化
+//毎フレーム必ず呼び出して、前のフレームの残像を消します。
 void Renderer::Begin()
 {
-    ID3D11RenderTargetView* rtv = m_SceneColorRTV.Get();
-    m_DeviceContext->OMSetRenderTargets(1, &rtv, m_DepthStencilView.Get());
+    ID3D11RenderTargetView* rtv = m_sceneColorRTV.Get();
+    m_deviceContext->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
 
-    float clearColor[4] = { 0, 0, 0, 1 };
-    m_DeviceContext->ClearRenderTargetView(m_SceneColorRTV.Get(), clearColor);
-    m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(),
+    float clearColor[4] = { 0.1f, 0.2f, 0.8f, 1.0f };
+    m_deviceContext->ClearRenderTargetView(m_sceneColorRTV.Get(), clearColor);
+    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(),
         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
         1.0f, 0);
 }
@@ -500,18 +567,26 @@ void Renderer::Begin()
 void Renderer::End()
 {
     ApplyMotionBlur();
-    m_SwapChain->Present(1, 0);
+    ID3D11RenderTargetView* backRTV = m_renderTargetView.Get();
+    m_deviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
+
+    // 深度は不要、アルファ合成を有効にして描画（TransitionManager::Draw は現在の RT に描く想定）
+    // 注意：TransitionManager::Draw は内部で SetTextureAlpha などを呼ぶのでここでは単純に呼び出すだけで良い
+    TransitionManager::Draw(0.0f); // deltaTime が必要なら適切な値を渡してください
+
+    // 最後に Present
+    m_swapChain->Present(1, 0);
 }
 
 void Renderer::Present()
 {
-    m_SwapChain->Present(1, 0);
+    m_swapChain->Present(1, 0);
 }
 
 void Renderer::SetDepthEnable(bool Enable)
 {
-    m_DeviceContext->OMSetDepthStencilState(
-        Enable ? m_DepthStateEnable.Get() : m_DepthStateDisable.Get(), 0);
+    m_deviceContext->OMSetDepthStencilState(
+        Enable ? m_depthStateEnable.Get() : m_depthStateDisable.Get(), 0);
 }
 
 /**
@@ -523,8 +598,8 @@ void Renderer::SetDepthEnable(bool Enable)
 void Renderer::SetATCEnable(bool Enable)
 {
     float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    m_DeviceContext->OMSetBlendState(
-        Enable ? m_BlendStateATC.Get() : m_BlendState[0].Get(),
+    m_deviceContext->OMSetBlendState(
+        Enable ? m_blendStateATC.Get() : m_blendState[0].Get(),
         blendFactor, 0xffffffff);
 }
 
@@ -537,10 +612,10 @@ void Renderer::SetATCEnable(bool Enable)
 void Renderer::SetWorldViewProjection2D()
 {
     Matrix4x4 world = Matrix4x4::Identity.Transpose();
-    m_DeviceContext->UpdateSubresource(m_WorldBuffer.Get(), 0, nullptr, &world, 0, 0);
+    m_deviceContext->UpdateSubresource(m_worldBuffer.Get(), 0, nullptr, &world, 0, 0);
 
     Matrix4x4 view = Matrix4x4::Identity.Transpose();
-    m_DeviceContext->UpdateSubresource(m_ViewBuffer.Get(), 0, nullptr, &view, 0, 0);
+    m_deviceContext->UpdateSubresource(m_viewBuffer.Get(), 0, nullptr, &view, 0, 0);
 
     Matrix4x4 projection = DirectX::XMMatrixOrthographicOffCenterLH(
         0.0f,
@@ -550,7 +625,19 @@ void Renderer::SetWorldViewProjection2D()
         0.0f,
         1.0f);
     projection = projection.Transpose();
-    m_DeviceContext->UpdateSubresource(m_ProjectionBuffer.Get(), 0, nullptr, &projection, 0, 0);
+    m_deviceContext->UpdateSubresource(m_projectionBuffer.Get(), 0, nullptr, &projection, 0, 0);
+}
+
+void Renderer::SetTextureAlpha(float alpha)
+{
+    CBTextureAlpha cb{};
+    cb.Alpha = alpha;
+    // UpdateSubresource で CB を更新
+    m_deviceContext->UpdateSubresource(m_textureAlphaBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+    // PixelShader スロット b5 にバインド（ここでバインドするのが安全）
+    ID3D11Buffer* cbPtr = m_textureAlphaBuffer.Get();
+    m_deviceContext->PSSetConstantBuffers(5, 1, &cbPtr);
 }
 
 /**
@@ -560,7 +647,7 @@ void Renderer::SetWorldViewProjection2D()
 void Renderer::SetWorldMatrix(Matrix4x4* WorldMatrix)
 {
     Matrix4x4 mat = WorldMatrix->Transpose();
-    m_DeviceContext->UpdateSubresource(m_WorldBuffer.Get(), 0, nullptr, &mat, 0, 0);
+    m_deviceContext->UpdateSubresource(m_worldBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
 
 /**
@@ -570,7 +657,7 @@ void Renderer::SetWorldMatrix(Matrix4x4* WorldMatrix)
 void Renderer::SetViewMatrix(SimpleMath::Matrix ViewMatrix)
 {
     SimpleMath::Matrix mat = ViewMatrix.Transpose();
-    m_DeviceContext->UpdateSubresource(m_ViewBuffer.Get(), 0, nullptr, &mat, 0, 0);
+    m_deviceContext->UpdateSubresource(m_viewBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
 
 /**
@@ -580,7 +667,7 @@ void Renderer::SetViewMatrix(SimpleMath::Matrix ViewMatrix)
 void Renderer::SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix)
 {
     SimpleMath::Matrix mat = ProjectionMatrix.Transpose();
-    m_DeviceContext->UpdateSubresource(m_ProjectionBuffer.Get(), 0, nullptr, &mat, 0, 0);
+    m_deviceContext->UpdateSubresource(m_projectionBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
 
 /**
@@ -589,7 +676,7 @@ void Renderer::SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix)
  */
 void Renderer::SetMaterial(MATERIAL Material)
 {
-    m_DeviceContext->UpdateSubresource(m_MaterialBuffer.Get(), 0, nullptr, &Material, 0, 0);
+    m_deviceContext->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, &Material, 0, 0);
 }
 
 /**
@@ -598,7 +685,7 @@ void Renderer::SetMaterial(MATERIAL Material)
  */
 void Renderer::SetLight(LIGHT Light)
 {
-    m_DeviceContext->UpdateSubresource(m_LightBuffer.Get(), 0, nullptr, &Light, 0, 0);
+    m_deviceContext->UpdateSubresource(m_lightBuffer.Get(), 0, nullptr, &Light, 0, 0);
 }
 
 /**
@@ -609,7 +696,7 @@ void Renderer::SetBlendState(int nBlendState)
 {
     if (nBlendState >= 0 && nBlendState < MAX_BLENDSTATE) {
         float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        m_DeviceContext->OMSetBlendState(m_BlendState[nBlendState].Get(), blendFactor, 0xffffffff);
+        m_deviceContext->OMSetBlendState(m_blendState[nBlendState].Get(), blendFactor, 0xffffffff);
     }
 }
 
@@ -631,11 +718,11 @@ void Renderer::DisableCulling(bool cullflag)
     rasterizerDesc.AntialiasedLineEnable = FALSE;
 
     ComPtr<ID3D11RasterizerState> pRasterizerState;
-    HRESULT hr = m_Device->CreateRasterizerState(&rasterizerDesc, pRasterizerState.GetAddressOf());
+    HRESULT hr = m_device->CreateRasterizerState(&rasterizerDesc, pRasterizerState.GetAddressOf());
     if (FAILED(hr))
         return;
 
-    m_DeviceContext->RSSetState(pRasterizerState.Get());
+    m_deviceContext->RSSetState(pRasterizerState.Get());
 }
 
 
@@ -652,8 +739,8 @@ void Renderer::SetFillMode(D3D11_FILL_MODE FillMode)
     rasterizerDesc.MultisampleEnable = FALSE;
 
     ComPtr<ID3D11RasterizerState> rs;
-    m_Device->CreateRasterizerState(&rasterizerDesc, rs.GetAddressOf());
-    m_DeviceContext->RSSetState(rs.Get());
+    m_device->CreateRasterizerState(&rasterizerDesc, rs.GetAddressOf());
+    m_deviceContext->RSSetState(rs.Get());
 }
 
 /**
@@ -673,21 +760,21 @@ void Renderer::SetDepthAllwaysWrite()
     depthStencilDesc.StencilEnable = FALSE; // ステンシルテストは無効
 
     ComPtr<ID3D11DepthStencilState> pDepthStencilState;
-    HRESULT hr = m_Device->CreateDepthStencilState(&depthStencilDesc, pDepthStencilState.GetAddressOf());
+    HRESULT hr = m_device->CreateDepthStencilState(&depthStencilDesc, pDepthStencilState.GetAddressOf());
     if (SUCCEEDED(hr))
     {
-        m_DeviceContext->OMSetDepthStencilState(pDepthStencilState.Get(), 0);
+        m_deviceContext->OMSetDepthStencilState(pDepthStencilState.Get(), 0);
     }
 }
 
 void Renderer::SetPostProcessSettings(const PostProcessSettings& settings)
 {
-    s_PostProcess = settings;
+    s_postProcess = settings;
 }
 
 const PostProcessSettings& Renderer::GetPostProcessSettings()
 {
-    return s_PostProcess;
+    return s_postProcess;
 }
 
 /**
@@ -721,18 +808,18 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
     ID3D11ShaderResourceView* prevPSRV[1] = { nullptr };
     ID3D11SamplerState* prevSampler[1] = { nullptr };
 
-    m_DeviceContext->VSGetShader(&prevVS, nullptr, nullptr);
-    m_DeviceContext->PSGetShader(&prevPS, nullptr, nullptr);
-    m_DeviceContext->IAGetInputLayout(&prevIL);
-    m_DeviceContext->VSGetConstantBuffers(0, 1, prevVSCB);
-    m_DeviceContext->PSGetConstantBuffers(0, 1, prevPSCB);
-    m_DeviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
-    m_DeviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
-    m_DeviceContext->RSGetState(&prevRS);
-    m_DeviceContext->IAGetPrimitiveTopology(&prevTopo);
-    m_DeviceContext->IAGetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
-    m_DeviceContext->PSGetShaderResources(0, 1, prevPSRV);
-    m_DeviceContext->PSGetSamplers(0, 1, prevSampler);
+    m_deviceContext->VSGetShader(&prevVS, nullptr, nullptr);
+    m_deviceContext->PSGetShader(&prevPS, nullptr, nullptr);
+    m_deviceContext->IAGetInputLayout(&prevIL);
+    m_deviceContext->VSGetConstantBuffers(0, 1, prevVSCB);
+    m_deviceContext->PSGetConstantBuffers(0, 1, prevPSCB);
+    m_deviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_deviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+    m_deviceContext->RSGetState(&prevRS);
+    m_deviceContext->IAGetPrimitiveTopology(&prevTopo);
+    m_deviceContext->IAGetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_deviceContext->PSGetShaderResources(0, 1, prevPSRV);
+    m_deviceContext->PSGetSamplers(0, 1, prevSampler);
 
     // -------- Build vertices (left-top origin) --------
     struct Vertex { Vector3 pos; Vector2 uv; };
@@ -759,7 +846,7 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
     vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     D3D11_SUBRESOURCE_DATA initData = {};
     initData.pSysMem = vertices;
-    HRESULT hr = m_Device->CreateBuffer(&vbDesc, &initData, vb.GetAddressOf());
+    HRESULT hr = m_device->CreateBuffer(&vbDesc, &initData, vb.GetAddressOf());
     if (FAILED(hr))
     {
         // failed to create VB -> restore and return
@@ -779,58 +866,58 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
     }
 
     // -------- Bind 2D shaders / input layout and vertices --------
-    m_DeviceContext->IASetInputLayout(m_TextureInputLayout.Get());
-    m_DeviceContext->VSSetShader(m_TextureVertexShader.Get(), nullptr, 0);
-    m_DeviceContext->PSSetShader(m_TexturePixelShader.Get(), nullptr, 0);
+    m_deviceContext->IASetInputLayout(m_textureInputLayout.Get());
+    m_deviceContext->VSSetShader(m_textureVertexShader.Get(), nullptr, 0);
+    m_deviceContext->PSSetShader(m_texturePixelShader.Get(), nullptr, 0);
     SetWorldViewProjection2D(); // your helper to set matrices to CBs
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     ID3D11Buffer* vbPtr = vb.Get();
-    m_DeviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
-    m_DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_deviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // Bind texture + optional sampler (sampler slot 0)
-    m_DeviceContext->PSSetShaderResources(0, 1, &texture);
+    m_deviceContext->PSSetShaderResources(0, 1, &texture);
     // if you have a sampler object: m_DeviceContext->PSSetSamplers(0,1,m_Sampler.GetAddressOf());
 
     // Draw
-    m_DeviceContext->Draw(6, 0);
+    m_deviceContext->Draw(6, 0);
 
     // -------- Unbind our SRV to avoid binding it beyond this call --------
     ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-    m_DeviceContext->PSSetShaderResources(0, 1, nullSRV);
+    m_deviceContext->PSSetShaderResources(0, 1, nullSRV);
 
     // -------- Restore previously saved GPU state --------
     // restore samplers
-    m_DeviceContext->PSSetSamplers(0, 1, prevSampler);
+    m_deviceContext->PSSetSamplers(0, 1, prevSampler);
 
     // restore SRV
-    m_DeviceContext->PSSetShaderResources(0, 1, prevPSRV);
+    m_deviceContext->PSSetShaderResources(0, 1, prevPSRV);
 
     // restore VB
-    m_DeviceContext->IASetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_deviceContext->IASetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
 
     // restore primitive topology
-    m_DeviceContext->IASetPrimitiveTopology(prevTopo);
+    m_deviceContext->IASetPrimitiveTopology(prevTopo);
 
     // restore rasterizer
-    m_DeviceContext->RSSetState(prevRS);
+    m_deviceContext->RSSetState(prevRS);
 
     // restore depth-stencil
-    m_DeviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+    m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
 
     // restore blend
-    m_DeviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
 
     // restore constant buffers
-    m_DeviceContext->VSSetConstantBuffers(0, 1, prevVSCB);
-    m_DeviceContext->PSSetConstantBuffers(0, 1, prevPSCB);
+    m_deviceContext->VSSetConstantBuffers(0, 1, prevVSCB);
+    m_deviceContext->PSSetConstantBuffers(0, 1, prevPSCB);
 
     // restore shaders & input layout
-    m_DeviceContext->VSSetShader(prevVS, nullptr, 0);
-    m_DeviceContext->PSSetShader(prevPS, nullptr, 0);
-    m_DeviceContext->IASetInputLayout(prevIL);
+    m_deviceContext->VSSetShader(prevVS, nullptr, 0);
+    m_deviceContext->PSSetShader(prevPS, nullptr, 0);
+    m_deviceContext->IASetInputLayout(prevIL);
 
     // Release the references we acquired via Get*
     if (prevVS) prevVS->Release();
@@ -850,17 +937,17 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
 
 void Renderer::ApplyMotionBlur()
 {
-    if (!m_SceneColorTex || !m_SceneColorSRV || !m_PrevSceneColorSRV)
+    float blur = std::clamp(s_postProcess.motionBlurAmount, 0.0f, 1.0f);
+   
+    if (!m_sceneColorTex || !m_sceneColorSRV || !m_prevSceneColorSRV)
     {
         return;
     }
 
-    // ブラー量を 0～1 に制限
-    float blur = std::clamp(s_PostProcess.motionBlurAmount, 0.0f, 1.0f);
 
     // BackBuffer のリソース取得（CopyResource に使う）
     ID3D11Resource* backRes = nullptr;
-    m_RenderTargetView->GetResource(&backRes);
+    m_renderTargetView->GetResource(&backRes);
 
     // ブラー量がほぼゼロ → シーン画像をコピーするだけ
     if (blur <= 0.001f)
@@ -868,10 +955,10 @@ void Renderer::ApplyMotionBlur()
         if (backRes)
         {
             // バックバッファにシーン画像をコピー
-            m_DeviceContext->CopyResource(backRes, m_SceneColorTex.Get());
+            m_deviceContext->CopyResource(backRes, m_sceneColorTex.Get());
 
             // 次フレーム用に prev にもコピー
-            m_DeviceContext->CopyResource(m_PrevSceneColorTex.Get(), m_SceneColorTex.Get());
+            m_deviceContext->CopyResource(m_prevSceneColorTex.Get(), m_sceneColorTex.Get());
 
             backRes->Release();
         }
@@ -899,24 +986,24 @@ void Renderer::ApplyMotionBlur()
     ID3D11ShaderResourceView* prevPSRV[2] = { nullptr, nullptr };
     ID3D11SamplerState* prevSampler[1] = { nullptr };
 
-    m_DeviceContext->VSGetShader(&prevVS, nullptr, nullptr);
-    m_DeviceContext->PSGetShader(&prevPS, nullptr, nullptr);
-    m_DeviceContext->IAGetInputLayout(&prevIL);
-    m_DeviceContext->VSGetConstantBuffers(0, 1, prevVSCB);
-    m_DeviceContext->PSGetConstantBuffers(0, 1, prevPSCB);
-    m_DeviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
-    m_DeviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
-    m_DeviceContext->RSGetState(&prevRS);
-    m_DeviceContext->IAGetPrimitiveTopology(&prevTopo);
-    m_DeviceContext->IAGetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
-    m_DeviceContext->PSGetShaderResources(0, 2, prevPSRV);
-    m_DeviceContext->PSGetSamplers(0, 1, prevSampler);
+    m_deviceContext->VSGetShader(&prevVS, nullptr, nullptr);
+    m_deviceContext->PSGetShader(&prevPS, nullptr, nullptr);
+    m_deviceContext->IAGetInputLayout(&prevIL);
+    m_deviceContext->VSGetConstantBuffers(0, 1, prevVSCB);
+    m_deviceContext->PSGetConstantBuffers(0, 1, prevPSCB);
+    m_deviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_deviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+    m_deviceContext->RSGetState(&prevRS);
+    m_deviceContext->IAGetPrimitiveTopology(&prevTopo);
+    m_deviceContext->IAGetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_deviceContext->PSGetShaderResources(0, 2, prevPSRV);
+    m_deviceContext->PSGetSamplers(0, 1, prevSampler);
 
     // ================================
     // バックバッファへ描画する
     // ================================
-    ID3D11RenderTargetView* backRTV = m_RenderTargetView.Get();
-    m_DeviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
+    ID3D11RenderTargetView* backRTV = m_renderTargetView.Get();
+    m_deviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
 
     // ================================
     // フルスクリーンクアッド作成
@@ -945,7 +1032,7 @@ void Renderer::ApplyMotionBlur()
     D3D11_SUBRESOURCE_DATA init{};
     init.pSysMem = vertices;
 
-    HRESULT hr = m_Device->CreateBuffer(&vbDesc, &init, vb.GetAddressOf());
+    HRESULT hr = m_device->CreateBuffer(&vbDesc, &init, vb.GetAddressOf());
     if (FAILED(hr))
     {
         if (backRes) backRes->Release();
@@ -955,65 +1042,65 @@ void Renderer::ApplyMotionBlur()
     // ================================
     // MotionBlur シェーダー設定
     // ================================
-    m_DeviceContext->IASetInputLayout(m_TextureInputLayout.Get());
-    m_DeviceContext->VSSetShader(m_TextureVertexShader.Get(), nullptr, 0);
-    m_DeviceContext->PSSetShader(m_MotionBlurPixelShader.Get(), nullptr, 0);
+    m_deviceContext->IASetInputLayout(m_textureInputLayout.Get());
+    m_deviceContext->VSSetShader(m_textureVertexShader.Get(), nullptr, 0);
+    m_deviceContext->PSSetShader(m_motionBlurPixelShader.Get(), nullptr, 0);
 
     SetWorldViewProjection2D();
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     ID3D11Buffer* vbPtr = vb.Get();
-    m_DeviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
-    m_DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_deviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // ================================
     // SRV をセット（SceneTex & PrevTex）
     // ================================
     ID3D11ShaderResourceView* srvs[2] =
     {
-        m_SceneColorSRV.Get(),      // t0
-        m_PrevSceneColorSRV.Get(),  // t1
+        m_sceneColorSRV.Get(),      // t0
+        m_prevSceneColorSRV.Get(),  // t1
     };
-    m_DeviceContext->PSSetShaderResources(0, 2, srvs);
+    m_deviceContext->PSSetShaderResources(0, 2, srvs);
 
     // ================================
     // ★ 定数バッファ更新（最重要ポイント）★
     // ================================
-    PostProcessSettings cbData = s_PostProcess;
+    PostProcessSettings cbData = s_postProcess;
     cbData.motionBlurAmount = blur;  // クランプ済みに書き換え
 
-    m_DeviceContext->UpdateSubresource(
-        m_PostProcessBuffer.Get(), 0, nullptr, &cbData, 0, 0
+    m_deviceContext->UpdateSubresource(
+        m_postProcessBuffer.Get(), 0, nullptr, &cbData, 0, 0
     );
 
-    ID3D11Buffer* ppCB = m_PostProcessBuffer.Get();
-    m_DeviceContext->PSSetConstantBuffers(0, 1, &ppCB);
+    ID3D11Buffer* ppCB = m_postProcessBuffer.Get();
+    m_deviceContext->PSSetConstantBuffers(0, 1, &ppCB);
 
     // ================================
     // 描画
     // ================================
-    m_DeviceContext->Draw(6, 0);
+    m_deviceContext->Draw(6, 0);
 
     // SRV 解放
     ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
-    m_DeviceContext->PSSetShaderResources(0, 2, nullSRV);
+    m_deviceContext->PSSetShaderResources(0, 2, nullSRV);
 
     // ================================
     // GPU のステートをすべて復元
     // ================================
-    m_DeviceContext->PSSetSamplers(0, 1, prevSampler);
-    m_DeviceContext->PSSetShaderResources(0, 2, prevPSRV);
-    m_DeviceContext->IASetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
-    m_DeviceContext->IASetPrimitiveTopology(prevTopo);
-    m_DeviceContext->RSSetState(prevRS);
-    m_DeviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
-    m_DeviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
-    m_DeviceContext->VSSetConstantBuffers(0, 1, prevVSCB);
-    m_DeviceContext->PSSetConstantBuffers(0, 1, prevPSCB);
-    m_DeviceContext->VSSetShader(prevVS, nullptr, 0);
-    m_DeviceContext->PSSetShader(prevPS, nullptr, 0);
-    m_DeviceContext->IASetInputLayout(prevIL);
+    m_deviceContext->PSSetSamplers(0, 1, prevSampler);
+    m_deviceContext->PSSetShaderResources(0, 2, prevPSRV);
+    m_deviceContext->IASetVertexBuffers(0, 1, prevVBs, prevStrides, prevOffsets);
+    m_deviceContext->IASetPrimitiveTopology(prevTopo);
+    m_deviceContext->RSSetState(prevRS);
+    m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+    m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_deviceContext->VSSetConstantBuffers(0, 1, prevVSCB);
+    m_deviceContext->PSSetConstantBuffers(0, 1, prevPSCB);
+    m_deviceContext->VSSetShader(prevVS, nullptr, 0);
+    m_deviceContext->PSSetShader(prevPS, nullptr, 0);
+    m_deviceContext->IASetInputLayout(prevIL);
 
     if (prevVS) prevVS->Release();
     if (prevPS) prevPS->Release();
@@ -1032,7 +1119,7 @@ void Renderer::ApplyMotionBlur()
     // ================================
     if (backRes)
     {
-        m_DeviceContext->CopyResource(m_PrevSceneColorTex.Get(), m_SceneColorTex.Get());
+        m_deviceContext->CopyResource(m_prevSceneColorTex.Get(), m_sceneColorTex.Get());
         backRes->Release();
     }
 }
@@ -1044,12 +1131,12 @@ void Renderer::DrawReticle(ID3D11ShaderResourceView* texture, const POINT& cente
     // Save/restore depth & blend state quickly (we'll use DrawTexture which restores most state)
     ID3D11DepthStencilState* prevDSS = nullptr;
     UINT prevStencilRef = 0;
-    m_DeviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+    m_deviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
 
     ID3D11BlendState* prevBlend = nullptr;
     FLOAT prevBlendFactor[4] = { 0,0,0,0 };
     UINT prevSampleMask = 0xFFFFFFFF;
-    m_DeviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_deviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
 
     // turn off depth, enable alpha blend (assume you have BS_ALPHABLEND created and stored)
     SetDepthEnable(false);
@@ -1062,8 +1149,8 @@ void Renderer::DrawReticle(ID3D11ShaderResourceView* texture, const POINT& cente
 
     // restore blend/depth (DrawTexture already restores shaders/IL etc.)
     // but if SetBlendState/SetDepthEnable modified device state outside DrawTexture, restore here:
-    m_DeviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
-    m_DeviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+    m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
 
     if (prevDSS) prevDSS->Release();
     if (prevBlend) prevBlend->Release();
@@ -1071,29 +1158,29 @@ void Renderer::DrawReticle(ID3D11ShaderResourceView* texture, const POINT& cente
 
 void Renderer::BeginSceneRenderTarget()
 {
-    ID3D11RenderTargetView* rtv = m_SceneColorRTV.Get();
-    ID3D11DepthStencilView* dsv = m_DepthStencilView.Get();
+    ID3D11RenderTargetView* rtv = m_sceneColorRTV.Get();
+    ID3D11DepthStencilView* dsv = m_depthStencilView.Get();
 
     // シーン用RTV + 深度
-    m_DeviceContext->OMSetRenderTargets(1, &rtv, dsv);
+    m_deviceContext->OMSetRenderTargets(1, &rtv, dsv);
 
     float clearColor[4] = { 0, 0, 0, 1 };
-    m_DeviceContext->ClearRenderTargetView(rtv, clearColor);
-    m_DeviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    m_deviceContext->ClearRenderTargetView(rtv, clearColor);
+    m_deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     // シーン用ステート
-    m_DeviceContext->RSSetState(m_RasterizerState.Get());
-    m_DeviceContext->RSSetViewports(1, &m_Viewport);
+    m_deviceContext->RSSetState(m_rasterizerState.Get());
+    m_deviceContext->RSSetViewports(1, &m_viewport);
 }
 
 
 void Renderer::BeginBackBuffer()
 {
-    ID3D11RenderTargetView* rtv = m_RenderTargetView.Get();
-    m_DeviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+    ID3D11RenderTargetView* rtv = m_renderTargetView.Get();
+    m_deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
 
     float clearColor[4] = { 0, 0, 0, 1 };
-    m_DeviceContext->ClearRenderTargetView(rtv, clearColor);
+    m_deviceContext->ClearRenderTargetView(rtv, clearColor);
 
     // UI では Z は不要なので深度は無し
     // ラスタライザとビューポートもデフォルトで OK
