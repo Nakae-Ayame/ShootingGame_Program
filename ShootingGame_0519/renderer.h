@@ -206,6 +206,11 @@ public:
     //レティクル用の関数
     static void DrawReticle(ID3D11ShaderResourceView* texture, const POINT& center, const Vector2& size);
 
+    static void DrawBillboard(ID3D11ShaderResourceView* texture,
+                              const DirectX::SimpleMath::Vector3& worldPos,
+                              float size,const DirectX::SimpleMath::Vector4& color,
+                              int cols = 1,int rows = 1,int frameIndex = 0,bool isAdditive = true);
+
     // マテリアル用定数バッファのポインタを取得
     static ID3D11Buffer* GetMaterialCB()
     {
@@ -220,7 +225,14 @@ public:
 
     static void DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size);
 
+    //------------------------------Billboard関連------------------------------
+    static ComPtr<ID3D11VertexShader> m_billboardVertexShader;
+    static ComPtr<ID3D11PixelShader>  m_billboardPixelShader;
+    static ComPtr<ID3D11InputLayout>  m_billboardInputLayout;
 
+    // 「今最後にセットされたView/Proj」をRenderer側で覚える（ビルボードの向き計算に必要）
+    static DirectX::SimpleMath::Matrix m_cachedView;
+    static DirectX::SimpleMath::Matrix m_cachedProjection;
 
     static ComPtr<ID3D11VertexShader> m_vertexShader;
     static ComPtr<ID3D11PixelShader>  m_pixelShader;

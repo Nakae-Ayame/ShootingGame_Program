@@ -53,6 +53,16 @@ ComPtr<ID3D11PixelShader>  Renderer::m_texturePixelShader;
 ComPtr<ID3D11InputLayout>  Renderer::m_textureInputLayout;
 ComPtr<ID3D11Buffer>  Renderer::m_textureAlphaBuffer;
 
+//----------------------ビルボード--------------------
+ComPtr<ID3D11VertexShader> Renderer::m_billboardVertexShader;
+ComPtr<ID3D11PixelShader>  Renderer::m_billboardPixelShader;
+ComPtr<ID3D11InputLayout>  Renderer::m_billboardInputLayout;
+
+DirectX::SimpleMath::Matrix Renderer::m_cachedView = DirectX::SimpleMath::Matrix::Identity;
+DirectX::SimpleMath::Matrix Renderer::m_cachedProjection = DirectX::SimpleMath::Matrix::Identity;
+//-------------------------------------------------------
+
+
 ComPtr<ID3D11DeviceContext> Renderer::m_pContext; // 初期化済みのデバイスコンテキスト
 ComPtr<ID3D11BlendState> Renderer::m_pBlendState; // アルファブレンド用
 ComPtr<ID3D11Buffer> Renderer::m_pVertexBuffer; // フルスクリーン用頂点バッファ
@@ -518,6 +528,49 @@ void Renderer::Init()
         texVsBlob->GetBufferPointer(), texVsBlob->GetBufferSize(), m_textureInputLayout.GetAddressOf());
 
 
+    //-----------------------Billboard用シェーダーのコンパイル-----------------------
+    auto bbVsBlob = CompileShader(L"BillboardVertexShader.hlsl", "VSMain", "vs_5_0");
+    hr = m_device->CreateVertexShader(
+        bbVsBlob->GetBufferPointer(),
+        bbVsBlob->GetBufferSize(),
+        nullptr,
+        m_billboardVertexShader.GetAddressOf());
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Billboard vertex shader");
+    }
+
+    auto bbPsBlob = CompileShader(L"BillboardPixelShader.hlsl", "PSMain", "ps_5_0");
+    hr = m_device->CreatePixelShader(
+        bbPsBlob->GetBufferPointer(),
+        bbPsBlob->GetBufferSize(),
+        nullptr,
+        m_billboardPixelShader.GetAddressOf());
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Billboard pixel shader");
+    }
+
+    // 入力レイアウト（POSITION + TEXCOORD + COLOR）
+    D3D11_INPUT_ELEMENT_DESC bbLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+
+    hr = m_device->CreateInputLayout(
+        bbLayout,
+        _countof(bbLayout),
+        bbVsBlob->GetBufferPointer(),
+        bbVsBlob->GetBufferSize(),
+        m_billboardInputLayout.GetAddressOf());
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create Billboard input layout");
+    }
+
+
 }
 
 
@@ -569,12 +622,6 @@ void Renderer::End()
     ApplyMotionBlur();
     ID3D11RenderTargetView* backRTV = m_renderTargetView.Get();
     m_deviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
-
-    // 深度は不要、アルファ合成を有効にして描画（TransitionManager::Draw は現在の RT に描く想定）
-    // 注意：TransitionManager::Draw は内部で SetTextureAlpha などを呼ぶのでここでは単純に呼び出すだけで良い
-    TransitionManager::Draw(0.0f); // deltaTime が必要なら適切な値を渡してください
-
-    // 最後に Present
     m_swapChain->Present(1, 0);
 }
 
@@ -656,6 +703,8 @@ void Renderer::SetWorldMatrix(Matrix4x4* WorldMatrix)
  */
 void Renderer::SetViewMatrix(SimpleMath::Matrix ViewMatrix)
 {
+    m_cachedView = ViewMatrix;
+
     SimpleMath::Matrix mat = ViewMatrix.Transpose();
     m_deviceContext->UpdateSubresource(m_viewBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
@@ -666,6 +715,8 @@ void Renderer::SetViewMatrix(SimpleMath::Matrix ViewMatrix)
  */
 void Renderer::SetProjectionMatrix(SimpleMath::Matrix ProjectionMatrix)
 {
+    m_cachedProjection = ProjectionMatrix;
+
     SimpleMath::Matrix mat = ProjectionMatrix.Transpose();
     m_deviceContext->UpdateSubresource(m_projectionBuffer.Get(), 0, nullptr, &mat, 0, 0);
 }
@@ -694,7 +745,8 @@ void Renderer::SetLight(LIGHT Light)
  */
 void Renderer::SetBlendState(int nBlendState)
 {
-    if (nBlendState >= 0 && nBlendState < MAX_BLENDSTATE) {
+    if (nBlendState >= 0 && nBlendState < MAX_BLENDSTATE) 
+    {
         float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
         m_deviceContext->OMSetBlendState(m_blendState[nBlendState].Get(), blendFactor, 0xffffffff);
     }
@@ -1186,7 +1238,190 @@ void Renderer::BeginBackBuffer()
     // ラスタライザとビューポートもデフォルトで OK
 }
 
+struct BillboardVertex
+{
+    DirectX::SimpleMath::Vector3 pos;
+    DirectX::SimpleMath::Vector2 uv;
+    DirectX::SimpleMath::Vector4 color;
+};
 
+void Renderer::DrawBillboard(ID3D11ShaderResourceView* texture,
+                             const DirectX::SimpleMath::Vector3& worldPos,
+                             float size,
+                             const DirectX::SimpleMath::Vector4& color,
+                             int cols,
+                             int rows,
+                             int frameIndex,
+                             bool isAdditive)
+{
+    if (!texture)
+    {
+        return;
+    }
+
+    if (cols <= 0) { cols = 1; }
+    if (rows <= 0) { rows = 1; }
+
+    //--------------ビルボードの向き（カメラのRight/Up）------------------
+    DirectX::SimpleMath::Matrix invView = m_cachedView.Invert();
+    DirectX::SimpleMath::Vector3 camRight = invView.Right();
+    DirectX::SimpleMath::Vector3 camUp = invView.Up();
+
+    float half = size * 0.5f;
+
+    DirectX::SimpleMath::Vector3 r = camRight * half;
+    DirectX::SimpleMath::Vector3 u = camUp * half;
+
+    //--------------フリップブックUV計算------------------
+    // frameIndex を cols*rows の範囲に丸める
+    int maxFrames = cols * rows;
+    if (maxFrames <= 0) { maxFrames = 1; }
+
+    frameIndex = frameIndex % maxFrames;
+    if (frameIndex < 0) { frameIndex = 0; }
+
+    int fx = frameIndex % cols;
+    int fy = frameIndex / cols;
+
+    float du = 1.0f / (float)cols;
+    float dv = 1.0f / (float)rows;
+
+    float u0 = fx * du;
+    float v0 = fy * dv;
+    float u1 = u0 + du;
+    float v1 = v0 + dv;
+
+    //--------------ワールド空間の4頂点（カメラ正面に向く板）------------------
+    DirectX::SimpleMath::Vector3 p0 = worldPos - r + u; // 左上
+    DirectX::SimpleMath::Vector3 p1 = worldPos + r + u; // 右上
+    DirectX::SimpleMath::Vector3 p2 = worldPos - r - u; // 左下
+    DirectX::SimpleMath::Vector3 p3 = worldPos + r - u; // 右下
+
+    BillboardVertex vertices[6] =
+    {
+        { p0, {u0, v0}, color },
+        { p1, {u1, v0}, color },
+        { p2, {u0, v1}, color },
+
+        { p1, {u1, v0}, color },
+        { p3, {u1, v1}, color },
+        { p2, {u0, v1}, color },
+    };
+
+    //--------------GPUステート保存（最低限）------------------
+    ID3D11VertexShader* prevVS = nullptr;
+    ID3D11PixelShader* prevPS = nullptr;
+    ID3D11InputLayout* prevIL = nullptr;
+    ID3D11BlendState* prevBlend = nullptr;
+    FLOAT prevBlendFactor[4] = { 0,0,0,0 };
+    UINT prevSampleMask = 0xFFFFFFFF;
+    ID3D11DepthStencilState* prevDSS = nullptr;
+    UINT prevStencilRef = 0;
+    D3D11_PRIMITIVE_TOPOLOGY prevTopo = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    ID3D11Buffer* prevVB = nullptr;
+    UINT prevStride = 0;
+    UINT prevOffset = 0;
+    ID3D11ShaderResourceView* prevSRV = nullptr;
+
+    m_deviceContext->VSGetShader(&prevVS, nullptr, nullptr);
+    m_deviceContext->PSGetShader(&prevPS, nullptr, nullptr);
+    m_deviceContext->IAGetInputLayout(&prevIL);
+    m_deviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_deviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+    m_deviceContext->IAGetPrimitiveTopology(&prevTopo);
+    m_deviceContext->IAGetVertexBuffers(0, 1, &prevVB, &prevStride, &prevOffset);
+    m_deviceContext->PSGetShaderResources(0, 1, &prevSRV);
+
+    //--------------ビルボード用ステート設定------------------
+    // 深度：とりあえず ON（壁の裏に出ない）
+    SetDepthEnable(true);
+
+    // ブレンド：爆発=加算、煙=アルファ、など
+    if (isAdditive)
+    {
+        SetBlendState(BS_ADDITIVE);
+    }
+    else
+    {
+        SetBlendState(BS_ALPHABLEND);
+    }
+
+    // ワールド行列は Identity（頂点が既にワールド座標だから）
+    DirectX::SimpleMath::Matrix world = DirectX::SimpleMath::Matrix::Identity;
+    SetWorldMatrix(reinterpret_cast<Matrix4x4*>(&world));
+
+    //--------------頂点バッファ作成（まずは簡単版：都度作る）------------------
+    Microsoft::WRL::ComPtr<ID3D11Buffer> vb;
+    D3D11_BUFFER_DESC vbDesc{};
+    vbDesc.Usage = D3D11_USAGE_DEFAULT;
+    vbDesc.ByteWidth = sizeof(vertices);
+    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA init{};
+    init.pSysMem = vertices;
+
+    HRESULT hr = m_device->CreateBuffer(&vbDesc, &init, vb.GetAddressOf());
+    if (FAILED(hr))
+    {
+        // 復元して帰る
+        m_deviceContext->VSSetShader(prevVS, nullptr, 0);
+        m_deviceContext->PSSetShader(prevPS, nullptr, 0);
+        m_deviceContext->IASetInputLayout(prevIL);
+        m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+        m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+        m_deviceContext->IASetPrimitiveTopology(prevTopo);
+        m_deviceContext->IASetVertexBuffers(0, 1, &prevVB, &prevStride, &prevOffset);
+        m_deviceContext->PSSetShaderResources(0, 1, &prevSRV);
+
+        if (prevVS) prevVS->Release();
+        if (prevPS) prevPS->Release();
+        if (prevIL) prevIL->Release();
+        if (prevBlend) prevBlend->Release();
+        if (prevDSS) prevDSS->Release();
+        if (prevVB) prevVB->Release();
+        if (prevSRV) prevSRV->Release();
+        return;
+    }
+
+    UINT stride = sizeof(BillboardVertex);
+    UINT offset = 0;
+    ID3D11Buffer* vbPtr = vb.Get();
+
+    m_deviceContext->IASetInputLayout(m_billboardInputLayout.Get());
+    m_deviceContext->VSSetShader(m_billboardVertexShader.Get(), nullptr, 0);
+    m_deviceContext->PSSetShader(m_billboardPixelShader.Get(), nullptr, 0);
+
+    m_deviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // テクスチャセット
+    m_deviceContext->PSSetShaderResources(0, 1, &texture);
+
+    // 描画
+    m_deviceContext->Draw(6, 0);
+
+    // SRV解除（次の描画で事故りにくくする）
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    m_deviceContext->PSSetShaderResources(0, 1, &nullSRV);
+
+    //--------------復元------------------
+    m_deviceContext->VSSetShader(prevVS, nullptr, 0);
+    m_deviceContext->PSSetShader(prevPS, nullptr, 0);
+    m_deviceContext->IASetInputLayout(prevIL);
+    m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+    m_deviceContext->IASetPrimitiveTopology(prevTopo);
+    m_deviceContext->IASetVertexBuffers(0, 1, &prevVB, &prevStride, &prevOffset);
+    m_deviceContext->PSSetShaderResources(0, 1, &prevSRV);
+
+    if (prevVS) prevVS->Release();
+    if (prevPS) prevPS->Release();
+    if (prevIL) prevIL->Release();
+    if (prevBlend) prevBlend->Release();
+    if (prevDSS) prevDSS->Release();
+    if (prevVB) prevVB->Release();
+    if (prevSRV) prevSRV->Release();
+}
 
 
 
