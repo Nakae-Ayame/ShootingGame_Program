@@ -145,33 +145,16 @@ void Primitive::CreateBuffers(ID3D11Device* device)
     D3D11_SUBRESOURCE_DATA ibData{};
     ibData.pSysMem = indices.data();
     hr = device->CreateBuffer(&ibDesc, &ibData, &indexBuffer);
-    if (FAILED(hr) || !indexBuffer) {
-        char buf[256];
-        //sprintf_s(buf, "Primitive::CreateBuffers - CreateBuffer(IB) failed hr=0x%08X\n", static_cast<unsigned int>(hr));
-        //OutputDebugStringA(buf);
-        if (indexBuffer) { indexBuffer->Release(); indexBuffer = nullptr; }
-        // We keep vertexBuffer valid (or release it depending on semantics)
-        return;
-    }
-
+    if (FAILED(hr) || !indexBuffer){ return; }
 
 }
 
 
 void Primitive::Draw(ID3D11DeviceContext* context)
 {
-    if (!context) {
-        OutputDebugStringA("Primitive::Draw - context is null\n");
-        return;
-    }
-    if (!vertexBuffer || !indexBuffer) {
-        OutputDebugStringA("Primitive::Draw - missing VB or IB\n");
-        return;
-    }
-    if (indices.empty()) {
-        OutputDebugStringA("Primitive::Draw - indices empty\n");
-        return;
-    }
+    if (!context) { return; }
+    if (!vertexBuffer || !indexBuffer) { return; }
+    if (indices.empty()) { return; }
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;

@@ -6,6 +6,7 @@
 #include "IScene.h"
 #include "Application.h"
 #include "HomingComponent.h"
+#include "TextureManager.h"
 #include <iostream>
 #include <random>
 #include <DirectXMath.h>
@@ -59,7 +60,6 @@ void ShootingComponent::FireHomingBullet(GameObject* owner, const std::shared_pt
             bc->SetVelocity(toTarget);        // ここで必ずターゲット方向をセット
             bc->SetSpeed(m_bulletSpeed);      // 必要ならホーミング用の速度にする
             bc->SetBulletType(BulletComponent::PLAYER);
-
         }
     }
 
@@ -359,10 +359,12 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(const Vector3& pos, 
                                                             const Vector4& color)
 {
     auto bullet = std::make_shared<Bullet>();
-    bullet->SetPosition(pos);
     bullet->Initialize();
-
+    bullet->SetPosition(pos);
+    
     auto bc = bullet->GetComponent<BulletComponent>();
+    
+    
     if (bc)
     {
         Vector3 d = dir;
@@ -375,9 +377,8 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(const Vector3& pos, 
         bc->SetVelocity(d);
         bc->SetSpeed(m_bulletSpeed);
         bc->SetBulletType(BulletComponent::PLAYER);
-        bc->SetColor(color);
+        bc->SetColor(color); 
     }
-
     return bullet;
 }
 

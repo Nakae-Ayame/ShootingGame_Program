@@ -165,6 +165,7 @@
     <ClCompile Include="BuildingSpawner.cpp" />
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="BulletComponent.cpp" />
+    <ClCompile Include="BulletTrailComponent.cpp" />
     <ClCompile Include="CameraComponentBase.cpp" />
     <ClCompile Include="CameraObject.cpp" />
     <ClCompile Include="CircularPatrolComponent.cpp" />
@@ -260,6 +261,7 @@
     <ClInclude Include="BuildingSpawner.h" />
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="BulletComponent.h" />
+    <ClInclude Include="BulletTrailComponent.h" />
     <ClInclude Include="CameraComponentBase.h" />
     <ClInclude Include="CameraObject.h" />
     <ClInclude Include="CircularPatrolComponent.h" />

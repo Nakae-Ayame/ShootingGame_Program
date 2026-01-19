@@ -67,31 +67,6 @@ void FreeCameraComponent::Update(float dt)
 
     Vector3 move = Vector3::Zero;
 
-    if (Input::IsKeyDown('W'))
-    {
-        move += forward;
-    }
-    if (Input::IsKeyDown('S'))
-    {
-        move -= forward;
-    }
-    if (Input::IsKeyDown('D'))
-    {
-        move += right;
-    }
-    if (Input::IsKeyDown('A'))
-    {
-        move -= right;
-    }
-    if (Input::IsKeyDown(VK_SPACE))
-    {
-        move += Vector3::Up;
-    }
-    if (Input::IsKeyDown(VK_CONTROL))
-    {
-        move -= Vector3::Up;
-    }
-
     if (move.LengthSquared() > 1e-6f)
     {
         move.Normalize();
@@ -107,15 +82,7 @@ void FreeCameraComponent::Update(float dt)
 
     Renderer::SetViewMatrix(m_ViewMatrix);
     Renderer::SetProjectionMatrix(m_ProjectionMatrix);
-
-    //--------------向き確認ログ（デバッグ用）------------------
-    const Vector3 forward01 = GetForward();
-    /*std::cout << "CamPos(" << m_Position.x << "," << m_Position.y << "," << m_Position.z << ") "
-        << "Forward(" << forward01.x << "," << forward01.y << "," << forward01.z << ")\n";*/
-
 }
-
-
 
 void FreeCameraComponent::UpdateViewMatrix()
 {
