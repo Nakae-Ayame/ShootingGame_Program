@@ -211,6 +211,15 @@ public:
                               float size,const DirectX::SimpleMath::Vector4& color,
                               int cols = 1,int rows = 1,int frameIndex = 0,bool isAdditive = true);
 
+    static void DrawTrailBillboard(
+        ID3D11ShaderResourceView* texture,
+        const DirectX::SimpleMath::Vector3& startPos,
+        const DirectX::SimpleMath::Vector3& endPos,
+        float width,
+        const DirectX::SimpleMath::Vector4& color,
+        bool isAdditive = true,
+        float uvTileU = 1.0f);
+
     // マテリアル用定数バッファのポインタを取得
     static ID3D11Buffer* GetMaterialCB()
     {

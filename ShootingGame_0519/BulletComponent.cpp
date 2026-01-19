@@ -1,5 +1,6 @@
 #include "BulletComponent.h"
 #include "GameObject.h"
+#include "EffectManager.h"
 #include "IScene.h"
 #include "Enemy.h"
 #include <iostream>
@@ -49,8 +50,18 @@ void BulletComponent::Update(float dt)
         return; // 以降の更新はしない
     }
 
+    GameObject* owner = GetOwner();
+
     //移動（Homing は外部コンポーネントが velocity を調整する前提）
-    Vector3 pos = GetOwner()->GetPosition();
+    Vector3 prevPos = owner->GetPosition();
+    Vector3 pos = prevPos;
     pos += m_velocity * m_speed * dt;
-    GetOwner()->SetPosition(pos);
+    owner->SetPosition(pos);
+
+	//弾道エフェクトの生成
+    Vector3 d = pos - prevPos;
+    if (d.LengthSquared() > 1e-6f)
+    {
+        EffectManager::SpawnBulletTrail(prevPos, pos);
+    }
 }

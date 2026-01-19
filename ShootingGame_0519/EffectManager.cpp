@@ -1,6 +1,8 @@
 #include "EffectManager.h"
 #include "GameObject.h"
+#include "TextureManager.h"
 #include "BillboardEffectComponent.h"
+#include "BulletTrailComponent.h"
 #include "renderer.h"
 
 std::vector<std::shared_ptr<GameObject>> EffectManager::m_effectObjects;
@@ -56,8 +58,8 @@ void EffectManager::SpawnBillboardEffect(const BillboardEffectConfig& config,
 void EffectManager::SpawnExplosion(const DirectX::SimpleMath::Vector3& pos)
 {
 	BillboardEffectConfig config{};
-	config.texturePath = "Asset/Effect/Effect_Explosion02.png"; 
-	config.size = 24.0f;
+	config.texturePath = "Asset/Effect/Effect_Explosion01.png"; 
+	config.size = 30.0f;
 	config.duration = 0.35f;
 	config.cols = 3;
 	config.rows = 3;
@@ -65,6 +67,31 @@ void EffectManager::SpawnExplosion(const DirectX::SimpleMath::Vector3& pos)
 	config.color = DirectX::SimpleMath::Vector4(1, 1, 1, 1);
 
 	SpawnBillboardEffect(config, pos);
+}
+
+void EffectManager::SpawnBulletTrail(const DirectX::SimpleMath::Vector3& startPos,
+								     const DirectX::SimpleMath::Vector3& endPos)
+{
+	auto obj = std::make_shared<GameObject>();
+	obj->SetPosition(startPos); 
+
+	auto trail = std::make_shared<BulletTrailComponent>();
+	trail->SetSegment(startPos, endPos);
+	trail->SetWidth(2.0f);
+	trail->SetDuration(0.5f);
+	trail->SetAdditive(true);
+	trail->SetColor(DirectX::SimpleMath::Vector4(1.0f, 0.0f, 1.0f, 0.8f));
+
+
+	//”z‘®æ
+	auto srv = TextureManager::Load("Asset/Effect/Bullet_Trail.png");
+
+	trail->SetTexture(srv);
+
+	obj->AddComponent(trail);
+	obj->Initialize();
+
+	m_effectObjects.push_back(obj);
 }
 
 void EffectManager::RemoveFinishedEffects()
@@ -78,13 +105,18 @@ void EffectManager::RemoveFinishedEffects()
 					return true;
 				}
 
-				auto fx = obj->GetComponent<BillboardEffectComponent>();
-				if (!fx)
+				if (auto bb = obj->GetComponent<BillboardEffectComponent>())
 				{
-					return true;
+					return bb->IsFinished();
 				}
 
-				return fx->IsFinished();
+				// ŽŸ‚ÉƒgƒŒƒCƒ‹
+				if (auto trail = obj->GetComponent<BulletTrailComponent>())
+				{
+					return trail->IsFinished();
+				}
+
+				return false;
 			}),
 		m_effectObjects.end());
 }

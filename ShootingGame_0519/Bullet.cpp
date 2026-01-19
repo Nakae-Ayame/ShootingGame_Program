@@ -34,16 +34,21 @@ void Bullet::Initialize()
 
     ID3D11Device* dev = Renderer::GetDevice();
     m_primitive.CreateSphere(dev, m_radius, 16, 8); 
+
+    GameObject::Initialize();
 }
 
 void Bullet::Update(float dt)
 {   
     GameObject::Update(dt); 
+
+	auto bulletComp = GetComponent<BulletComponent>();
+	bulletComp->GetBulletType();
 }
 
 void Bullet::Draw(float alpha)
 {
-    //std::cout << "Bullet::Draw called" << std::endl;
+    GameObject::Draw(alpha);
 
     //ワールド行列セット
     Matrix4x4 world = GetTransform().GetMatrix();

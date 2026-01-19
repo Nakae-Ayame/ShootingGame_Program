@@ -43,7 +43,10 @@ public:
 
     //’e‚Ìí—Ş
     void SetBulletType(BulletType t) { m_ownerType = t; }
-    BulletType GetBulletType() const { return m_ownerType; }
+    BulletType GetBulletType() const
+    {
+        return m_ownerType; 
+    }
 
     //FiŒ©‚½–Új
     void SetColor(const Vector4& c) { m_color = c; }

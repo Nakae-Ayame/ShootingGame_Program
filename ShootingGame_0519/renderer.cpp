@@ -1423,6 +1423,216 @@ void Renderer::DrawBillboard(ID3D11ShaderResourceView* texture,
     if (prevSRV) prevSRV->Release();
 }
 
+void Renderer::DrawTrailBillboard(ID3D11ShaderResourceView* texture,
+                                  const DirectX::SimpleMath::Vector3& startPos,
+                                  const DirectX::SimpleMath::Vector3& endPos,
+                                  float width,
+                                  const DirectX::SimpleMath::Vector4& color,
+                                  bool isAdditive,
+                                  float uvTileU)
+{
+    if (!texture)
+    {
+        return;
+    }
+
+    if (width <= 0.0f)
+    {
+        return;
+    }
+
+    // 線の向き
+    DirectX::SimpleMath::Vector3 dir = endPos - startPos;
+    float lenSq = dir.LengthSquared();
+    if (lenSq < 1e-6f)
+    {
+        return;
+    }
+
+    float len = std::sqrt(lenSq);
+    dir /= len; // 正規化
+
+    //--------------カメラ情報（Right/Up/Forward）------------------
+    // m_cachedView は「最後に Renderer::SetViewMatrix でセットされた View」
+    DirectX::SimpleMath::Matrix invView = m_cachedView.Invert();
+    DirectX::SimpleMath::Vector3 camForward = invView.Forward();
+    DirectX::SimpleMath::Vector3 camRight = invView.Right();
+    DirectX::SimpleMath::Vector3 camUp = invView.Up();
+
+    //--------------板の幅方向ベクトル（カメラに正面寄り）------------------
+    // ★ポイント：side = dir × camForward
+    DirectX::SimpleMath::Vector3 side = dir.Cross(camForward);
+
+    // もしほぼ平行で死んだらフォールバック
+    if (side.LengthSquared() < 1e-6f)
+    {
+        side = dir.Cross(camUp);
+
+        if (side.LengthSquared() < 1e-6f)
+        {
+            side = camRight;
+        }
+    }
+
+    side.Normalize();
+    DirectX::SimpleMath::Vector3 halfSide = side * (width * 0.5f);
+
+    //--------------頂点（細長い長方形を2三角形）------------------
+    DirectX::SimpleMath::Vector3 p0 = startPos - halfSide; // start-left
+    DirectX::SimpleMath::Vector3 p1 = startPos + halfSide; // start-right
+    DirectX::SimpleMath::Vector3 p2 = endPos - halfSide;   // end-left
+    DirectX::SimpleMath::Vector3 p3 = endPos + halfSide;   // end-right
+
+    // UV: Uは start->end 方向、Vは幅方向
+    float u0 = 0.0f;
+    float u1 = uvTileU;
+
+    BillboardVertex vertices[6] =
+    {
+        { p0, {u0, 0.0f}, color },
+        { p1, {u0, 1.0f}, color },
+        { p2, {u1, 0.0f}, color },
+
+        { p1, {u0, 1.0f}, color },
+        { p3, {u1, 1.0f}, color },
+        { p2, {u1, 0.0f}, color },
+    };
+
+    //--------------GPUステート保存（最低限）------------------
+    ID3D11VertexShader* prevVS = nullptr;
+    ID3D11PixelShader* prevPS = nullptr;
+    ID3D11InputLayout* prevIL = nullptr;
+
+    ID3D11BlendState* prevBlend = nullptr;
+    FLOAT prevBlendFactor[4] = { 0,0,0,0 };
+    UINT prevSampleMask = 0xFFFFFFFF;
+
+    ID3D11DepthStencilState* prevDSS = nullptr;
+    UINT prevStencilRef = 0;
+
+    ID3D11RasterizerState* prevRS = nullptr;
+
+    D3D11_PRIMITIVE_TOPOLOGY prevTopo = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+    ID3D11Buffer* prevVB = nullptr;
+    UINT prevStride = 0;
+    UINT prevOffset = 0;
+
+    ID3D11ShaderResourceView* prevSRV = nullptr;
+
+    m_deviceContext->VSGetShader(&prevVS, nullptr, nullptr);
+    m_deviceContext->PSGetShader(&prevPS, nullptr, nullptr);
+    m_deviceContext->IAGetInputLayout(&prevIL);
+
+    m_deviceContext->OMGetBlendState(&prevBlend, prevBlendFactor, &prevSampleMask);
+    m_deviceContext->OMGetDepthStencilState(&prevDSS, &prevStencilRef);
+
+    m_deviceContext->RSGetState(&prevRS);
+
+    m_deviceContext->IAGetPrimitiveTopology(&prevTopo);
+    m_deviceContext->IAGetVertexBuffers(0, 1, &prevVB, &prevStride, &prevOffset);
+    m_deviceContext->PSGetShaderResources(0, 1, &prevSRV);
+
+    //--------------描画ステート------------------
+    // まずは深度ON（壁の裏に出ない）。必要なら後でOFF/WriteOffに改善できる
+    SetDepthEnable(true);
+
+    if (isAdditive)
+    {
+        SetBlendState(BS_ADDITIVE);
+    }
+    else
+    {
+        SetBlendState(BS_ALPHABLEND);
+    }
+
+    // 頂点がワールド座標なので world = Identity
+    DirectX::SimpleMath::Matrix world = DirectX::SimpleMath::Matrix::Identity;
+    SetWorldMatrix(reinterpret_cast<Matrix4x4*>(&world));
+
+    //--------------頂点バッファ生成（簡単版：都度作る）------------------
+    Microsoft::WRL::ComPtr<ID3D11Buffer> vb;
+
+    D3D11_BUFFER_DESC vbDesc{};
+    vbDesc.Usage = D3D11_USAGE_DEFAULT;
+    vbDesc.ByteWidth = sizeof(vertices);
+    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA init{};
+    init.pSysMem = vertices;
+
+    HRESULT hr = m_device->CreateBuffer(&vbDesc, &init, vb.GetAddressOf());
+    if (FAILED(hr))
+    {
+        // 復元して帰る
+        m_deviceContext->VSSetShader(prevVS, nullptr, 0);
+        m_deviceContext->PSSetShader(prevPS, nullptr, 0);
+        m_deviceContext->IASetInputLayout(prevIL);
+
+        m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+        m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+
+        m_deviceContext->RSSetState(prevRS);
+
+        m_deviceContext->IASetPrimitiveTopology(prevTopo);
+        m_deviceContext->IASetVertexBuffers(0, 1, &prevVB, &prevStride, &prevOffset);
+        m_deviceContext->PSSetShaderResources(0, 1, &prevSRV);
+
+        if (prevVS) { prevVS->Release(); }
+        if (prevPS) { prevPS->Release(); }
+        if (prevIL) { prevIL->Release(); }
+        if (prevBlend) { prevBlend->Release(); }
+        if (prevDSS) { prevDSS->Release(); }
+        if (prevRS) { prevRS->Release(); }
+        if (prevVB) { prevVB->Release(); }
+        if (prevSRV) { prevSRV->Release(); }
+
+        return;
+    }
+
+    //--------------Billboardシェーダーで描画------------------
+    UINT stride = sizeof(BillboardVertex);
+    UINT offset = 0;
+    ID3D11Buffer* vbPtr = vb.Get();
+
+    m_deviceContext->IASetInputLayout(m_billboardInputLayout.Get());
+    m_deviceContext->VSSetShader(m_billboardVertexShader.Get(), nullptr, 0);
+    m_deviceContext->PSSetShader(m_billboardPixelShader.Get(), nullptr, 0);
+
+    m_deviceContext->IASetVertexBuffers(0, 1, &vbPtr, &stride, &offset);
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    m_deviceContext->PSSetShaderResources(0, 1, &texture);
+
+    m_deviceContext->Draw(6, 0);
+
+    // SRV解除（事故防止）
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    m_deviceContext->PSSetShaderResources(0, 1, &nullSRV);
+
+    //--------------復元------------------
+    m_deviceContext->VSSetShader(prevVS, nullptr, 0);
+    m_deviceContext->PSSetShader(prevPS, nullptr, 0);
+    m_deviceContext->IASetInputLayout(prevIL);
+
+    m_deviceContext->OMSetBlendState(prevBlend, prevBlendFactor, prevSampleMask);
+    m_deviceContext->OMSetDepthStencilState(prevDSS, prevStencilRef);
+
+    m_deviceContext->RSSetState(prevRS);
+
+    m_deviceContext->IASetPrimitiveTopology(prevTopo);
+    m_deviceContext->IASetVertexBuffers(0, 1, &prevVB, &prevStride, &prevOffset);
+    m_deviceContext->PSSetShaderResources(0, 1, &prevSRV);
+
+    if (prevVS) { prevVS->Release(); }
+    if (prevPS) { prevPS->Release(); }
+    if (prevIL) { prevIL->Release(); }
+    if (prevBlend) { prevBlend->Release(); }
+    if (prevDSS) { prevDSS->Release(); }
+    if (prevRS) { prevRS->Release(); }
+    if (prevVB) { prevVB->Release(); }
+    if (prevSRV) { prevSRV->Release(); }
+}
 
 
 //m_DeviceContext->Map(m_pVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
