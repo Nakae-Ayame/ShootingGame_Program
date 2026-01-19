@@ -14,7 +14,7 @@ void Enemy::Update(float dt)
     auto hp = GetComponent<HitPointComponent>();
     GameObject::Update(dt);
 
-	std::cout << "Enemy Pos: " << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << "\n";
+	///std::cout << "Enemy Pos: " << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << "\n";
 }
 
 //Õ“ËŽž‚Ìˆ—
@@ -30,6 +30,9 @@ void Enemy::OnCollision(GameObject* other)
     {
         if (bulletComp->GetBulletType() == BulletComponent::BulletType::PLAYER)
         { 
+
+            Sound::PlaySeWav(L"Asset/Sound/SE/Bullet_Hit01.wav", 0.3f);
+
             auto hp = GetComponent<HitPointComponent>();
             
             DamageInfo di;
