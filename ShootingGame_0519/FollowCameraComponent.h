@@ -1,157 +1,146 @@
 ﻿#pragma once
-#include "Component.h"
-#include "commontypes.h"
-#include "GameObject.h"
 #include "SpringVector3.h"
 #include "CameraComponentBase.h"
-#include "ICameraViewProvider.h"
 #include <DirectXMath.h>
 #include <SimpleMath.h>
-#include <random>
+#include <algorithm>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
+class GameObject;
 class PlayAreaComponent;
+class MoveComponent;
 
 class FollowCameraComponent : public CameraComponentBase
 {
 public:
 
     FollowCameraComponent();
+
     void Initialize() override {};
     void Update(float dt) override;
 
-    //カメラが追う対象をセットする関数
+    //--------Set関数-------
     void SetTarget(GameObject* target);
-    void SetVerticalAimScale(float s) { m_VerticalAimScale = std::clamp(s, 0.0f, 1.0f); }
-    void SetDistance(float dist) { m_DefaultDistance = dist; }
-    void SetHeight(float h) { m_DefaultHeight = h; }
-    void SetSensitivity(float s) { m_Sensitivity = s; }
-    void SetBoostState(bool isBoosting) override;
     void SetPlayArea(PlayAreaComponent* p) { m_playArea = p; }
+    void SetVerticalAimScale(float s) { m_verticalAimScale = std::clamp(s, 0.0f, 1.0f); }
+    void SetDistance(float dist) { m_defaultDistance = dist; }    
+    void SetHeight(float h) { m_defaultHeight = h; }
+    void SetSensitivity(float s) { m_sensitivity = s; }
+    void SetBoostState(bool isBoosting) override { m_boostRequested = isBoosting; };
+    void SetReticleScreen(const Vector2& center){ m_reticleScreen = center; };
 
-    void SetReticleMargin(float marginX, float marginY)
-    {
-        m_reticleMarginX = marginX;
-        m_reticleMarginY = marginY;
-    }
-
-    // レティクル座標を外から設定するときはこれを使う
-    void SetReticleScreen(const DirectX::SimpleMath::Vector2& pos);
-
-    //レティクルのスクリーン位置を外部（GameScene）から毎フレーム渡すための関数
-    void SetReticleScreenPos(const Vector2& screenPos) { m_ReticleScreen = screenPos; }
-
-    float GetVerticalAimScale() const { return m_VerticalAimScale; }
-    float GetSensitivity() const { return m_Sensitivity; }
-
+    //--------Get関数-------
+    float GetVerticalAimScale() const { return m_verticalAimScale; }
+    float GetSensitivity() const { return m_sensitivity; }
     Matrix GetView() const { return m_ViewMatrix; }
     Matrix GetProj() const { return m_ProjectionMatrix; }
-
-    Vector3 GetForward() const override;
-    Vector3 GetRight() const override;
-
-    Vector3 GetPosition() const override { return m_Spring.GetPosition(); }
-
-    //
+    Vector3 GetForward() const override{ return m_ViewMatrix.Invert().Forward(); }
+    Vector3 GetRight() const override{ return m_ViewMatrix.Invert().Right(); }
+    Vector3 GetPosition() const override { return m_spring.GetPosition(); }
     Vector3 GetAimPoint() const override;
+    Vector2 GetReticleScreen() const { return m_reticleScreen; }
+    Vector3 GetAimDirectionFromReticle() const;
 
-    // FollowCameraComponent.h の public に追加
-    DirectX::SimpleMath::Vector2 GetReticleScreen() const { return m_ReticleScreen; }
-
-    DirectX::SimpleMath::Vector3 GetAimDirectionFromReticle() const;
-
-    //----------------------------カメラ演出関数まとめ----------------------------
+    //-------カメラ演出--------
     enum class ShakeMode
     {
-        Horizontal,   //スクリーンのX軸
-        Vertical,     //スクリーンのY軸
-        //Random4,      //上下左右のいずれかをランダムに選ぶ
-        ALL           //X/Y両方にランダムな成分を与える
+        Horizontal,   
+        Vertical,     
+        ALL
     };
     
-    void Shake(float magnitude, float duration, ShakeMode mode = ShakeMode::Horizontal);    //カメラ振動関数：振動幅、振動時間
-
-
+    void Shake(float magnitude, float duration, ShakeMode mode = ShakeMode::Horizontal);
 private:
 
-    DirectX::SimpleMath::Vector2 m_ReticleScreen{ 440.0f, 160.0f };
-
+    //-------更新関連関数--------
     void UpdateCameraPosition(float dt);
+    void UpdateLookTarget(float dt,const Vector3& cameraPos);
+    void UpdateAimPoint(float dt, const Vector3& cameraPos);
+    void UpdateShake(float dt, const Vector3& cameraPos);
+    void UpdateProjectionMatrix();
+    void UpdateFov(float dt);
 
-    GameObject* m_Target = nullptr;   //カメラが追従する対象(プレイヤーなど)のポインタ
+    void ComputeReticleRay(const Matrix& view, Vector3* outOrigin, Vector3* outDir) const;
+    Vector3 ComputeRayPlaneIntersection(const Vector3& rayOrigin,
+                                        const Vector3& rayDir,
+                                        const Vector3& planePoint,
+                                        const Vector3& planeNormal) const;
 
-    float m_reticleMarginX = 160.0f; // 左右マージン
-    float m_reticleMarginY = 90.0f;  // 上下マージン
+    //-------追従対象関連--------
+    GameObject* m_target = nullptr;           //追従対象
+    PlayAreaComponent* m_playArea = nullptr;  //プレイ範囲
 
-    float m_DefaultDistance = 15.0f;  //追従対象の後方にどのぐらいにカメラがいるのか
-    float m_DefaultHeight = 3.5f;     //追従対象からどのぐらい高い所にカメラがいるのか
+    //-------入力/回転関連--------
+    float m_yaw = 0.0f;               //回転角(ヨー)
+    float m_pitch = 0.0f;             //回転角(ピッチ)
+    float m_sensitivity = 0.001f;     //回る量
 
-    float m_AimDistance = 20.0f;      //エイムしたときの後方どのあたりにカメラがいるのか
-    float m_AimHeight = 2.8f;         //エイムしたとき追従対象からどのぐらい高い所にカメラがいるのか
+    float m_pitchLimitMin = XMConvertToRadians(-15.0f); //ピッチの制限値
+    float m_pitchLimitMax = XMConvertToRadians( 45.0f); //ピッチの制限値
+    float m_yawLimit      = XMConvertToRadians(120.0f); //ヨーの制限値
 
-    bool m_IsAiming = false;          //今エイムしているかどうかのbool型
+    //-------カメラ距離/高さ関連--------
+    float m_defaultDistance = 0.05f;    //追従対象の後方にどのぐらいにカメラがいるのか
+    float m_defaultHeight   = 3.5f;     //追従対象からどのぐらい高い所にカメラがいるのか
 
-    float m_Yaw = 0.0f;               //マウス操作で積み上げていく回転角(ヨー)
-    float m_Pitch = 0.0f;             //マウス操作で積み上げていく回転角(ピッチ)
-    float m_Sensitivity = 0.001f;     //m_Sensitivity は小さいほど「ゆっくり回る」
+    float m_aimDistance = 0.004f;      //エイムしたときの後方どのあたりにカメラがいるのか
+    float m_aimHeight   = 2.8f;         //エイムしたとき追従対象からどのぐらい高い所にカメラがいるのか
 
-    float m_PitchLimitMin = XMConvertToRadians(-15.0f); //ピッチ(上下)の制限値(最小)
-    float m_PitchLimitMax = XMConvertToRadians(45.0f);  //ピッチ(上下)の制限値(最大)
-    float m_YawLimit = XMConvertToRadians(120.0f);      //ヨー(左右)の制限値
+    bool m_isAiming = false;          //今エイムしているかどうかのbool型
+    bool m_isBoosting = false;
+    
+    //-------行列/スプリング関連--------
+    Matrix m_viewsMatrix;        //ビュー行列
+    Matrix m_projectionMatrix;  //プロジェクト行列
+    SpringVector3 m_spring;     //カメラ位置をスプリングで滑らかに追従させるラッパー
 
-    Matrix m_ViewMatrix;        //ビュー行列
-    Matrix m_ProjectionMatrix;  //プロジェクト行列
+    float m_normalFov = DirectX::XMConvertToRadians(50.0f);
+    float m_boostFov  = DirectX::XMConvertToRadians(60.0f);
 
-    SpringVector3 m_Spring;     //カメラ位置をスプリングで滑らかに追従させるラッパー
+    float m_fovInSpeed  = 12.0f; 
+    float m_fovOutSpeed = 6.0f; 
 
-    //Vector2 m_ReticleScreen = Vector2(0.0f, 0.0f); // クライアント座標（px）
-    Vector3 m_AimPoint = Vector3::Zero;            //レティクルが指すワールド座標
-    float m_AimPlaneDistance = 300.0f;              //レイと交差させる「カメラ前方の平面までの距離」
+    float m_fovLerpSpeed = 8.0f;
 
-    float m_LookAheadDistance = 8.0f;    // どれだけ前方（レティクル方向）を注視するか（画面内でプレイヤーをずらす量）
-    float m_LookAheadLerp = 10.0f;       // lookTarget のスムーズ度合い
+    float m_normalStiffness = 35.0f;
+    float m_normalDamping   = 22.0f;
 
+    //-------レティクル/注視関連--------
+    Vector2 m_reticleScreen{ 440.0f, 160.0f };
+
+    Vector3 m_aimPoint = Vector3::Zero;            //レティクルが指すワールド座標
+    float   m_aimPlaneDistance = 300.0f;              //レイと交差させる「カメラ前方の平面までの距離」
+
+    float   m_verticalAimScale = 0.85f;
+
+    float   m_lookAheadDistance = 8.0f;    // どれだけ前方（レティクル方向）を注視するか（画面内でプレイヤーをずらす量）
+    float   m_lookAheadLerp     = 10.0f;       // lookTarget のスムーズ度合い
+    float   m_LookVerticalScale = 4.0f;   // 値を大きくすると上下移動が派手になる
     Vector3 m_LookTarget = Vector3::Zero;
 
-    // --- 追加メンバ: レティクルに応じたカメラの横シフト量（チューニング用） ---
-    float m_ScreenOffsetScale = 20.0f; // 画面幅 1.0 正規化あたりのワールド単位換算（調整可）
-    float m_MaxScreenOffset   = 24.0f;  // 最大シフト（ワールド単位）
+    //-------ターン関連--------
+    float m_prevPlayerYaw   = 0.0f;
+    float m_turnOffsetScale = 8.0f;   // yawSpeed -> ワールド横オフセット換算（調整用）
+    float m_turnOffsetMax   = 12.0f;     // オフセット最大値（ワールド単位）
+    float m_turnOffsetLerp  = 6.0f;    // オフセットが変化するときの滑らかさ（大きいと即時）
+    float m_currentTurnOffset = 0.0f; // 現在の横オフセット（滑らかに更新）
+    
+    float m_screenOffsetScale = 20.0f; // 画面幅 1.0 正規化あたりのワールド単位換算（調整可）
+    float m_maxScreenOffset   = 24.0f;  // 最大シフト（ワールド単位）
 
-    float m_LookVerticalScale = 4.0f;   // 値を大きくすると上下移動が派手になる
-
-    float m_PrevPlayerYaw = 0.0f;
-    float m_TurnOffsetScale = 8.0f;   // yawSpeed -> ワールド横オフセット換算（調整用）
-    float m_TurnOffsetMax = 12.0f;     // オフセット最大値（ワールド単位）
-    float m_CurrentTurnOffset = 0.0f; // 現在の横オフセット（滑らかに更新）
-    float m_TurnOffsetLerp = 6.0f;    // オフセットが変化するときの滑らかさ（大きいと即時）
-
-
-    // -----------------ブースト関連の変数------------------------
+    //-------ブースト関連-------
     bool m_boostRequested = false;   // 現在ボタンでブースト要求中か（MoveComponent から SetBoostState）
-    float m_boostBlend = 0.0f;       // 0..1 の補間値（0 = 通常追随, 1 = ブースト時の遅追従）
-    float m_boostBlendSpeed = 6.0f;  // ブレンドの速さ
+    float m_boostDistanceMul = 0.85f;  // ブースト中は距離を 85% にする（近づく）
 
-    // ブースト時の目標値（チューニング）
-    float m_boostAimDistanceAdd = 8.0f; // ブースト時、注視距離を伸ばす（＝カメラが後ろに残る印象）
-
-    // 通常のバネパラメータ（FollowCameraComponent コンストラクタで設定）
-    float m_normalStiffness = 12.0f;
-    float m_normalDamping = 6.0f;
-
-    float m_Fov = XMConvertToRadians(45.0f); // コンストラクタで作った FOV と合わせる
-    PlayAreaComponent* m_playArea = nullptr;
-
-    float m_VerticalAimScale = 0.85f;
-
-    //-----------------シェイク用メンバ-----------------
+    //-------シェイク関連--------
     float m_shakeMagnitude = 0.0f;        //現在の振幅（ワールド単位）
     float m_shakeTimeRemaining = 0.0f;    //残り時間（秒）
     float m_shakeTotalDuration = 0.0f;    //最初に指定した振動時間（秒）
     float m_shakePhase = 0.0f;            //波形フェーズ
     float m_shakeFrequency = 25.0f;       //振動の基準周波数(Hz) — チューニング可
 
-    DirectX::SimpleMath::Vector3 m_shakeOffset = DirectX::SimpleMath::Vector3::Zero;
+    Vector3 m_shakeOffset = DirectX::SimpleMath::Vector3::Zero;
     ShakeMode m_shakeMode = ShakeMode::Horizontal;  //現在の振動方向を決めるモード
 };

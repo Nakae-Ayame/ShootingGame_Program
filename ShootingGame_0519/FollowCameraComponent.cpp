@@ -20,11 +20,11 @@ Vector3 FollowCameraComponent::GetAimPoint() const
     if (screenW <= 1.0f || screenH <= 1.0f)
     {
         // 画面サイズがおかしいときはカメラ正面
-        return GetPosition() + GetForward() * m_AimPlaneDistance;
+        return GetPosition() + GetForward() * m_aimPlaneDistance;
     }
 
-    float sx = m_ReticleScreen.x;
-    float sy = m_ReticleScreen.y;
+    float sx = m_reticleScreen.x;
+    float sy = m_reticleScreen.y;
 
     // 実際に描画に使っている View / Proj をそのまま使う
     XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
@@ -56,71 +56,35 @@ Vector3 FollowCameraComponent::GetAimPoint() const
     XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&dir), dirW);
 
     // カメラ位置を取得
-    Vector3 camPos = m_Spring.GetPosition();
+    Vector3 camPos = m_spring.GetPosition();
 
     // カメラから一定距離だけ先の点を AimPoint とする（距離は適当に調整可）
-    float dist = m_AimPlaneDistance; // 300.0f など
+    float dist = m_aimPlaneDistance; // 300.0f など
     return camPos + dir * dist;
 }
 
-
 FollowCameraComponent::FollowCameraComponent()
 {
-    // スプリングの初期設定（通常時）
     m_normalStiffness = 12.0f;
-    m_normalDamping = 10.0f;
-    m_Spring.SetStiffness(m_normalStiffness);
-    m_Spring.SetDamping(m_normalDamping);
-    m_Spring.SetMass(1.0f);
+    m_normalDamping   = 10.0f;
+    m_spring.SetStiffness(m_normalStiffness);
+    m_spring.SetDamping(m_normalDamping);
+    m_spring.SetMass(1.0f);
 
-    // プロジェクション
-    float width  = static_cast<float>(Application::GetWidth());
-    float height = static_cast<float>(Application::GetHeight());
-
-    m_ProjectionMatrix = Matrix::CreatePerspectiveFieldOfView(
-        XMConvertToRadians(45.0f), width / height, 0.1f, 1000.0f);
-
-    // ブースト関連初期値
-    m_boostRequested = false;
-    m_boostBlend = 0.0f;
-    m_boostBlendSpeed = 6.0f;
-
-	//カメラ振動用の乱数初期化
-    //m_shakeRng.seed(123456789ULL);
+    m_Fov = m_normalFov;
+    UpdateProjectionMatrix();
 }
 
 void FollowCameraComponent::SetTarget(GameObject* target)
 {
-    m_Target = target;
+    m_target = target;
     if (target)
     {
-        Vector3 initial = target->GetPosition() + Vector3(0, m_DefaultHeight, -m_DefaultDistance);
-        m_Spring.Reset(initial);
-        m_PrevPlayerYaw = m_Target->GetRotation().y;
-        m_CurrentTurnOffset = 0.0f;
+        Vector3 initial = target->GetPosition() + Vector3(0, m_defaultHeight, -m_defaultDistance);
+        m_spring.Reset(initial);
+        m_prevPlayerYaw = m_target->GetRotation().y;
+        m_currentTurnOffset = 0.0f;
     }
-}
-
-void FollowCameraComponent::SetBoostState(bool isBoosting)
-{
-    // ブースト中かどうかのStateをセット
-    m_boostRequested = isBoosting;
-}
-
-void FollowCameraComponent::SetReticleScreen(const Vector2& center)
-{
-    m_ReticleScreen = center;
-}
-
-
-Vector3 FollowCameraComponent::GetForward() const
-{
-    return m_ViewMatrix.Invert().Forward();
-}
-
-Vector3 FollowCameraComponent::GetRight() const
-{
-    return m_ViewMatrix.Invert().Right();
 }
 
 Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
@@ -132,8 +96,8 @@ Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
         return GetForward(); // フォールバック
     }
 
-    float sx = m_ReticleScreen.x;
-    float sy = m_ReticleScreen.y;
+    float sx = m_reticleScreen.x;
+    float sy = m_reticleScreen.y;
 
     // 描画に実際に使っている View / Proj 行列
     XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
@@ -164,222 +128,344 @@ Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
     return dir;
 }
 
-void FollowCameraComponent::Update(float dt)
+void FollowCameraComponent::ComputeReticleRay(const Matrix& view, Vector3* outOrigin, Vector3* outDir) const
 {
-    if (!m_Target)
+    if (!outOrigin || !outDir)
     {
         return;
     }
 
-    m_IsAiming = Input::IsMouseRightDown();
-    POINT delta = Input::GetMouseDelta();
-    m_Yaw += delta.x * m_Sensitivity;
-    m_Pitch += delta.y * m_Sensitivity;
-    m_Pitch = std::clamp(m_Pitch, m_PitchLimitMin, m_PitchLimitMax);
-    m_Yaw = std::clamp(m_Yaw, -m_YawLimit, m_YawLimit);
-
-    // ブーストブレンドを目標に向かって滑らかに変化
-    float targetBlend;
-    if (m_boostRequested)
-    {
-        targetBlend = 1.0f;
-    }
-    else
-    {
-        targetBlend = 0.0f;
-    }
-
-    float blendDelta = (targetBlend - m_boostBlend);
-    float maxStep = std::min(1.0f, m_boostBlendSpeed * dt);
-    if (fabs(blendDelta) <= maxStep)
-    {
-        m_boostBlend = targetBlend;
-    }
-    else
-    {
-        if (blendDelta > 0.0f)
-        {
-            m_boostBlend += maxStep;
-        }
-        else
-        {
-            m_boostBlend -= maxStep;
-        }
-    }
-
-    // カメラ位置の更新（今回はブーストで距離のみ変動）
-    UpdateCameraPosition(dt);
-
-    //カメラと追尾対象のPos取得
-    Vector3 cameraPos = m_Spring.GetPosition();
-    cameraPos += m_shakeOffset;
-    Vector3 targetPos = m_Target->GetPosition();
-
     float screenW = static_cast<float>(Application::GetWidth());
     float screenH = static_cast<float>(Application::GetHeight());
-    float sx = m_ReticleScreen.x;
-    float sy = m_ReticleScreen.y;
+    if (screenW <= 1.0f || screenH <= 1.0f)
+    {
+        *outOrigin = Vector3::Zero;
+        *outDir = Vector3::Forward;
+        return;
+    }
 
-    Matrix provisionalView = Matrix::CreateLookAt(cameraPos, targetPos, Vector3::Up);
+    float sx = m_reticleScreen.x;
+    float sy = m_reticleScreen.y;
+
+    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
+    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&view));
+    XMMATRIX worldXM = XMMatrixIdentity();
+
     XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
     XMVECTOR farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
 
-    XMMATRIX projXM  = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
-    XMMATRIX viewXM  = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&provisionalView));
-    XMMATRIX worldXM = XMMatrixIdentity();
-
-    //レティクルの画面座標からワールド座標のレイを制作
-    XMVECTOR nearWorldV = XMVector3Unproject(nearScreen, 0.0f, 0.0f, screenW, 
-                                             screenH, 0.0f, 1.0f, projXM, viewXM, worldXM);
-    XMVECTOR farWorldV = XMVector3Unproject (farScreen, 0.0f, 0.0f, screenW, 
-                                             screenH, 0.0f, 1.0f, projXM, viewXM, worldXM);
-
-    Vector3 nearWorld(XMVectorGetX(nearWorldV), XMVectorGetY(nearWorldV), XMVectorGetZ(nearWorldV));
-    Vector3 farWorld (XMVectorGetX(farWorldV),  XMVectorGetY(farWorldV),  XMVectorGetZ(farWorldV));
-
-    Vector3 rayDir = farWorld - nearWorld;
-    if (rayDir.LengthSquared() > 1e-6f)
-    {
-        rayDir.Normalize();
-    }
-
-
-    Vector3 camForward = GetForward();
-
-    float localAimPlaneDist = m_AimPlaneDistance;
-
-    Vector3 planePoint = cameraPos + camForward * localAimPlaneDist;
-    float denom = rayDir.Dot(camForward);
-
-    Vector3 worldTarget;
-    const float EPS = 1e-5f;
-    if (fabs(denom) < EPS)
-    {
-        worldTarget = nearWorld + rayDir * localAimPlaneDist;
-    }
-    else
-    {
-        float t = (planePoint - nearWorld).Dot(camForward) / denom;
-        worldTarget = nearWorld + rayDir * t;
-    }
-
-    const float aimLerp = 12.0f;
-    m_AimPoint = m_AimPoint + (worldTarget - m_AimPoint) * std::min(1.0f, aimLerp * dt);
-
-    XMVECTOR projPos = XMVector3Project(
-        XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_AimPoint)),
+    XMVECTOR nearWorldV = XMVector3Unproject(
+        nearScreen,
         0.0f, 0.0f, screenW, screenH,
         0.0f, 1.0f,
         projXM, viewXM, worldXM);
 
-    float ax = XMVectorGetX(projPos);
-    float ay = XMVectorGetY(projPos);
+    XMVECTOR farWorldV = XMVector3Unproject(
+        farScreen,
+        0.0f, 0.0f, screenW, screenH,
+        0.0f, 1.0f,
+        projXM, viewXM, worldXM);
 
-    /*std::cout << "[AimPoint VS Reticle] "
-        << "ret=(" << m_ReticleScreen.x << ", " << m_ReticleScreen.y << ") "
-        << "projAim=(" << ax << ", " << ay << ")\n";*/
+    Vector3 nearWorld(XMVectorGetX(nearWorldV), XMVectorGetY(nearWorldV), XMVectorGetZ(nearWorldV));
+    Vector3 farWorld(XMVectorGetX(farWorldV), XMVectorGetY(farWorldV), XMVectorGetZ(farWorldV));
 
-    Vector3 aimDir = m_AimPoint - targetPos;
+    Vector3 dir = farWorld - nearWorld;
+    if (dir.LengthSquared() > 1e-6f)
+    {
+        dir.Normalize();
+    }
+    else
+    {
+        dir = Vector3::Forward;
+    }
+
+    *outOrigin = nearWorld;
+    *outDir = dir;
+}
+
+Vector3 FollowCameraComponent::ComputeRayPlaneIntersection(const Vector3& rayOrigin,
+                                                           const Vector3& rayDir,
+                                                           const Vector3& planePoint,
+                                                           const Vector3& planeNormal) const
+{
+    const float EPS = 1e-5f;
+
+    float denom = rayDir.Dot(planeNormal);
+    if (fabs(denom) < EPS)
+    {
+        return rayOrigin + rayDir * m_aimPlaneDistance;
+    }
+
+    float t = (planePoint - rayOrigin).Dot(planeNormal) / denom;
+    return rayOrigin + rayDir * t;
+}
+
+/// <summary>
+/// カメラのFOVをブースト状態によって更新するUpdate関数
+/// </summary>
+/// <param name="dt">デルタタイム</param>
+void FollowCameraComponent::UpdateFov(float dt)
+{
+    float targetFov = m_normalFov;
+    if (m_boostRequested)
+    {
+        targetFov = m_boostFov;
+    }
+
+    float t = std::min(1.0f, m_fovLerpSpeed * dt);
+    m_Fov = m_Fov + (targetFov - m_Fov) * t;
+
+    UpdateProjectionMatrix();
+}
+
+/// <summary>
+/// 
+/// </summary>
+void FollowCameraComponent::UpdateProjectionMatrix()
+{
+    float width = static_cast<float>(Application::GetWidth());
+    float height = static_cast<float>(Application::GetHeight());
+    if (width <= 1.0f || height <= 1.0f){ return; }
+
+    m_ProjectionMatrix = Matrix::CreatePerspectiveFieldOfView(
+        m_Fov, width / height, 0.1f, 1000.0f);
+}
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="dt"></param>
+/// <param name="cameraPos"></param>
+void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
+{
+    if (!m_target){ return; }
+
+    Vector3 targetPos = m_target->GetPosition();
+    Vector3 aimDir = m_aimPoint - targetPos;
+
     if (aimDir.LengthSquared() > 1e-6f)
     {
         aimDir.Normalize();
     }
     else
     {
-        aimDir = GetForward();
+        Vector3 fallback = targetPos - cameraPos;
+        if (fallback.LengthSquared() > 1e-6f)
+        {
+            fallback.Normalize();
+        }
+        else
+        {
+            fallback = Vector3::Forward;
+        }
+        aimDir = fallback;
     }
 
-    // --- 上下方向も残したまま、少しだけ弱める ---
-    aimDir.y *= m_VerticalAimScale;   // ヘッダで 0.85f になってるやつ
+    aimDir.y *= m_verticalAimScale;
     if (aimDir.LengthSquared() > 1e-6f)
     {
         aimDir.Normalize();
     }
 
     Vector3 rawLookTarget = targetPos
-                            + aimDir * m_LookAheadDistance
-                            + Vector3(0.0f, (m_DefaultHeight + m_AimHeight)
-                            * 0.5f, 0.0f);
+        + aimDir * m_lookAheadDistance
+        + Vector3(0.0f, (m_defaultHeight + m_aimHeight) * 0.5f, 0.0f);
 
-    screenH = static_cast<float>(Application::GetHeight());
+    float screenH = static_cast<float>(Application::GetHeight());
     float normY = 0.0f;
     if (screenH > 1.0f)
     {
-        // 画面中心: 0, 上: -1, 下: +1 になるように正規化
-        normY = (m_ReticleScreen.y - (screenH * 0.5f)) / (screenH * 0.5f);
+        normY = (m_reticleScreen.y - (screenH * 0.5f)) / (screenH * 0.5f);
     }
 
-    // 上にレティクルを動かすと normY はマイナスになる
-    // → 視線を少し下に傾ける = プレイヤーが画面の上側に映りやすくなる
     float verticalOffset = -normY * m_LookVerticalScale;
-
     rawLookTarget += Vector3(0.0f, verticalOffset, 0.0f);
 
-    Vector3 targetRot = m_Target->GetRotation();
-    Matrix  playerRot = Matrix::CreateRotationY(targetRot.y);
+    Vector3 targetRot = m_target->GetRotation();
+    Matrix playerRot = Matrix::CreateRotationY(targetRot.y);
     Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
 
-    // ※変更点：lookOffsetMul はブーストに依存させない（常に 0.6）
     float lookOffsetMul = 0.6f;
-    rawLookTarget += localRight * (m_CurrentTurnOffset * lookOffsetMul);
+    rawLookTarget += localRight * (m_currentTurnOffset * lookOffsetMul);
 
-    m_LookTarget = m_LookTarget + (rawLookTarget - m_LookTarget) * std::min(1.0f, m_LookAheadLerp * dt);
+    float t = std::min(1.0f, m_lookAheadLerp * dt);
+    m_LookTarget = m_LookTarget + (rawLookTarget - m_LookTarget) * t;
+}
+
+void FollowCameraComponent::UpdateAimPoint(float dt, const Vector3& cameraPos)
+{
+    if (!m_target){ return; }
+
+    float screenW = static_cast<float>(Application::GetWidth());
+    float screenH = static_cast<float>(Application::GetHeight());
+    if (screenW <= 1.0f || screenH <= 1.0f){ return; }
+
+    Vector3 targetPos = m_target->GetPosition();
+    
+    Matrix provisionalView = Matrix::CreateLookAt(cameraPos, targetPos, Vector3::Up);
+
+    Vector3 rayOrigin = Vector3::Zero;
+    Vector3 rayDir = Vector3::Forward;
+    ComputeReticleRay(provisionalView, &rayOrigin, &rayDir);
+
+    Matrix invView = provisionalView.Invert();
+    Vector3 camForward = invView.Forward();
+    if (camForward.LengthSquared() > 1e-6f)
+    {
+        camForward.Normalize();
+    }
+    else
+    {
+        camForward = Vector3::Forward;
+    }
+
+    Vector3 planePoint = cameraPos + camForward * m_aimPlaneDistance;
+    Vector3 planeNormal = camForward;
+
+    Vector3 worldTarget = ComputeRayPlaneIntersection(rayOrigin, rayDir, planePoint, planeNormal);
+
+    // AimPointをスムーズに追従
+    const float aimLerp = 12.0f;
+    float t = std::min(1.0f, aimLerp * dt);
+    m_aimPoint = m_aimPoint + (worldTarget - m_aimPoint) * t;
+}
+
+
+void FollowCameraComponent::UpdateShake(float dt, const Vector3& cameraPos)
+{
+    m_shakeOffset = Vector3::Zero;
+
+    if (m_shakeTimeRemaining <= 0.0f){ return; }
+
+    if (!m_target){ return; }
+
+    float safeTotal = std::max(1e-6f, m_shakeTotalDuration);
+    float t = m_shakeTimeRemaining / safeTotal;
+    float falloff = t;
+
+    m_shakePhase += dt * m_shakeFrequency * 2.0f * XM_PI;
+
+    float sampleX = std::sin(m_shakePhase);
+    float sampleY = std::sin(m_shakePhase * 1.5f + 3.1f);
+
+    float baseAmp = m_shakeMagnitude * falloff;
+
+    Vector3 forward = m_target->GetPosition() - cameraPos;
+    if (forward.LengthSquared() > 1e-6f)
+    {
+        forward.Normalize();
+    }
+    else
+    {
+        forward = Vector3::Forward;
+    }
+
+    XMVECTOR vForward = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&forward));
+    XMVECTOR vUp = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&Vector3::Up));
+    XMVECTOR vRight = XMVector3Cross(vUp, vForward);
+
+    Vector3 camRight;
+    XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&camRight), vRight);
+
+    if (camRight.LengthSquared() > 1e-6f)
+    {
+        camRight.Normalize();
+    }
+    else
+    {
+        camRight = Vector3::Right;
+    }
+
+    Vector3 camUp = forward.Cross(camRight);
+    if (camUp.LengthSquared() > 1e-6f)
+    {
+        camUp.Normalize();
+    }
+    else
+    {
+        camUp = Vector3::Up;
+    }
+
+    switch (m_shakeMode)
+    {
+        case ShakeMode::Horizontal:
+        {
+            m_shakeOffset = camRight * (baseAmp * (0.7f * sampleX + 0.3f * sampleY));
+            break;
+        }
+        case ShakeMode::Vertical:
+        {
+            m_shakeOffset = camUp * (baseAmp * (0.7f * sampleY + 0.3f * sampleX));
+            break;
+        }
+        case ShakeMode::ALL:
+        {
+
+            m_shakeOffset =
+                camRight * (baseAmp * (0.7f * sampleX + 0.3f * sampleY)) +
+                camUp * (baseAmp * (0.7f * sampleY + 0.3f * sampleX));
+            break;
+        }
+    }
+
+    m_shakeTimeRemaining -= dt;
+    if (m_shakeTimeRemaining <= 0.0f)
+    {
+        m_shakeMagnitude = 0.0f;
+        m_shakeTimeRemaining = 0.0f;
+        m_shakeTotalDuration = 0.0f;
+        m_shakePhase = 0.0f;
+        m_shakeOffset = Vector3::Zero;
+    }
+}
+
+
+void FollowCameraComponent::Update(float dt)
+{
+    if (!m_target){ return; }
+
+    m_isAiming = Input::IsMouseRightDown();
+
+    POINT delta = Input::GetMouseDelta();
+    m_yaw += delta.x * m_sensitivity;
+    m_pitch += delta.y * m_sensitivity;
+
+    m_pitch = std::clamp(m_pitch, m_pitchLimitMin, m_pitchLimitMax);
+    m_yaw = std::clamp(m_yaw, -m_yawLimit, m_yawLimit);
+
+    UpdateCameraPosition(dt);
+
+    Vector3 springPos = m_spring.GetPosition();
+    UpdateShake(dt, springPos);
+
+    Vector3 cameraPos = springPos + m_shakeOffset;
+
+    UpdateAimPoint(dt, cameraPos);
+    UpdateLookTarget(dt, cameraPos);
+
+    UpdateFov(dt);
 
     m_ViewMatrix = Matrix::CreateLookAt(cameraPos, m_LookTarget, Vector3::Up);
 
     Renderer::SetViewMatrix(m_ViewMatrix);
     Renderer::SetProjectionMatrix(m_ProjectionMatrix);
-
-    screenW = static_cast<float>(Application::GetWidth());
-    screenH = static_cast<float>(Application::GetHeight());
-    sx = m_ReticleScreen.x;
-    sy = m_ReticleScreen.y;
-
-    projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
-    viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ViewMatrix));
-    worldXM = XMMatrixIdentity();
-
-    nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
-    farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
-
-     nearWorld = XMVector3Unproject(
-        nearScreen,
-        0.0f, 0.0f, screenW, screenH,
-        0.0f, 1.0f,
-        projXM, viewXM, worldXM);
-
-    farWorld = XMVector3Unproject(
-        farScreen,
-        0.0f, 0.0f, screenW, screenH,
-        0.0f, 1.0f,
-        projXM, viewXM, worldXM);
-
-    XMVECTOR dirW = XMVector3Normalize(farWorld - nearWorld);
-
-    Vector3 dir;
-    XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&dir), dirW);
-
-    // カメラ位置から一定距離先を AimPoint にする
-    float aimDist = m_AimPlaneDistance; // もしくは 1000.0f など
-    m_AimPoint = cameraPos + dir * aimDist;
 }
 
 void FollowCameraComponent::UpdateCameraPosition(float dt)
 {
-    if (!m_Target) return;
+    if (!m_target) { return; }
 
-    // 1) 基本距離・高さ決定（ブースト要求がある時だけ距離を伸ばす）
     float desiredDist;
     float height;
-    if (m_IsAiming)
+    if (m_isAiming)
     {
-        desiredDist = m_AimDistance;
-        height = m_AimHeight;
+        desiredDist = m_aimDistance;
+        height = m_aimHeight;
     }
-    else 
+    else
     {
-        desiredDist = m_DefaultDistance;
-        height = m_DefaultHeight;
+        desiredDist = m_defaultDistance;
+        height = m_defaultHeight;
     }
     if (m_boostRequested)
     {
@@ -387,47 +473,45 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     }
 
     // 2) プレイヤー情報取得
-    Vector3 targetPos = m_Target->GetPosition();
-    Vector3 targetRot = m_Target->GetRotation();
+    Vector3 targetPos = m_target->GetPosition();
+    Vector3 targetRot = m_target->GetRotation();
     float playerYaw = targetRot.y;
     Matrix playerRot = Matrix::CreateRotationY(playerYaw);
 
-    // 3) baseDesired を作る（この時点でプレイヤーからの距離 = desiredDist を満たす）
-    Vector3 baseOffset = Vector3(0.0f, 0.0f, -desiredDist);
+    Vector3 baseOffset    = Vector3(0.0f, 0.0f, -desiredDist);
     Vector3 rotatedOffset = Vector3::Transform(baseOffset, playerRot);
-    Vector3 baseDesired = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);
+    Vector3 baseDesired   = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);
 
     // 4) lateral (reticle) および turn offset を計算して baseDesired に加える
     float screenW = static_cast<float>(Application::GetWidth());
     float normX = 0.0f;
-    if (screenW > 1.0f) normX = (m_ReticleScreen.x - (screenW * 0.5f)) / (screenW * 0.5f);
+    if (screenW > 1.0f) normX = (m_reticleScreen.x - (screenW * 0.5f)) / (screenW * 0.5f);
 
     Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
-    float lateral = normX * m_ScreenOffsetScale;
-    lateral = std::clamp(lateral, -m_MaxScreenOffset, m_MaxScreenOffset);
+    float lateral = normX * m_screenOffsetScale;
+    lateral = std::clamp(lateral, -m_maxScreenOffset, m_maxScreenOffset);
 
-    float yawDelta = playerYaw - m_PrevPlayerYaw;
+    float yawDelta = playerYaw - m_prevPlayerYaw;
     while (yawDelta > XM_PI) yawDelta -= XM_2PI;
     while (yawDelta < -XM_PI) yawDelta += XM_2PI;
     float safeDt = std::max(1e-6f, dt);
     float yawSpeed = yawDelta / safeDt;
     float boostScale = 1.0f;
-    float turnLateral = yawSpeed * m_TurnOffsetScale * boostScale;
-    float turnMax = m_TurnOffsetMax * boostScale;
+    float turnLateral = yawSpeed * m_turnOffsetScale * boostScale;
+    float turnMax = m_turnOffsetMax * boostScale;
     turnLateral = std::clamp(turnLateral, -turnMax, turnMax);
-    m_CurrentTurnOffset = m_CurrentTurnOffset + (turnLateral - m_CurrentTurnOffset) * std::min(1.0f, m_TurnOffsetLerp * dt);
+    m_currentTurnOffset = m_currentTurnOffset + (turnLateral - m_currentTurnOffset) * std::min(1.0f, m_turnOffsetLerp * dt);
 
-    // totalDesired: base + lateral + turnOffset
     Vector3 totalDesired = baseDesired;
     totalDesired += localRight * lateral;
-    totalDesired += localRight * m_CurrentTurnOffset;
+    totalDesired += localRight * m_currentTurnOffset;
 
     // ============================================================
     // ★ ここに上下反転オフセットを追加 ★
     // ============================================================
-        
+
      // Player の移動速度（世界座標）
-    Vector3 vel = m_Target->GetComponent<MoveComponent>()->GetCurrentVelocity();
+    Vector3 vel = m_target->GetComponent<MoveComponent>()->GetCurrentVelocity();
 
     // 進行方向の上下成分だけ取り出す
     float vy = vel.y;
@@ -471,8 +555,8 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
 
     // 6) 非ブースト時は「高さを保持したまま」XZ（水平）を再スケールして
     //    3D 距離が desiredDist になるように強制する（横オフセットを見せつつ距離は固定）
-    if (!m_boostRequested)
-    {
+    /*if (!m_boostRequested)
+    {*/
         Vector3 toCam = totalDesired - targetPos;
         float heightDiff = toCam.y;
         float distSq = desiredDist * desiredDist;
@@ -497,45 +581,55 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
             totalDesired.x = targetPos.x + forward.x * desiredHoriz;
             totalDesired.z = targetPos.z + forward.z * desiredHoriz;
         }
-    }
+    /*}*/
 
     // 7) safety: スプリング位置が極端に遠ければリセット（初期化不足や過去のバグで巨大値が出るケース対策）
-    Vector3 springPos = m_Spring.GetPosition();
+    Vector3 springPos = m_spring.GetPosition();
     const float ABSOLUTE_POS_LIMIT = 10000.0f; // 必要なら調整
     if (std::isnan(springPos.x) || std::isnan(springPos.y) || std::isnan(springPos.z) ||
         springPos.Length() > ABSOLUTE_POS_LIMIT)
     {
         // 初期化（瞬間的にカメラを desired に合わせる）
-        m_Spring.Reset(totalDesired);
-        springPos = m_Spring.GetPosition();
+        m_spring.Reset(totalDesired);
+        springPos = m_spring.GetPosition();
     }
 
     // 8) optional: スプリング差が大きければ一時的に stiffness を上げて追従を速める
     Vector3 desiredPos = totalDesired;
     float springDiff = (desiredPos - springPos).Length();
-    // パラメータ: このしきい値を越えたら追従を速める（非ブースト時のみ）
     const float DIFF_SNAP_THRESHOLD = desiredDist * 0.5f; // 調整可
-    if (!m_boostRequested && springDiff > DIFF_SNAP_THRESHOLD)
+
+    float stiffness = m_normalStiffness;
+    float damping = m_normalDamping;
+
+    // ★ブースト中は追従を強める（置いていかれ防止）
+    if (m_boostRequested)
     {
-        // 一時的に stiffness を上げる（m_Spring に SetStiffness があるものとする）
-        m_Spring.SetStiffness(m_normalStiffness * 1.8f);
-        m_Spring.SetDamping(m_normalDamping * 1.0f); // 任意調整
+        stiffness *= 1.6f;
+        damping *= 1.2f;
     }
-    else
+
+    // ★差が大きい時も追従を強める（ブースト中も含む）
+    if (springDiff > DIFF_SNAP_THRESHOLD)
     {
-        m_Spring.SetStiffness(m_normalStiffness);
-        m_Spring.SetDamping(m_normalDamping);
+        stiffness *= 1.8f;
+        damping *= 1.0f;
     }
+
+    m_spring.SetStiffness(stiffness);
+    m_spring.SetDamping(damping);
 
     // 9) 最後にスプリング更新
-    m_Spring.Update(desiredPos, dt);
+    m_spring.Update(desiredPos, dt);
+
+    
 
     // 10) prev yaw 更新
-    m_PrevPlayerYaw = playerYaw;
+    m_prevPlayerYaw = playerYaw;
 
     // 11) 振動処理（既存ロジックを保持）
     m_shakeOffset = Vector3::Zero;
-    if (m_shakeTimeRemaining > 0.0f && m_Target)
+    if (m_shakeTimeRemaining > 0.0f && m_target)
     {
         float t = m_shakeTimeRemaining / std::max(1e-6f, m_shakeTotalDuration);
         float falloff = t;
@@ -544,8 +638,8 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
         float sampleY = std::sin(m_shakePhase * 1.5f + 3.1f);
         float baseAmp = m_shakeMagnitude * falloff;
 
-        Vector3 cameraPosTemp = m_Spring.GetPosition();
-        Vector3 forward = m_Target->GetPosition() - cameraPosTemp;
+        Vector3 cameraPosTemp = m_spring.GetPosition();
+        Vector3 forward = m_target->GetPosition() - cameraPosTemp;
         if (forward.LengthSquared() > 1e-6f)
         {
             forward.Normalize();
@@ -587,18 +681,36 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
 }
 
 
+/*void FollowCameraComponent::UpdateCameraPosition(float dt)
+{
+    if (!m_target){ return; }
+
+    char buf[256];
+    sprintf_s(buf, "DBG: dist=%.2f height=%.2f\n", m_defaultDistance, m_defaultHeight);
+    OutputDebugStringA(buf);
+
+    Vector3 targetPos = m_target->GetPosition();
+    Vector3 targetRot = m_target->GetRotation();
+
+    Matrix rotY = Matrix::CreateRotationY(targetRot.y);
+
+    Vector3 back = Vector3::Transform(Vector3(0.0f, 0.0f, -m_defaultDistance), rotY);
+    Vector3 desiredPos = targetPos + back + Vector3(0.0f, m_defaultHeight, 0.0f);
+
+    //m_spring.Reset(desiredPos);
+    //スプリングで自然追従
+    m_spring.Update(desiredPos, dt);
+}*/
+
 void FollowCameraComponent::Shake(float magnitude, float duration , ShakeMode mode)
 {
     if (magnitude <= 0.0f || duration <= 0.0f) { return; }
 
-	//今までの振動よりも値が大きかったり、振動時間が前よりも長い場合は上書き
-    m_shakeMagnitude     = std::max(m_shakeMagnitude, magnitude);
+	m_shakeMagnitude     = std::max(m_shakeMagnitude, magnitude);
     m_shakeTimeRemaining = std::max(m_shakeTimeRemaining, duration);
     m_shakeTotalDuration = std::max(m_shakeTotalDuration, duration);
 
-    //モードを設定する
-	m_shakeMode = mode;
+   m_shakeMode = mode;
 
-    //フェーズはリセット
     m_shakePhase = 0.0f;
 }
