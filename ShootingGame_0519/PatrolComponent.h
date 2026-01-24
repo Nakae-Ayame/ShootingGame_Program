@@ -79,10 +79,13 @@ private:
 	//-------------コールバック--------------
 	std::function<void(size_t)> m_onReached;
 
+
+	float m_pathRadius = 3.0f;        // spine から許される距離（廊下の太さ）
+	float m_lookAheadTime = 0.6f;     // 未来予測時間（秒）
 	//-------------内部関数--------------
 	Vector3 GetPointClamped(int index) const;
-	Vector3 EvalCatmullRomXZ(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const;
-	Vector3 EvalCatmullRomTangentXZ(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const;
+	Vector3 EvalCatmullRom(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const;
+	Vector3 EvalCatmullRomTangent(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const;
 
 	void AdvanceSegment();
 };

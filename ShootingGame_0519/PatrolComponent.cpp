@@ -17,101 +17,136 @@ void PatrolComponent::Initialize()
 
 void PatrolComponent::Update(float dt)
 {
-	//親オブジェクトがないなら
-	if (!GetOwner()){return;}
-	//向かう地点が何もない場合
-	if (m_waypoints.size() < 2) { return; }
-	//デルタタイムが0より小さい場合
-	if (dt <= 0.0f) { return; }
+    if (!GetOwner())
+    {
+        return;
+    }
+    if (m_waypoints.size() < 2)
+    {
+        return;
+    }
+    if (dt <= 0.0f)
+    {
+        return;
+    }
+    if (!m_useSpline)
+    {
+        return;
+    }
 
-	GameObject* owner = GetOwner();
+    GameObject* owner = GetOwner();
 
-	if (!m_useSpline){ return; }
+    //--- 制御点取得 ---
+    auto calcPoints = [&](Vector3& p0, Vector3& p1, Vector3& p2, Vector3& p3)
+        {
+            int i1 = static_cast<int>(m_currentIndex);
+            int i2 = i1 + 1;
+            int i0 = i1 - 1;
+            int i3 = i2 + 1;
 
-	auto calcPoints = [&](Vector3& outP0, Vector3& outP1, Vector3& outP2, Vector3& outP3)
-	{
-			int i1 = static_cast<int>(m_currentIndex);
-			int i2 = i1 + 1;
-			int i0 = i1 - 1;
-			int i3 = i2 + 1;
+            p0 = GetPointClamped(i0);
+            p1 = GetPointClamped(i1);
+            p2 = GetPointClamped(i2);
+            p3 = GetPointClamped(i3);
+        };
 
-			outP0 = GetPointClamped(i0);
-			outP1 = GetPointClamped(i1);
-			outP2 = GetPointClamped(i2);
-			outP3 = GetPointClamped(i3);
-	};
+    Vector3 p0, p1, p2, p3;
+    calcPoints(p0, p1, p2, p3);
 
-	Vector3 p0, p1, p2, p3;
-	calcPoints(p0, p1, p2, p3);
+    //--- spine 上の進行 ---
+    Vector3 tangent = EvalCatmullRomTangent(p0, p1, p2, p3, m_segmentT);
+    float tanLen = tangent.Length();
+    if (tanLen < 1e-6f)
+    {
+        AdvanceSegment();
+        return;
+    }
 
-	Vector3 tangent = EvalCatmullRomTangentXZ(p0, p1, p2, p3, m_segmentT);
-	float tangentLen = tangent.Length();
+    m_segmentT += (m_speed * dt) / tanLen;
 
-	if (tangentLen < 1e-6f)
-	{
-		AdvanceSegment();
-		return;
-	}
+    if (m_segmentT >= 1.0f)
+    {
+        m_segmentT -= 1.0f;
+        AdvanceSegment();
+        calcPoints(p0, p1, p2, p3);
+    }
 
-	//等速で進むようにtを計算する
-	float deltaT = (m_speed * dt) / tangentLen;
-	m_segmentT += deltaT;
+    //==============================
+    // Reynolds: 未来位置の予測
+    //==============================
+    Vector3 pos = owner->GetPosition();
+    Vector3 predictedPos = pos + (m_currentDir * m_speed * m_lookAheadTime);
 
-	int safety = 0;
-	int count = static_cast<int>(m_waypoints.size());
+    // spine 上の対応点（簡易：現在区間）
+    Vector3 onPathPos = EvalCatmullRom(p0, p1, p2, p3, m_segmentT);
 
-	//区間をまたぐ処理
-	while (m_segmentT >= 1.10f)
-	{
-		m_segmentT -= 1.0f;
+    float distFromPath = (predictedPos - onPathPos).Length();
 
-		size_t prevIndex = m_currentIndex;
-		AdvanceSegment();
+    Vector3 desiredDir = m_currentDir;
 
-		if (!m_loop)
-		{
-			if(m_currentIndex == prevIndex)
-			{
-				m_segmentT = 1.0f;
-				break;
-			}
-		}
+    //==============================
+    // Reynolds: 半径外なら Seek
+    //==============================
+    if (distFromPath > m_pathRadius)
+    {
+        desiredDir = onPathPos - pos;
+        if (desiredDir.LengthSquared() > 1e-6f)
+        {
+            desiredDir.Normalize();
+        }
+    }
 
-		safety++;
+    //==============================
+    // ステアリング（旋回制限）
+    //==============================
+    Vector3 curDir = m_currentDir;
+    if (curDir.LengthSquared() < 1e-6f)
+    {
+        curDir = desiredDir;
+    }
+    else
+    {
+        curDir.Normalize();
+    }
 
-		if (safety > count + 2)
-		{
-			// 無限ループ防止
-			m_segmentT = 0.0f;
-			break;
-		}
-	}
+    float alpha = m_turnRate * dt;
+    if (alpha > 1.0f)
+    {
+        alpha = 1.0f;
+    }
 
-	calcPoints(p0, p1, p2, p3);
+    curDir = Vector3::Lerp(curDir, desiredDir, alpha);
+    if (curDir.LengthSquared() > 1e-6f)
+    {
+        curDir.Normalize();
+    }
 
-	Vector3 newPos = EvalCatmullRomXZ(p0, p1, p2, p3, m_segmentT);
+    m_currentDir = curDir;
 
-	Vector3 pos = owner->GetPosition();
-	newPos.y = pos.y;
+    //==============================
+    // 位置更新（path に張り付かない）
+    //==============================
+    Vector3 newPos = pos + (m_currentDir * m_speed * dt);
+    owner->SetPosition(newPos);
 
-	owner->SetPosition(newPos);
+    //==============================
+    // 向き（yaw のみ）
+    //==============================
+    if (m_faceMovement)
+    {
+        Vector3 flatDir = m_currentDir;
+        flatDir.y = 0.0f;
 
-	if (m_faceMovement)
-	{
-		Vector3 dir = EvalCatmullRomTangentXZ(p0, p1, p2, p3, m_segmentT);
-		dir.y = 0.0f;
+        if (flatDir.LengthSquared() > 1e-6f)
+        {
+            flatDir.Normalize();
+            float yaw = std::atan2(flatDir.x, flatDir.z);
 
-		if (dir.LengthSquared() > 1e-6f)
-		{
-			dir.Normalize();
-
-			float yaw = std::atan2(dir.x, dir.z);
-
-			Vector3 rot = owner->GetRotation();
-			rot.y = yaw;
-			owner->SetRotation(rot);
-		}
-	}
+            Vector3 rot = owner->GetRotation();
+            rot.y = yaw;
+            owner->SetRotation(rot);
+        }
+    }
 }
 
 /// <summary>
@@ -142,45 +177,38 @@ Vector3 PatrolComponent::GetPointClamped(int index) const
 	return m_waypoints[clamped];
 }
 
-/// <summary>
-/// 4つの地点ととから、曲線上の位置（座標）を計算する関数
-/// </summary>
-/// <param name="p0">p1 の1つ前の地点</param>
-/// <param name="p1">今の区間のスタート地点</param>
-/// <param name="p2">今の区間のゴール地点</param>
-/// <param name="p3">p2 の1つ後の地点</param>
-/// <param name="t">移動の進み具合</param>
-/// <returns>敵の進む座標</returns>
-Vector3 PatrolComponent::EvalCatmullRomXZ(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const
+Vector3 PatrolComponent::EvalCatmullRom(
+	const Vector3& p0,
+	const Vector3& p1,
+	const Vector3& p2,
+	const Vector3& p3,
+	float t) const
 {
 	float t2 = t * t;
 	float t3 = t2 * t;
 
-	Vector3 pos =
-		0.5f * (
-			(2.0f * p1) +
-			(-p0 + p2) * t +
-			(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
-			(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
-			);
-
-	pos.y = 0.0f;
-	return pos;
+	return 0.5f * (
+		(2.0f * p1) +
+		(-p0 + p2) * t +
+		(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
+		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
+		);
 }
 
-Vector3 PatrolComponent::EvalCatmullRomTangentXZ(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const
+Vector3 PatrolComponent::EvalCatmullRomTangent(
+	const Vector3& p0,
+	const Vector3& p1,
+	const Vector3& p2,
+	const Vector3& p3,
+	float t) const
 {
 	float t2 = t * t;
 
-	Vector3 tan =0.5f * ((-p0 + p2) +
-					      2.0f * (2.0f * p0 -
-					       5.0f * p1 + 4.0f * p2 -
-						  p3) * t +3.0f * 
-						  (-p0 + 3.0f * p1 - 3.0f * 
-						   p2 + p3) * t2);
-
-	tan.y = 0.0f;
-	return tan;
+	return 0.5f * (
+		(-p0 + p2) +
+		2.0f * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t +
+		3.0f * (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t2
+		);
 }
 
 void PatrolComponent::AdvanceSegment()
