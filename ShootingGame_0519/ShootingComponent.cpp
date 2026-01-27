@@ -180,7 +180,7 @@ static bool GetMouseRayWorld(ICameraViewProvider* camera,
 {
     if (!camera) { return false; }
 
-    float width = Application::GetWidth();
+    float width  = Application::GetWidth();
     float height = Application::GetHeight();
 
     if (width <= 0.0f || height <= 0.0f) { return false; }
