@@ -17,7 +17,7 @@ struct DamageInfo
 class HitPointComponent : public Component
 {
 public:
-    HitPointComponent(int maxHP);
+    HitPointComponent(float maxHP);
 
     void Initialize() override {}
     void Update(float dt) override;
@@ -26,8 +26,8 @@ public:
     void Heal(int amount);                    //HP‚ğ‰ñ•œ‚·‚é
 
     //İ’è/æ“¾
-    int GetHP() const    { return m_hp; }
-    int GetMaxHP() const { return m_maxHp; }
+    float GetHP() const    { return m_hp; }
+    float GetMaxHP() const { return m_maxHp; }
     bool IsDead() const  { return m_hp <= 0; }
 
     //–³“G(”í’eŒã©“®‚Å“ü‚ê‚é‚È‚ç m_invOnHit ‚ğg‚¤)
@@ -39,8 +39,8 @@ public:
     void SetOnDeath(std::function<void()> cb) { m_onDeath = std::move(cb); }
 
 private:
-	int   m_hp;       //Œ»İ‚ÌHP
-	int   m_maxHp;    //Å‘åHP
+	float m_hp;       //Œ»İ‚ÌHP
+	float m_maxHp;    //Å‘åHP
 	bool  m_isInvincible = false;    //–³“Gó‘Ô‚©‚Ìƒtƒ‰ƒO
 	float m_invTimer = 0.0f;         //–³“GŠÔ—p‚Ìƒ^ƒCƒ}[
 	float m_invOnHit = 1.5f;         //”í’eŒã‚É©“®‚Å–³“G‚É‚È‚éŠÔ

@@ -2,8 +2,7 @@
 #include "GameObject.h"
 #include <algorithm>
 
-HitPointComponent::HitPointComponent(int maxHP)
-	: m_maxHp(maxHP), m_hp(maxHP)
+HitPointComponent::HitPointComponent(float maxHP): m_maxHp(maxHP), m_hp(maxHP)
 {
 	//コンストラクタ
 }
