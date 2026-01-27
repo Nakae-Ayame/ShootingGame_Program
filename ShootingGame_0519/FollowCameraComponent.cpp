@@ -206,16 +206,27 @@ Vector3 FollowCameraComponent::ComputeRayPlaneIntersection(const Vector3& rayOri
 /// <param name="dt">デルタタイム</param>
 void FollowCameraComponent::UpdateFov(float dt)
 {
-    float targetFov = m_normalFov;
+    float currentFov = m_Fov;
+  
+	//ブースト中かどうかでFOVを変化させる
+	//一瞬で切り替わるのではなく、徐々に変化させる処理にする
     if (m_boostRequested)
     {
-        targetFov = m_boostFov;
+        float t = m_fovInSpeed * dt;
+        t = std::clamp(t, 0.0f, 1.0f);
+        currentFov += (m_boostFov - currentFov) * m_fovInSpeed * dt;
+    }
+    else
+    {
+        float t = m_fovOutSpeed * dt;
+        t = std::clamp(t, 0.0f, 1.0f);
+        currentFov -= (currentFov - m_normalFov) * m_fovOutSpeed * dt;
     }
 
-    float t = std::min(1.0f, m_fovLerpSpeed * dt);
-    m_Fov = m_Fov + (targetFov - m_Fov) * t;
+	m_Fov = currentFov;
 
-    UpdateProjectionMatrix();
+	//FOVが変化したのでProjectionMatrixを更新する
+    UpdateProjectionMatrix(); 
 }
 
 /// <summary>
@@ -240,7 +251,10 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
 {
     if (!m_target){ return; }
 
+    //ターゲットの位置取得
     Vector3 targetPos = m_target->GetPosition();
+
+    //基本の注視点決め(方向ベクトルだよ)
     Vector3 aimDir = m_aimPoint - targetPos;
 
     if (aimDir.LengthSquared() > 1e-6f)
@@ -261,15 +275,28 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
         aimDir = fallback;
     }
 
+	//上下方向のスケールを調整
+    //左右方向より控えめに
     aimDir.y *= m_verticalAimScale;
     if (aimDir.LengthSquared() > 1e-6f)
     {
         aimDir.Normalize();
     }
+    
+    Vector3 rawLookTarget;
 
-    Vector3 rawLookTarget = targetPos
-        + aimDir * m_lookAheadDistance
-        + Vector3(0.0f, (m_defaultHeight + m_aimHeight) * 0.5f, 0.0f);
+	//注視点をPlayerの進む方向を考慮して少し先をみる
+    if (m_boostRequested)
+    {
+        rawLookTarget = targetPos + aimDir * m_normalLookAheadDistance +
+                        Vector3(0.0f, (m_defaultHeight + m_aimHeight) * 0.5f, 0.0f);
+    }
+    else
+    {
+        rawLookTarget = targetPos + aimDir * m_normalLookAheadDistance +
+                        Vector3(0.0f, (m_defaultHeight + m_aimHeight) * 0.5f, 0.0f);
+    }
+    
 
     float screenH = static_cast<float>(Application::GetHeight());
     float normY = 0.0f;
@@ -285,10 +312,13 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
     Matrix playerRot = Matrix::CreateRotationY(targetRot.y);
     Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
 
+    //プレイヤーが旋回する際に若干注視点をその方向に向ける
     float lookOffsetMul = 0.6f;
     rawLookTarget += localRight * (m_currentTurnOffset * lookOffsetMul);
 
     float t = std::min(1.0f, m_lookAheadLerp * dt);
+
+	//滑らかに注視点を追従
     m_LookTarget = m_LookTarget + (rawLookTarget - m_LookTarget) * t;
 }
 

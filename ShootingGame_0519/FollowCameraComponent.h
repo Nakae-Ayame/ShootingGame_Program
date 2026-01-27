@@ -100,7 +100,7 @@ private:
     float m_boostFov  = DirectX::XMConvertToRadians(60.0f);
 
     float m_fovInSpeed  = 12.0f; 
-    float m_fovOutSpeed = 6.0f; 
+    float m_fovOutSpeed =  1.0f; 
 
     float m_fovLerpSpeed = 8.0f;
 
@@ -115,9 +115,11 @@ private:
 
     float   m_verticalAimScale = 0.85f;
 
-    float   m_lookAheadDistance = 8.0f;    // どれだけ前方（レティクル方向）を注視するか（画面内でプレイヤーをずらす量）
-    float   m_lookAheadLerp     = 10.0f;       // lookTarget のスムーズ度合い
-    float   m_LookVerticalScale = 4.0f;   // 値を大きくすると上下移動が派手になる
+    float m_normalLookAheadDistance = 8.0f;
+    float m_boostLookAheadDistance  = 15.0f;
+
+    float m_lookAheadLerp     = 10.0f;   //lookTarget のスムーズ度合い
+    float m_LookVerticalScale = 4.0f;    //値を大きくすると上下移動が派手になる
     Vector3 m_LookTarget = Vector3::Zero;
 
     //-------ターン関連--------

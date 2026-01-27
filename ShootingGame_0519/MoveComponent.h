@@ -64,7 +64,7 @@ private:
     float m_currentPitch = 0.0f;  //現在のピッチ
 
     //------------------ブースト関連----------------------
-    float m_boostMultiplier = 2.5f; //何倍速くなるか
+    float m_boostMultiplier = 2.0f; //何倍速くなるか
     float m_boostSeconds    = 1.0f; //ブースト持続秒数
     float m_boostRecover    = 0.8f; //通常速度に戻るまでの秒数
     float m_boostCooldown   = 0.5f; // 次ブーストまでのクールダウン
