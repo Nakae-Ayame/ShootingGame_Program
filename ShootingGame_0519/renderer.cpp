@@ -62,6 +62,13 @@ DirectX::SimpleMath::Matrix Renderer::m_cachedView = DirectX::SimpleMath::Matrix
 DirectX::SimpleMath::Matrix Renderer::m_cachedProjection = DirectX::SimpleMath::Matrix::Identity;
 //-------------------------------------------------------
 
+ComPtr<ID3D11Texture2D>        Renderer::m_playerColorTex;
+ComPtr<ID3D11RenderTargetView> Renderer::m_playerColorRTV;
+ComPtr<ID3D11ShaderResourceView> Renderer::m_playerColorSRV;
+
+ComPtr<ID3D11Texture2D>        Renderer::m_prevPlayerColorTex;
+ComPtr<ID3D11ShaderResourceView> Renderer::m_prevPlayerColorSRV;
+
 
 ComPtr<ID3D11DeviceContext> Renderer::m_pContext; // 初期化済みのデバイスコンテキスト
 ComPtr<ID3D11BlendState> Renderer::m_pBlendState; // アルファブレンド用
@@ -228,6 +235,33 @@ void Renderer::Init()
     if (FAILED(hr)) { throw std::runtime_error("Failed to create scene SRV"); }
 
     // =========================
+    // ★ Player用テクスチャ作成（RTV + SRV）
+    // =========================
+    hr = m_device->CreateTexture2D(&sceneDesc, nullptr, m_playerColorTex.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create player color texture"); }
+
+    hr = m_device->CreateRenderTargetView(m_playerColorTex.Get(), nullptr, m_playerColorRTV.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create player RTV"); }
+
+    hr = m_device->CreateShaderResourceView(m_playerColorTex.Get(), nullptr, m_playerColorSRV.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create player SRV"); }
+
+    // =========================
+    // ★ Player前フレーム用テクスチャ作成（SRVのみ）
+    // =========================
+    D3D11_TEXTURE2D_DESC prevPlayerDesc = sceneDesc;
+    prevPlayerDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    hr = m_device->CreateTexture2D(&prevPlayerDesc, nullptr, m_prevPlayerColorTex.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create prev player texture"); }
+
+    hr = m_device->CreateShaderResourceView(m_prevPlayerColorTex.Get(), nullptr, m_prevPlayerColorSRV.GetAddressOf());
+    if (FAILED(hr)) { throw std::runtime_error("Failed to create prev player SRV"); }
+
+
+
+
+    // =========================
     // ★ 前フレーム用テクスチャ作成
     // =========================
     D3D11_TEXTURE2D_DESC prevDesc = sceneDesc;
@@ -251,8 +285,10 @@ void Renderer::Init()
     ppDesc.StructureByteStride = 0;
 
     hr = m_device->CreateBuffer(&ppDesc, nullptr, m_postProcessBuffer.GetAddressOf());
-    if (FAILED(hr)) { throw std::runtime_error("Failed to create postprocess constant buffer"); }
-
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed to create postprocess constant buffer");
+    }
     // =========================
     // ★ モーションブラー用ピクセルシェーダのコンパイル
     // =========================
@@ -996,6 +1032,10 @@ void Renderer::ApplyMotionBlur()
         return;
     }
 
+    if (!m_playerColorTex || !m_playerColorSRV || !m_prevPlayerColorSRV)
+    {
+        return;
+    }
 
     // BackBuffer のリソース取得（CopyResource に使う）
     ID3D11Resource* backRes = nullptr;
@@ -1006,16 +1046,33 @@ void Renderer::ApplyMotionBlur()
     {
         if (backRes)
         {
-            // バックバッファにシーン画像をコピー
             m_deviceContext->CopyResource(backRes, m_sceneColorTex.Get());
 
-            // 次フレーム用に prev にもコピー
+            ID3D11RenderTargetView* backRTV = m_renderTargetView.Get();
+            m_deviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
+
+            SetDepthEnable(false);
+
+            SetBlendState(BS_ALPHABLEND);
+
+            Vector2 pos(0.0f, 0.0f);
+            Vector2 size((float)Application::GetWidth(), (float)Application::GetHeight());
+
+            SetTextureAlpha(1.0f);
+
+            DrawTexture(m_playerColorSRV.Get(), pos, size);
+
+            SetBlendState(BS_NONE);
+            SetDepthEnable(true);
+
             m_deviceContext->CopyResource(m_prevSceneColorTex.Get(), m_sceneColorTex.Get());
+            m_deviceContext->CopyResource(m_prevPlayerColorTex.Get(), m_playerColorTex.Get());
 
             backRes->Release();
         }
         return;
     }
+
 
     // ================================
     //  GPU ステート保存
@@ -1116,23 +1173,52 @@ void Renderer::ApplyMotionBlur()
     };
     m_deviceContext->PSSetShaderResources(0, 2, srvs);
 
-    // ================================
-    // ★ 定数バッファ更新（最重要ポイント）★
-    // ================================
-    PostProcessSettings cbData = s_postProcess;
-    cbData.motionBlurAmount = blur;  // クランプ済みに書き換え
+    PostProcessSettings cb{};
+    cb.motionBlurAmount = blur * 0.2;
+    cb.motionBlurDir = s_postProcess.motionBlurDir;
+    cb.motionBlurStretch = s_postProcess.motionBlurStretch;
+    cb.bloomAmount = s_postProcess.bloomAmount;
+    cb.vignetteAmount = s_postProcess.vignetteAmount;
 
     m_deviceContext->UpdateSubresource(
-        m_postProcessBuffer.Get(), 0, nullptr, &cbData, 0, 0
-    );
+        m_postProcessBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
     ID3D11Buffer* ppCB = m_postProcessBuffer.Get();
     m_deviceContext->PSSetConstantBuffers(0, 1, &ppCB);
 
-    // ================================
-    // 描画
-    // ================================
     m_deviceContext->Draw(6, 0);
+
+    // ブレンドON（α合成）
+    SetBlendState(BS_ALPHABLEND);
+
+    // Player 用 SRV
+    ID3D11ShaderResourceView* playerSrvs[2] =
+    {
+        m_playerColorSRV.Get(),
+        m_prevPlayerColorSRV.Get(),
+    };
+    m_deviceContext->PSSetShaderResources(0, 2, playerSrvs);
+
+    // Player は強めにブラー
+    PostProcessSettings playerCB = s_postProcess;
+    playerCB.motionBlurAmount = blur * 3.0f;
+
+    m_deviceContext->UpdateSubresource(
+        m_postProcessBuffer.Get(), 0, nullptr, &playerCB, 0, 0
+    );
+    ID3D11Buffer* ppCB2 = m_postProcessBuffer.Get();
+    m_deviceContext->PSSetConstantBuffers(0, 1, &ppCB2);
+
+    // 再度描画（同じフルスクリーンクアッド）
+    m_deviceContext->Draw(6, 0);
+
+    // SRV解除
+    ID3D11ShaderResourceView* nullSRV2[2] = { nullptr, nullptr };
+    m_deviceContext->PSSetShaderResources(0, 2, nullSRV2);
+
+    // ブレンド戻す
+    SetBlendState(BS_NONE);
+
 
     // SRV 解放
     ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
@@ -1171,7 +1257,10 @@ void Renderer::ApplyMotionBlur()
     // ================================
     if (backRes)
     {
-        m_deviceContext->CopyResource(m_prevSceneColorTex.Get(), m_sceneColorTex.Get());
+        m_deviceContext->CopyResource(
+            m_prevPlayerColorTex.Get(),
+            m_playerColorTex.Get()
+        );
         backRes->Release();
     }
 }
@@ -1236,6 +1325,33 @@ void Renderer::BeginBackBuffer()
 
     // UI では Z は不要なので深度は無し
     // ラスタライザとビューポートもデフォルトで OK
+}
+
+void Renderer::BeginPlayerRenderTarget()
+{
+    ID3D11RenderTargetView* rtv = m_playerColorRTV.Get();
+
+    // 深度は使ってもOK（Playerのモデル描画用）
+    m_deviceContext->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
+
+    //透明でクリア（ここ重要：合成時のマスクに使う）
+    float clearColor[4] = { 0.5,0.5,0.5,0 };
+    m_deviceContext->ClearRenderTargetView(rtv, clearColor);
+    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(),
+        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    m_deviceContext->RSSetState(m_rasterizerState.Get());
+    m_deviceContext->RSSetViewports(1, &m_viewport);
+}
+
+void Renderer::SetSceneRenderTarget()
+{
+    ID3D11RenderTargetView* rtv = m_sceneColorRTV.Get();
+    m_deviceContext->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
+
+    // ここではクリアしない（すでに描いた背景を消さないため）
+    m_deviceContext->RSSetState(m_rasterizerState.Get());
+    m_deviceContext->RSSetViewports(1, &m_viewport);
 }
 
 struct BillboardVertex

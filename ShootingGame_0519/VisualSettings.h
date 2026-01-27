@@ -7,4 +7,7 @@ struct PostProcessSettings
 	float motionBlurStretch;
 	float bloomAmount;       //ブルームの強さ
 	float vignetteAmount = 0.0f;    //ビネットの強さ
+	float padding[2];
 };
+
+static_assert(sizeof(PostProcessSettings) == 32, "PostProcessCB size mismatch");

@@ -151,7 +151,13 @@ private:
     static Microsoft::WRL::ComPtr<ID3D11PixelShader>        m_motionBlurPixelShader;
     static Microsoft::WRL::ComPtr<ID3D11Buffer>             m_postProcessBuffer;
 
-    //-----------------------------------------------------------------------------
+    //-------------------------------Player専用（強ブラー用）------------------------------
+    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_playerColorTex;
+    static Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_playerColorRTV;
+    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_playerColorSRV;
+
+    static Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_prevPlayerColorTex;
+    static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_prevPlayerColorSRV;
 
     //シェーダコンパイルの共通ヘルパ
     static Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const wchar_t* filePath,
@@ -170,7 +176,8 @@ public:
 	static void BeginBackBuffer();
     static void ApplyMotionBlur(); // End() から呼ぶ内部処理
 
-
+    static void BeginPlayerRenderTarget();
+    static void SetSceneRenderTarget();
 
     //-----------------------Set関数関連--------------------------------------
     static void SetDepthEnable(bool Enable);

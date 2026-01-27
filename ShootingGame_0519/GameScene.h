@@ -35,41 +35,23 @@ class GameScene : public IScene
 public:
 	explicit GameScene() {};
 	
-	//更新関数
 	void Update(float deltatime) override;
-	//描画関数
 	void Draw(float deltatime) override;
-	//3Dワールド上の描画関数
 	void DrawWorld(float deltatime) override;
-	//UI上の描画関数
 	void DrawUI(float deltatime) override;
-	//初期化関数
 	void Init() override;
-	//終了関数
 	void Uninit() override;
 
-	//モード変更用関数
+	//------------------IMGUI用関数------------------
 	void DebugCollisionMode();
-
-	//モード変更用関数
 	void DebugSetPlayerSpeed();
-
-	//モード変更用関数
 	void DebugSetAimDistance();
 	
-	//オブジェクトの追加要求関数
+	//-------------オブジェクト関連の関数-------------
 	void AddObject(std::shared_ptr<GameObject> obj) override;
-
-	//2Dオブジェクトの追加要求関数
 	void AddTextureObject(std::shared_ptr<GameObject> obj);
-	
-	//オブジェクトの削除要求関数
-	void RemoveObject(std::shared_ptr<GameObject>) override {};
-	
-	//オブジェクトの削除要求関数
-	void RemoveObject(GameObject* obj);
-
-	//実際に削除などをする関数
+	void RemoveObject(std::shared_ptr<GameObject> obj) override {};
+	void RemoveObject(GameObject* obj) override;
 	void FinishFrameCleanup() override;
 
 	bool Raycast(const DirectX::SimpleMath::Vector3& origin,
@@ -89,17 +71,17 @@ public:
 
 	PlayAreaComponent* GetPlayArea() const { return m_playArea.get(); }
 
-	//削除予定のオブジェクトの配列
+	//---------フレーム終了時に削除・追加予定のオブジェクト配列---------
 	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
-
-	//追加予定のオブジェクトの配列
 	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
 
 private:
 	GameState m_GameState = GameState::Playing;
 
-	float m_aimMarginX = 80.0f;  // 左右マージン（好きな値に変えてOK）
+	float m_aimMarginX = 80.0f;   // 左右マージン（好きな値に変えてOK）
 	float m_aimMarginY = 45.0f;   // 上下マージン
+
+	FollowCameraComponent* m_cameraComp = nullptr;
 
 	std::unique_ptr<EnemySpawner> m_enemySpawner;
 
@@ -180,7 +162,6 @@ private:
 
 	std::shared_ptr<MoveComponent> m_playerMove;
 	
-	//--------------ミニマップ関連--------------
 	//--------------ミニマップ関連------------------
 	std::shared_ptr<GameObject> m_miniMapUi;
 	MiniMapComponent* m_miniMap = nullptr;
@@ -190,4 +171,13 @@ private:
 	ID3D11ShaderResourceView* m_miniMapEnemySRV = nullptr;
 	ID3D11ShaderResourceView* m_miniMapBuildingSRV = nullptr;
 
+	//----------------初期化分業用関数--------------------
+	void InitializeDebug();
+	void InitializePlayArea();
+	void InitializePhase();
+	void InitializeCamera();
+	void InitializePlayer();
+	void InitializeEnemy();
+	void InitializeStageObject();
+	void InitializeUI();
 };

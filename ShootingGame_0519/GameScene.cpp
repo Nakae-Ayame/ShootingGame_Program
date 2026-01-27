@@ -266,58 +266,105 @@ bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
     return false;
 }
 
-void GameScene::Init()
-{    
+void GameScene::InitializeDebug()
+{
     //デバッグMODE SELECT
-    DebugUI::RedistDebugFunction([this]() {DebugCollisionMode();});
-
-    DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed();});
-    
-    DebugUI::RedistDebugFunction([this]() {DebugSetAimDistance();});
+    //DebugUI::RedistDebugFunction([this]() {DebugCollisionMode();  });
+    DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed(); });
+    //DebugUI::RedistDebugFunction([this]() {DebugSetAimDistance(); });
 
     //DebugRendererの初期化
     m_debugRenderer = std::make_unique<DebugRenderer>();
-    m_debugRenderer->Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext(),
-        L"DebugLineVS.cso", L"DebugLinePS.cso");
-    //--------------------------プレイヤー作成---------------------------------
+    m_debugRenderer->Initialize(Renderer::GetDevice(), 
+                                Renderer::GetDeviceContext(),
+                                L"DebugLineVS.cso", L"DebugLinePS.cso");
+}
+
+void GameScene::InitializePlayArea()
+{
     m_playArea = std::make_shared<PlayAreaComponent>();
-    m_playArea->SetScene(this); // PlayArea がシーンを利用する場合
+    m_playArea->SetScene(this); 
     m_playArea->SetBounds({ -300.0f, -1.0f, -300.0f }, { 300.0f, 200.0f, 300.0f });
     m_playArea->SetGroundY(-7.0f);
-    
+}
+
+void GameScene::InitializePhase()
+{
+
+}
+
+void GameScene::InitializeCamera()
+{
     m_FollowCamera = std::make_shared<CameraObject>();
-
-    auto followCamComp = m_FollowCamera->AddCameraComponent<FollowCameraComponent>();
-
+    m_cameraComp = m_FollowCamera->AddCameraComponent<FollowCameraComponent>().get();
     AddObject(m_FollowCamera);
-
     m_FollowCamera->Initialize();
 
+	auto moveComp = m_player->GetComponent<MoveComponent>();
+    auto cameraComp = m_FollowCamera->GetComponent<FollowCameraComponent>();
+	auto shootComp = m_player->GetComponent<ShootingComponent>();
+
+    if (moveComp && cameraComp)
+    {
+        moveComp->SetCameraView(cameraComp.get());
+    }
+
+    if (shootComp && cameraComp)
+    {
+        shootComp->SetScene(this);
+        shootComp->SetCamera(cameraComp.get());
+    }
+
+    if (m_cameraComp)
+    {
+        m_cameraComp->SetPlayArea(m_playArea.get());
+        //m_cameraComp->SetDistance(15.0f);
+    }
+    
+}
+
+void GameScene::InitializePlayer()
+{
     m_player = std::make_shared<Player>();
     m_player->Initialize();
 
     auto moveComp = m_player->GetComponent<MoveComponent>();
-
     if (moveComp)
     {
         moveComp->SetPlayArea(m_playArea.get());
     }
 
-    //-------------------------敵生成--------------------------------
+    auto shootComp = m_player->GetComponent<ShootingComponent>();
+    if (shootComp)
+    {
+        shootComp->SetScene(this);
+    }
+
+
+}
+
+void GameScene::InitializeEnemy()
+{
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 1;
-	m_enemySpawner->circleCfg.spawnCount = 0;
-    m_enemySpawner->turretCfg.spawnCount = 1;
+    m_enemySpawner->patrolCfg.spawnCount = 4;
+    m_enemySpawner->circleCfg.spawnCount = 0;
+    m_enemySpawner->turretCfg.spawnCount = 2;
     m_enemySpawner->fleeCfg.spawnCount = 0;
 
     enemyCount = m_enemySpawner->patrolCfg.spawnCount + m_enemySpawner->circleCfg.spawnCount + m_enemySpawner->turretCfg.spawnCount;
 
+    //m_enemySpawner->SetWaypoints(
+    //    { { 30.0f, 20.0f, 30.0f },
+    //      {-30.0f, 20.0f, 30.0f },
+    //      {-30.0f, 20.0f,-30.0f },
+    //      { 30.0f, 20.0f,-30.0f } });
+
     m_enemySpawner->SetWaypoints(
-        { { 80.0f, 20.0f,  0.0f }, 
-          { 40.0f, 20.0f,-80.0f }, 
-          {-40.0f, 20.0f,-80.0f }, 
-          {-80.0f, 20.0f,  0.0f }, 
-          { 40.0f, 20.0f, 80.0f },});
+        { { 80.0f, 20.0f,  0.0f },
+          { 40.0f, 20.0f,-80.0f },
+          {-40.0f, 20.0f,-80.0f },
+          {-80.0f, 20.0f,  0.0f },
+          { 40.0f, 20.0f, 80.0f }, });
 
     m_enemySpawner->SetWaypoints(
         { { 80.0f, 40.0f,  0.0f },
@@ -333,7 +380,7 @@ void GameScene::Init()
           { -62.5f, 90.0f, -125.0f },
           {  62.5f, 90.0f,  125.0f },
           {-125.0f, 90.0f,  -62.5f },
-          {-125.0f, 90.0f,   62.5f }});
+          {-125.0f, 90.0f,   62.5f } });
 
     m_enemySpawner->SetWaypoints(
         { { 62.0f, 120.0f,    0.0f },
@@ -345,39 +392,21 @@ void GameScene::Init()
           {-125.0f, 120.0f,   62.5f } });
 
     m_enemySpawner->EnsurePatrolCount();
-	m_enemySpawner->turretCfg.target = m_player;
-	m_enemySpawner->turretCfg.bulletSpeed = 80.0f;
+    m_enemySpawner->turretCfg.target = m_player;
+    m_enemySpawner->turretCfg.bulletSpeed = 80.0f;
     m_enemySpawner->SetTurretPos({ 100.0f,100.0f,0.0f });
     m_enemySpawner->SetTurretPos({ -100.0f,100.0f,0.0f });
 
-	m_enemySpawner->EnsureTurretCount();
-    //------------------スカイドーム作成-------------------------
+    m_enemySpawner->EnsureTurretCount();
 
-    m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_03.png");
-    m_SkyDome->Initialize();
+}
 
-    //-----------------------床制作------------------------------
-
-    auto floorObj = std::make_shared<GameObject>();
-    floorObj->SetPosition(Vector3(0, -5, 0));
-    floorObj->SetRotation(Vector3(0, 0, 0));
-    floorObj->SetScale(Vector3(75, 75, 75));
-
-    // AddComponent で床コンポーネントを追加（テクスチャパスは任意）
-    auto floorComp = floorObj->AddComponent<FloorComponent>();
-
-    floorComp->SetGridTexture("Asset/Texture/grid01.jpeg", 1, 1);
-
-    floorObj->Initialize();
-
-    AddObject(floorObj);
-
-    //--------------------------建物生成-----------------------------
-
+void GameScene::InitializeStageObject()
+{
     m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
     BuildingConfig bc;
     bc.modelPath = "Asset/Build/wooden watch tower2.obj";
-    bc.count = 1;
+    bc.count = 0;
     bc.areaWidth = 300.0f;
     bc.areaDepth = 300.0f;
     bc.spacing = 30.0f;          //建物間に20単位の余裕を入れる
@@ -403,52 +432,76 @@ void GameScene::Init()
 
     int placed = m_buildingSpawner->Spawn(bc);
 
-    //-------------------------レティクル作成-------------------------------------
+    //------------------スカイドーム作成-------------------------
+
+    m_SkyDome = std::make_shared<SkyDome>("Asset/SkyDome/SkyDome_03.png");
+    m_SkyDome->Initialize();
+
+    if (m_cameraComp)
+    {
+        m_SkyDome->SetCamera(m_cameraComp);
+    }
+
+    //-----------------------床制作------------------------------
+
+    auto floorObj = std::make_shared<GameObject>();
+    floorObj->SetPosition(Vector3(0, -5, 0));
+    floorObj->SetRotation(Vector3(0, 0, 0));
+    floorObj->SetScale(Vector3(75, 75, 75));
+
+    // AddComponent で床コンポーネントを追加（テクスチャパスは任意）
+    auto floorComp = floorObj->AddComponent<FloorComponent>();
+
+    floorComp->SetGridTexture("Asset/Texture/grid01.jpeg", 1, 1);
+
+    floorObj->Initialize();
+
+    AddObject(floorObj);
+}
+
+void GameScene::InitializeUI()
+{
+    //-----------レティクル作成--------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
     RECT rc{};
     GetClientRect(Application::GetWindow(), &rc);
-    float x = (rc.right - rc.left) / 2;
-    float y = (rc.bottom - rc.top) / 2;
+    float screenWidth = static_cast<float>(rc.right - rc.left);
+    float screenHeight = static_cast<float>(rc.bottom - rc.top);
+    float x = screenWidth * 0.5f;
+    float y = screenHeight * 0.5f;
     m_reticle->Initialize();
-    
-	//--------------------------HPバー作成-------------------------------------
-	auto hpUI = std::make_shared<HPBar>(L"Asset/UI/HPBar01.png", L"Asset/UI/HPGauge01.png", 100.0f, 475.0f);
-	hpUI->SetScreenPos(30.0f, 200.0f);
+
+    //-------------HPバー作成-----------------
+    auto hpUI = std::make_shared<HPBar>(L"Asset/UI/HPBar01.png", L"Asset/UI/HPGauge01.png", 100.0f, 475.0f);
+    hpUI->SetScreenPos(30.0f, 200.0f);
     hpUI->Initialize();
-    
-    auto shootComp = m_player->GetComponent<ShootingComponent>();
-    //ShootingComponent に this（現在のシーン）を渡す
-    if (shootComp)
-    {
-        shootComp->SetScene(this);
-    }
-   
+
+    //-------------ミニマップ設定----------------
+    m_miniMapBgSRV = TextureManager::Load("Asset/UI/minimap_Background.png");
+    m_miniMapPlayerSRV = TextureManager::Load("Asset/UI/mimimap_player.png");
+    m_miniMapEnemySRV = TextureManager::Load("Asset/UI/mimimap_enemy.png");
+    m_miniMapBuildingSRV = TextureManager::Load("Asset/UI/mimimap_building.png");
+
+    m_miniMapUi = std::make_shared<GameObject>();
+    m_miniMap = m_miniMapUi->AddComponent<MiniMapComponent>().get();
+
+    m_miniMap->SetScreenPosition(1008.0f, 16.0f);
+    m_miniMap->SetSize(256.0f, 256.0f);
+    m_miniMap->SetCoverageRadius(200.0f);
+    m_miniMap->SetRotateWithPlayer(true);
+    m_miniMap->SetIconSize(10.0f);
+
+    m_miniMap->SetBackgroundSRV(m_miniMapBgSRV);
+    m_miniMap->SetPlayerIconSRV(m_miniMapPlayerSRV);
+    m_miniMap->SetEnemyIconSRV(m_miniMapEnemySRV);
+    m_miniMap->SetBuildingIconSRV(m_miniMapBuildingSRV);
+
+    m_miniMap->SetPlayer(m_player.get()); // m_playerがshared_ptr<GameObject>想定
+
     auto cameraComp = m_FollowCamera->GetComponent<FollowCameraComponent>();
 
-    if (moveComp && cameraComp)
-    {
-        moveComp->SetCameraView(cameraComp.get()); 
-    }
-
-    if (shootComp && cameraComp)
-    {
-        shootComp->SetScene(this);
-        shootComp->SetCamera(cameraComp.get());
-    }
-
-    if (cameraComp)
-    {
-        m_SkyDome->SetCamera(cameraComp.get()); //ICameraViewProvider* を受け取る場合
-        cameraComp->SetPlayArea(m_playArea.get());
-        cameraComp->SetDistance(5.0f);
-    }
-
-
-    // 弱参照を作る（ラムダ内で lock して使う）
     std::weak_ptr<HPBar> wHpUI = hpUI;
 
-    // cameraComp が生ポインタ（raw）ならそのままキャプチャして良い。
-    // cameraComp が shared_ptr なら同様に weak_ptr にしておくのが安全。
     auto hp = m_player->GetComponent<HitPointComponent>();
     if (hp)
     {
@@ -461,10 +514,10 @@ void GameScene::Init()
                 // カメラシェイク（cameraComp が raw pointer なら null チェック）
                 if (cameraComp)
                 {
-                    cameraComp->Shake(7.5f, 0.5f , FollowCameraComponent::ShakeMode::Horizontal);
+                    cameraComp->Shake(7.5f, 0.5f, FollowCameraComponent::ShakeMode::Horizontal);
                 }
 
-                 //HPUI 更新：まず weak -> shared にする
+                //HPUI 更新：まず weak -> shared にする
                 if (auto bar = wHpUI.lock())
                 {
                     if (auto playerHP = wPlayerHP.lock())
@@ -481,41 +534,37 @@ void GameScene::Init()
                 }
             });
     }
-
-    cameraComp->SetDistance(15.0f);
-
-    //-------------ミニマップ設定----------------
-	m_miniMapBgSRV       = TextureManager::Load("Asset/UI/minimap_Background.png");
-    m_miniMapPlayerSRV   = TextureManager::Load("Asset/UI/mimimap_player.png");
-    m_miniMapEnemySRV    = TextureManager::Load("Asset/UI/mimimap_enemy.png");
-    m_miniMapBuildingSRV = TextureManager::Load("Asset/UI/mimimap_building.png");
-
-    m_miniMapUi = std::make_shared<GameObject>();
-    m_miniMap = m_miniMapUi->AddComponent<MiniMapComponent>().get();
-
-    m_miniMap->SetScreenPosition(1008.0f, 16.0f);
-    m_miniMap->SetSize(256.0f, 256.0f);
-    m_miniMap->SetCoverageRadius(200.0f);
-    m_miniMap->SetRotateWithPlayer(true);
-    m_miniMap->SetIconSize(10.0f);
-
-    m_miniMap->SetBackgroundSRV(m_miniMapBgSRV);
-	m_miniMap->SetPlayerIconSRV(m_miniMapPlayerSRV);
-    m_miniMap->SetEnemyIconSRV(m_miniMapEnemySRV);
-    m_miniMap->SetBuildingIconSRV(m_miniMapBuildingSRV);
-
-    m_miniMap->SetPlayer(m_player.get()); // m_playerがshared_ptr<GameObject>想定
-
-    //---------------------------------------------
-	
-    m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
-
-    m_FollowCamera->GetFollowCameraComponent()->SetTarget(m_player.get());
-
-    //AddTextureObject(HPbar);
     AddTextureObject(m_reticle);
     AddTextureObject(hpUI);
     AddTextureObject(m_miniMapUi);
+}
+
+void GameScene::Init()
+{    
+    //デバッグ初期化
+	InitializeDebug();
+
+	//プレイエリア初期化
+    InitializePlayArea();
+    
+    //プレイヤー初期化
+    InitializePlayer();
+
+    //カメラ初期化
+    InitializeCamera();
+
+    //敵初期化
+    InitializeEnemy();
+
+    //建物初期化
+	InitializeStageObject();
+
+	//UI初期化
+	InitializeUI();
+
+    m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
+
+    m_FollowCamera->GetFollowCameraComponent()->SetTarget(m_player.get());
 
     AddObject(m_player);
     AddObject(m_FollowCamera);
@@ -523,12 +572,11 @@ void GameScene::Init()
     if (m_FollowCamera && m_FollowCamera->GetFollowCameraComponent())
     {
         Vector2 screenPos(static_cast<float>(m_lastDragPos.x), static_cast<float>(m_lastDragPos.y));
-        m_FollowCamera->GetFollowCameraComponent()->SetReticleScreenPos(screenPos);
+        m_FollowCamera->GetFollowCameraComponent()->SetReticleScreen(screenPos);
     }
 
     // 例: Renderer::Init() の後
     DebugRenderer::Get().Initialize(Renderer::GetDevice(), Renderer::GetDeviceContext());
-
 }
 
 void GameScene::Update(float deltatime)
@@ -604,7 +652,7 @@ void GameScene::Update(float deltatime)
     //カメラにレティクル座標を渡す（最新のものを渡す）
     if (m_FollowCamera && m_FollowCamera->GetCameraComponent())
     {
-        m_FollowCamera->GetFollowCameraComponent()->SetReticleScreenPos(Vector2((float)m_lastDragPos.x, (float)m_lastDragPos.y));
+        m_FollowCamera->GetFollowCameraComponent()->SetReticleScreen(Vector2((float)m_lastDragPos.x, (float)m_lastDragPos.y));
     }
 
     //----------------------------------------------
@@ -612,7 +660,7 @@ void GameScene::Update(float deltatime)
     auto followCan = m_FollowCamera->GetComponent<FollowCameraComponent>();
     if (m_FollowCamera && m_reticle)
     {
-        followCan->SetReticleScreenPos(m_reticle->GetScreenPos());
+        followCan->SetReticleScreen(m_reticle->GetScreenPos());
     }
 
     followCan->SetReticleScreen(m_reticle->camera);
@@ -703,6 +751,12 @@ void GameScene::Update(float deltatime)
 void GameScene::Draw(float dt)
 {
     DrawWorld(dt);
+    if (m_FollowCamera && m_FollowCamera->GetCameraComponent())
+    {
+        auto cam = m_FollowCamera->GetCameraComponent();
+        Renderer::SetViewMatrix(cam->GetView());
+        Renderer::SetProjectionMatrix(cam->GetProj());
+    }
     EffectManager::Draw3D(dt);
     DrawUI(dt);
 }
@@ -719,8 +773,22 @@ void GameScene::DrawWorld(float deltatime)
     for (auto& obj : m_GameObjects)
     {
         if (!obj) { continue; }
+
+        if (obj.get() == m_player.get()){ continue; }
+
         if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; }
         obj->Draw(deltatime);
+    }
+
+    if (m_player)
+    {
+        Renderer::BeginPlayerRenderTarget();
+
+        // View/Projはすでにセット済みなのでそのまま
+        m_player->Draw(deltatime);
+
+        // ③ 描画先をsceneColorへ戻す（クリアしない）
+        Renderer::SetSceneRenderTarget();
     }
 
     // コリジョンデバッグ描画（ワールド空間なのでここに入れる）
@@ -888,11 +956,11 @@ void GameScene::AddTextureObject(std::shared_ptr<GameObject> obj)
     }
 
     //既にシーン内にいるかpendingにいるかチェック
-    auto itInScene = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
+    auto itInScene = std::find_if(m_TextureObjects.begin(), m_TextureObjects.end(),
         [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == obj.get(); });
 
     //既に実体がある
-    if (itInScene != m_GameObjects.end())
+    if (itInScene != m_TextureObjects.end())
     {
         return;
     }
@@ -1000,3 +1068,7 @@ void GameScene::SetSceneObject()
         m_AddObjects.clear();
     } 
 }
+
+
+
+
