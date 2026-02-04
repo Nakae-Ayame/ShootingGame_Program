@@ -59,7 +59,7 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(const PatrolConfig& c
     enemy->AddComponent(patrol);
 
     //HP設定
-    auto hp = std::make_shared<HitPointComponent>(1);
+    auto hp = std::make_shared<HitPointComponent>(1.0f);
     hp->SetInvincibilityOnHit(0.0f);
 
     //コンポーネント追加(HP)

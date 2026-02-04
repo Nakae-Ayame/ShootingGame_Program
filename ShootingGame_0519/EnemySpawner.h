@@ -6,17 +6,15 @@
 
 class EnemyAIComponent;
 
-//指定した位置を巡回するPatrolEnemyの初期設定
 struct PatrolConfig
 {
 	int spawnCount = 4;
-	float speed    = 65.0f;
+	float speed    = 80.0f;
 	float arrival = 0.5f;
 	bool pingPong = true;
 	std::vector<DirectX::SimpleMath::Vector3> waypoints;
 };
 
-//指定した半径で円形に巡回するCirclePatrolEnemyの初期設定
 struct CircleConfig
 {
 	int spawnCount = 3;
