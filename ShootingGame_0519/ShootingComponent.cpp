@@ -399,3 +399,53 @@ void ShootingComponent::AddBulletToScene(const std::shared_ptr<GameObject>& bull
     }
 }
 
+void ShootingComponent::Fire()
+{
+    if (!m_scene) { return; }
+    if (!m_owner) { return; }
+    if (!m_camera) { return; }
+
+    Vector3 rayOrigin = m_camera->GetShootRayOrigin();
+    Vector3 rayDir = m_camera->GetShootRayDir();
+
+    if (rayDir.LengthSquared() < 1e-6f)
+    {
+        return;
+    }
+
+    RaycastHit hit;
+    bool isHit = m_scene->Raycast(rayOrigin, rayDir, m_aimMaxDist, hit, m_owner);
+
+    Vector3 aimPoint = Vector3::Zero;
+    if (isHit)
+    {
+        aimPoint = hit.position;
+    }
+    else
+    {
+        aimPoint = rayOrigin + rayDir * m_aimMaxDist;
+    }
+
+    // 弾の出現位置（例：オーナーのTransformから）
+    Vector3 spawnPos = m_owner->GetPosition();
+
+    // ローカル銃口オフセットを回転させて足す（例）
+    Vector3 forward = m_owner->GetForward();
+    Vector3 up = m_owner->GetUp();
+    Vector3 right = m_owner->GetRight();
+    spawnPos += right * m_muzzleLocalOffset.x;
+    spawnPos += up * m_muzzleLocalOffset.y;
+    spawnPos += forward * m_muzzleLocalOffset.z;
+
+    Vector3 bulletDir = aimPoint - spawnPos;
+    if (bulletDir.LengthSquared() < 1e-6f)
+    {
+        return;
+    }
+    bulletDir.Normalize();
+
+    // ここで Bullet を生成して速度設定
+    // bullet->SetPosition(spawnPos);
+    // bullet->SetVelocity(bulletDir * m_bulletSpeed);
+}
+

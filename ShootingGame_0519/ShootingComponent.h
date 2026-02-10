@@ -15,10 +15,8 @@ class BulletComponent;
 class ShootingComponent : public Component
 {
 public:
-    ShootingComponent() = default;
-    ~ShootingComponent() override = default;
+    ShootingComponent() {};
 
-    void Initialize() override {}
     void Update(float dt) override;
 
     //------------Setä÷êî--------------
@@ -27,14 +25,16 @@ public:
 
     void SetBulletSpeed(float sp) { m_bulletSpeed = sp; }
     void SetCooldown(float cd) { m_cooldown = cd; }
-
     void SetSpawnOffset(float off) { m_spawnOffset = off; }
     void SetAutoFire(bool v) { m_autoFire = v; }
-
     void SetNormalBulletColor(const Vector4& c) { m_normalBulletColor = c; }
     void SetHomingBulletColor(const Vector4& c) { m_homingBulletColor = c; }
 
 	//------------Getä÷êî--------------
+
+
+    //--------ÇªÇÃëºÉÅÉìÉoä÷êî-------
+    void Fire();
 
 protected:
 
@@ -67,6 +67,8 @@ private:
 
     bool  m_prevHomingKeyDown = false;
     float m_homingCurveAmount = 0.5f;
+
+    Vector3 m_muzzleLocalOffset = Vector3(0.0f, 0.0f, 2.0f);
 };
 
 
