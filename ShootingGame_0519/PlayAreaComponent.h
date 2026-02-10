@@ -36,14 +36,6 @@ public:
         const DirectX::SimpleMath::Vector3& desiredPos,
         GameObject* owner = nullptr) const;
 
-    // MoveComponent —p‚Ì obstacle raycast
-    bool RaycastObstacle(const DirectX::SimpleMath::Vector3& start,
-        const DirectX::SimpleMath::Vector3& dir,
-        float length,
-        DirectX::SimpleMath::Vector3& outNormal,
-        float& outDist,
-        GameObject* ignore = nullptr) const;
-
 private:
     GameScene* m_scene = nullptr;
 

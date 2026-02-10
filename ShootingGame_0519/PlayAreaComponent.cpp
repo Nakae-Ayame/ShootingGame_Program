@@ -40,35 +40,3 @@ Vector3 PlayAreaComponent::ResolvePosition(const Vector3& prevPos,
     return out;
 }
 
-bool PlayAreaComponent::RaycastObstacle(const Vector3& start,
-    const Vector3& dir,
-    float length,
-    Vector3& outNormal,
-    float& outDist,
-    GameObject* ignore) const
-{
-    if (!m_scene) { return false; }
-
-    RaycastHit hit;
-    // predicate: decide which objects are considered obstacles (e.g. has collider and not the ignored object)
-    auto pred = [ignore](GameObject* obj) -> bool
-        {
-            if (!obj) { return false; }
-            if (obj == ignore) { return false; }
-            // ここでオブジェクトの種別やコンポーネントによる絞り込みを行う:
-            // 例: AABBColliderComponent* aabb = obj->GetComponent<AABBColliderComponent>();
-            //      return aabb != nullptr;
-            // 現段階では Enemy 等以外のすべてを候補にする (必要なら絞る)
-            return true;
-        };
-
-    bool rc = m_scene->Raycast(start, dir, length, hit, pred, ignore);
-    if (!rc)
-    {
-        return false;
-    }
-
-    outDist = hit.distance;
-    outNormal = hit.normal;
-    return true;
-}
