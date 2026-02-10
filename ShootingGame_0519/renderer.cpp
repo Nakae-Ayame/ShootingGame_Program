@@ -26,6 +26,7 @@ ComPtr<ID3D11DeviceContext> Renderer::m_deviceContext;
 ComPtr<IDXGISwapChain> Renderer::m_swapChain;
 ComPtr<ID3D11RenderTargetView> Renderer::m_renderTargetView;
 ComPtr<ID3D11DepthStencilView> Renderer::m_depthStencilView;
+ComPtr<ID3D11SamplerState> Renderer::m_postProcessSampler;
 
 ComPtr<ID3D11Buffer> Renderer::m_worldBuffer;
 ComPtr<ID3D11Buffer> Renderer::m_viewBuffer;
@@ -277,7 +278,7 @@ void Renderer::Init()
     // ★ ポストプロセス用定数バッファ
     // =========================
     D3D11_BUFFER_DESC ppDesc{};
-    ppDesc.ByteWidth = sizeof(MotionBlurParams);
+    ppDesc.ByteWidth = sizeof(PostProcessSettings);
     ppDesc.Usage = D3D11_USAGE_DEFAULT;
     ppDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     ppDesc.CPUAccessFlags = 0;
@@ -378,6 +379,20 @@ void Renderer::Init()
     ComPtr<ID3D11SamplerState> samplerState;
     m_device->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
     m_deviceContext->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+
+    D3D11_SAMPLER_DESC ppSamplerDesc{};
+    ppSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    ppSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    ppSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    ppSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    ppSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    HRESULT hr2 = m_device->CreateSamplerState(&ppSamplerDesc, m_postProcessSampler.GetAddressOf());
+    if (FAILED(hr2))
+    {
+        throw std::runtime_error("Failed to create post process sampler");
+    }
+
 
     //-----------------------定数バッファ生成-----------------------
     D3D11_BUFFER_DESC bufferDesc{};
@@ -651,15 +666,19 @@ void Renderer::Begin()
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(),
         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
         1.0f, 0);
+
+    float clearPlayer[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    m_deviceContext->ClearRenderTargetView(m_playerColorRTV.Get(), clearPlayer);
+
 }
 
 void Renderer::End()
 {
-    ApplyMotionBlur();
     ID3D11RenderTargetView* backRTV = m_renderTargetView.Get();
     m_deviceContext->OMSetRenderTargets(1, &backRTV, nullptr);
     m_swapChain->Present(1, 0);
 }
+
 
 void Renderer::Present()
 {
@@ -1020,22 +1039,15 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
     for (auto p : prevPSRV) if (p) p->Release();
     for (auto p : prevSampler) if (p) p->Release();
 
-    //std::cout << "[Renderer] DrawTexture end\n";
 }
 
 void Renderer::ApplyMotionBlur()
 {
     float blur = std::clamp(s_postProcess.motionBlurAmount, 0.0f, 1.0f);
    
-    if (!m_sceneColorTex || !m_sceneColorSRV || !m_prevSceneColorSRV)
-    {
-        return;
-    }
+    if (!m_sceneColorTex || !m_sceneColorSRV || !m_prevSceneColorSRV){ return; }
 
-    if (!m_playerColorTex || !m_playerColorSRV || !m_prevPlayerColorSRV)
-    {
-        return;
-    }
+    if (!m_playerColorTex || !m_playerColorSRV || !m_prevPlayerColorSRV){ return; }
 
     // BackBuffer のリソース取得（CopyResource に使う）
     ID3D11Resource* backRes = nullptr;
@@ -1155,6 +1167,9 @@ void Renderer::ApplyMotionBlur()
     m_deviceContext->VSSetShader(m_textureVertexShader.Get(), nullptr, 0);
     m_deviceContext->PSSetShader(m_motionBlurPixelShader.Get(), nullptr, 0);
 
+    ID3D11SamplerState* ppSampler = m_postProcessSampler.Get();
+    m_deviceContext->PSSetSamplers(0, 1, &ppSampler);
+
     SetWorldViewProjection2D();
 
     UINT stride = sizeof(Vertex);
@@ -1174,11 +1189,13 @@ void Renderer::ApplyMotionBlur()
     m_deviceContext->PSSetShaderResources(0, 2, srvs);
 
     PostProcessSettings cb{};
-    cb.motionBlurAmount = blur * 0.2;
-    cb.motionBlurDir = s_postProcess.motionBlurDir;
-    cb.motionBlurStretch = s_postProcess.motionBlurStretch;
-    cb.bloomAmount = s_postProcess.bloomAmount;
-    cb.vignetteAmount = s_postProcess.vignetteAmount;
+    cb.motionBlurAmount = blur * 1.5f; 
+    cb.motionBlurStart01 = s_postProcess.motionBlurStart01;
+    cb.motionBlurEnd01 = s_postProcess.motionBlurEnd01;
+    cb.motionBlurCenter.x = s_postProcess.motionBlurCenter.x;
+	cb.motionBlurCenter.y = s_postProcess.motionBlurCenter.y;
+
+    cb.motionBlurStretch = 0.04f;
 
     m_deviceContext->UpdateSubresource(
         m_postProcessBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -1199,9 +1216,12 @@ void Renderer::ApplyMotionBlur()
     };
     m_deviceContext->PSSetShaderResources(0, 2, playerSrvs);
 
+    ID3D11SamplerState* ppSampler2 = m_postProcessSampler.Get();
+    m_deviceContext->PSSetSamplers(0, 1, &ppSampler2);
+
     // Player は強めにブラー
     PostProcessSettings playerCB = s_postProcess;
-    playerCB.motionBlurAmount = blur * 3.0f;
+    playerCB.motionBlurAmount = blur * 0.02f;
 
     m_deviceContext->UpdateSubresource(
         m_postProcessBuffer.Get(), 0, nullptr, &playerCB, 0, 0
@@ -1257,10 +1277,9 @@ void Renderer::ApplyMotionBlur()
     // ================================
     if (backRes)
     {
-        m_deviceContext->CopyResource(
-            m_prevPlayerColorTex.Get(),
-            m_playerColorTex.Get()
-        );
+        m_deviceContext->CopyResource(m_prevSceneColorTex.Get(), m_sceneColorTex.Get());
+        m_deviceContext->CopyResource(m_prevPlayerColorTex.Get(), m_playerColorTex.Get());
+
         backRes->Release();
     }
 }

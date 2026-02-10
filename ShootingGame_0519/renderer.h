@@ -123,6 +123,7 @@ private:
     static ComPtr<IDXGISwapChain> m_swapChain;
     static ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     static ComPtr<ID3D11DepthStencilView> m_depthStencilView;
+    static ComPtr<ID3D11SamplerState> m_postProcessSampler;
 
     static ComPtr<ID3D11Buffer> m_worldBuffer;
     static ComPtr<ID3D11Buffer> m_viewBuffer;

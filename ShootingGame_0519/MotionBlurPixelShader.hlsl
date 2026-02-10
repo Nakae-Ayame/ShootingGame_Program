@@ -1,28 +1,25 @@
-// MotionBlurPS.hlsl
-
 Texture2D gSceneTex : register(t0); //今フレームのシーンテクスチャ
 Texture2D gPrevSceneTex : register(t1); //前フレームのシーンテクスチャ
 SamplerState gSampler : register(s0); // サンプラーステート
 
 //ポストエフェクト共通定数バッファ
-cbuffer PostProcessCB : register(b0) 
+cbuffer PostProcessCB : register(b0)
 {
-    float motionBlurAmount;     //0～1
-    float2 motionBlurDir;       //画面上の方向ベクトル
-    float motionBlurStretch;    //
+    float motionBlurAmount;
+    float motionBlurStretch;
+    float2 motionBlurCenter;
 
-    float bloomAmount;    //
-    float vignetteAmount; //
+    float motionBlurStart01;
+    float motionBlurEnd01;
+    float2 pad0;
 };
 
-//フルスクリーンクアッドから渡される頂点データ
 struct VS_OUT
 {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
 };
 
-//サンプル数
 static const int SAMPLE_COUNT = 8;
 
 //ピクセルシェーダーメイン関数
@@ -35,23 +32,40 @@ float4 PSMain(VS_OUT input) : SV_TARGET
         return gSceneTex.Sample(gSampler, uv);
     }
     
-    float2 center = float2(0.5f, 0.5f);
-    float2 dir = uv - center;
+    //float2 center = float2(0.5f, 0.5f);
+    float2 center = motionBlurCenter;
+    float dist = length(uv - center);
+    
+    float dist01 = dist / 0.70710678f;
+    
+    float denom = max(motionBlurEnd01 - motionBlurStart01, 1e-5f);
+    float mask = saturate((dist01 - motionBlurStart01) / denom);
+    mask = mask * mask * (3.0f - 2.0f * mask);
 
+    float effectiveBlur = motionBlurAmount * mask;
+    if (effectiveBlur <= 0.001f)
+    {
+        return gSceneTex.Sample(gSampler, uv);
+    }
+    
+    float2 dir = uv - center;
     float len = length(dir);
     if (len < 1e-4f)
     {
         return gSceneTex.Sample(gSampler, uv);
     }
-
-    dir /= len;
     
-    float effectiveBlur = motionBlurAmount;
+    dir /= len;
 
     float2 offsetBase = dir * motionBlurStretch * effectiveBlur;
     
     float3 col = 0.0f;
-    float wSum = 0.0f;
+    float aSum = 0.0f;
+    
+    if (effectiveBlur <= 0.001f)
+    {
+        return gSceneTex.Sample(gSampler, uv);
+    }
 
     [unroll]
     for (int i = 0; i < SAMPLE_COUNT; ++i)
@@ -59,14 +73,13 @@ float4 PSMain(VS_OUT input) : SV_TARGET
         float t = (i / (SAMPLE_COUNT - 1.0f));
         float2 offset = offsetBase * t;
 
-        float w = 1.0f;
-        col += gSceneTex.Sample(gSampler, uv + offset).rgb * w;
-        wSum += w;
+        float4 s = gSceneTex.Sample(gSampler, uv + offset);
+        col += s.rgb;
+        aSum += s.a;
     }
 
-    col /= max(wSum, 1e-5f);
-    
-    float a = gSceneTex.Sample(gSampler, uv).a;
+    col /= SAMPLE_COUNT;
+    float a = aSum / SAMPLE_COUNT;
     return float4(col, a);
+    //return float4(motionBlurStart01, motionBlurEnd01, 0, 1);
 }
-
