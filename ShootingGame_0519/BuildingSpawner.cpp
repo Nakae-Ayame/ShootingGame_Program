@@ -10,7 +10,7 @@
 #include <random>
 #include <cmath>
 
-BuildingSpawner::BuildingSpawner(GameScene* scene) : m_scene(scene)
+BuildingSpawner::BuildingSpawner(IScene* scene) : m_scene(scene)
 {
 	std::random_device rd;
 	m_rng.seed(rd());   //ランダムシードの初期化

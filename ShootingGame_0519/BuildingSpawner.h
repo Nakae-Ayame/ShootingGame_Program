@@ -30,12 +30,12 @@ struct BuildingConfig
     std::vector<DirectX::SimpleMath::Vector3> fixedPositions;  //ŒÅ’è¶¬‚ÌŒš•¨‚ÌˆÊ’u;
 };
 
-class GameScene;
+class IScene;
 
 class BuildingSpawner
 {
 public:
-    BuildingSpawner(GameScene* scene);
+    BuildingSpawner(IScene* scene);
 
 
     //Œš•¨‚Ì¶¬ŠÖ”
@@ -44,7 +44,7 @@ public:
     int Spawn(const BuildingConfig& cfg);
 
 private:
-    GameScene* m_scene;
+    IScene* m_scene;
 
     struct PlacedRect
     {
