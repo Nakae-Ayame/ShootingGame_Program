@@ -8,8 +8,7 @@
 
 void ResultLooseScene::Init()
 {
-    auto background01 = std::make_shared<TitleBackGround>(L"Asset/UI/ResultBackGround_Loose.jpg", 1280);
-    //auto background02 = std::make_shared<TitleBackGround>(L"Asset/UI/TitleText.png", 1280);
+    auto background01 = std::make_shared<TitleBackGround>(L"Asset/UI/ResultBackGround_Loose.jpg", 1280.0f);
     AddObject(background01);
     //AddObject(background02);
 
@@ -29,7 +28,6 @@ void ResultLooseScene::Update(float deltatime)
     {
         //‹ŒŽ®‚Í‚±‚Á‚¿
         SceneManager::SetCurrentScene("TitleScene");
-        //TransitionManager::Start("GameScene", 1.0f, TransitionType::FADE, nullptr);
     }
 
 
@@ -45,6 +43,19 @@ void ResultLooseScene::Draw(float deltatime)
     {
         if (obj) obj->Draw(deltatime);
     }
+}
+
+void ResultLooseScene::DrawWorld(float deltatime)
+{
+    for (auto& obj : m_GameObjects)
+    {
+        if (obj) obj->Draw(deltatime);
+    }
+}
+
+void ResultLooseScene::DrawUI(float deltatime)
+{
+
 }
 
 void ResultLooseScene::Uninit()

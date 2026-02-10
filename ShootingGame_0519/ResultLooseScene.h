@@ -13,6 +13,8 @@ public:
 	explicit ResultLooseScene() {};
 	void Update(float deltatime) override;
 	void Draw(float deltatime) override;
+	void DrawWorld(float deltatime) override;
+	void DrawUI(float deltatime) override;
 	void Init() override;
 	void Uninit() override;
 	void AddObject(std::shared_ptr<GameObject> obj) override;

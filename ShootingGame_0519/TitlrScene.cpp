@@ -171,8 +171,9 @@ void TitleScene::Update(float deltatime)
 
 void TitleScene::Draw(float dt)
 {
-    DrawWorld(dt);
-    DrawUI(dt);
+    //DrawWorld(dt);
+    //Renderer::ApplyMotionBlur();
+    //DrawUI(dt);
 }
 
 void TitleScene::DrawWorld(float deltatime)
