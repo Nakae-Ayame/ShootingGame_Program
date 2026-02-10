@@ -168,6 +168,7 @@
     <ClCompile Include="BulletTrailComponent.cpp" />
     <ClCompile Include="CameraComponentBase.cpp" />
     <ClCompile Include="CameraObject.cpp" />
+    <ClCompile Include="CameraShakeComponent.cpp" />
     <ClCompile Include="CircularPatrolComponent.cpp" />
     <ClCompile Include="ColliderComponent.cpp" />
     <ClCompile Include="CollisionManager.cpp" />
@@ -179,7 +180,9 @@
     <ClCompile Include="DebugMoveComponent.cpp" />
     <ClCompile Include="DebugPlayer.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
-    <ClCompile Include="DebugScene.cpp" />
+    <ClCompile Include="DebugScene.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="DebugUI.cpp" />
     <ClCompile Include="EffectManager.cpp" />
     <ClCompile Include="Enemy.cpp" />
@@ -195,6 +198,7 @@
     <ClCompile Include="FreeCameraComponent.cpp" />
     <ClCompile Include="HitPointCompornent.cpp" />
     <ClCompile Include="HomingComponent.cpp" />
+    <ClCompile Include="IniFile.cpp" />
     <ClCompile Include="MiniMapComponent.cpp" />
     <ClCompile Include="ModelResource.cpp" />
     <ClCompile Include="PlayAreaComponent.cpp" />
@@ -228,10 +232,6 @@
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Primitive.cpp" />
     <ClCompile Include="renderer.cpp" />
-    <ClCompile Include="ResourceManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ResultScene.cpp" />
     <ClCompile Include="Reticle.cpp" />
     <ClCompile Include="SceneManager.cpp" />
@@ -239,10 +239,6 @@
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="SkyDomeComponent.cpp" />
     <ClCompile Include="SphereComponent.cpp" />
-    <ClCompile Include="Test.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="TextureComponent.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="TitleBackGround.cpp" />
@@ -264,6 +260,7 @@
     <ClInclude Include="BulletTrailComponent.h" />
     <ClInclude Include="CameraComponentBase.h" />
     <ClInclude Include="CameraObject.h" />
+    <ClInclude Include="CameraShakeComponent.h" />
     <ClInclude Include="CircularPatrolComponent.h" />
     <ClInclude Include="ColliderComponent.h" />
     <ClInclude Include="Collision.h" />
@@ -279,7 +276,9 @@
     <ClInclude Include="DebugMoveComponent.h" />
     <ClInclude Include="DebugPlayer.h" />
     <ClInclude Include="DebugRenderer.h" />
-    <ClInclude Include="DebugScene.h" />
+    <ClInclude Include="DebugScene.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="DebugUI.h" />
     <ClInclude Include="EffectManager.h" />
     <ClInclude Include="Enemy.h" />
@@ -293,9 +292,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="FreeCameraComponent.h" />
+    <ClInclude Include="GameConfig.h" />
     <ClInclude Include="HitPointCompornent.h" />
     <ClInclude Include="HomingComponent.h" />
     <ClInclude Include="IMovable.h" />
+    <ClInclude Include="IniFile.h" />
     <ClInclude Include="MiniMapComponent.h" />
     <ClInclude Include="ModelCache.h" />
     <ClInclude Include="ModelResource.h" />
@@ -337,10 +338,6 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="renderer.h" />
-    <ClInclude Include="ResourceManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ResultScene.h" />
     <ClInclude Include="Reticle.h" />
     <ClInclude Include="SceneManager.h" />

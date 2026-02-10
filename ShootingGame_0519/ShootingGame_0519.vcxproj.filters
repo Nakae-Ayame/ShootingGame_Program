@@ -82,6 +82,18 @@
     <Filter Include="ソース ファイル\Component\Bullet">
       <UniqueIdentifier>{b5724afc-2729-45a8-8d94-4c879781a589}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Component\Effect">
+      <UniqueIdentifier>{5ef751e1-2fd8-4ce7-907e-b5b3b0180c38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Spawner">
+      <UniqueIdentifier>{773fbd9b-b737-40f4-a3f8-81e62c868daf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Collision">
+      <UniqueIdentifier>{6dcf4db1-24fd-4595-8ab6-4c8e9e10894b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Sound">
+      <UniqueIdentifier>{e28fff4b-67f5-4c2e-b383-abb4c9ea45f2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -167,9 +179,6 @@
     </ClCompile>
     <ClCompile Include="TransitionRenderer.cpp">
       <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="ResourceManager.cpp">
-      <Filter>ソース ファイル\Manager</Filter>
     </ClCompile>
     <ClCompile Include="HPBar.cpp">
       <Filter>ソース ファイル\GameObject</Filter>
@@ -291,9 +300,6 @@
     <ClCompile Include="Sound.cpp">
       <Filter>ソース ファイル\Sound</Filter>
     </ClCompile>
-    <ClCompile Include="Test.cpp">
-      <Filter>ソース ファイル\Sound</Filter>
-    </ClCompile>
     <ClCompile Include="MiniMapComponent.cpp">
       <Filter>ソース ファイル\Component</Filter>
     </ClCompile>
@@ -321,11 +327,17 @@
     <ClCompile Include="EffectManager.cpp">
       <Filter>ソース ファイル\Manager</Filter>
     </ClCompile>
-    <ClCompile Include="BillboardEffectComponent.cpp">
-      <Filter>ソース ファイル\Component</Filter>
-    </ClCompile>
     <ClCompile Include="BulletTrailComponent.cpp">
       <Filter>ソース ファイル\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraShakeComponent.cpp">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="BillboardEffectComponent.cpp">
+      <Filter>ソース ファイル\Component\Effect</Filter>
+    </ClCompile>
+    <ClCompile Include="IniFile.cpp">
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -464,38 +476,8 @@
     <ClInclude Include="DebugUI.h">
       <Filter>ソース ファイル\Imgui</Filter>
     </ClInclude>
-    <ClInclude Include="AABBColliderComponent.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="ColliderComponent.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="OBBColliderComponent.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="CollisionManager.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Collision.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="CollisionHelpers.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
     <ClInclude Include="FloorComponent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="EnemySpawner.h">
-      <Filter>ソース ファイル\Spawner</Filter>
-    </ClInclude>
-    <ClInclude Include="GameScene.h">
-      <Filter>ソース ファイル\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="ResultScene.h">
-      <Filter>ソース ファイル\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="TitleScene.h">
-      <Filter>ソース ファイル\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Component.h">
       <Filter>ヘッダー ファイル\BaseClass</Filter>
@@ -503,53 +485,20 @@
     <ClInclude Include="GameObject.h">
       <Filter>ヘッダー ファイル\BaseClass</Filter>
     </ClInclude>
-    <ClInclude Include="BuildingSpawner.h">
-      <Filter>ソース ファイル\Spawner</Filter>
-    </ClInclude>
     <ClInclude Include="ModelResource.h">
       <Filter>ソース ファイル\Model</Filter>
     </ClInclude>
     <ClInclude Include="ModelCache.h">
       <Filter>ソース ファイル\Model</Filter>
     </ClInclude>
-    <ClInclude Include="ResourceManager.h">
-      <Filter>ソース ファイル\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneManager.h">
-      <Filter>ソース ファイル\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureManager.h">
-      <Filter>ソース ファイル\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="TransitionManager.h">
-      <Filter>ソース ファイル\Manager</Filter>
-    </ClInclude>
     <ClInclude Include="PlayAreaComponent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="RaycastHit.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="BoxComponent.h">
-      <Filter>ソース ファイル\Component</Filter>
     </ClInclude>
     <ClInclude Include="Common.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="HitPointCompornent.h">
-      <Filter>ソース ファイル\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="CollisionResolver.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="CollisionResponse.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
     <ClInclude Include="VisualSettings.h">
       <Filter>ヘッダー ファイル\Visual</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugScene.h">
-      <Filter>ソース ファイル\Scene</Filter>
     </ClInclude>
     <ClInclude Include="DebugPlayer.h">
       <Filter>ヘッダー ファイル\Debug</Filter>
@@ -587,9 +536,6 @@
     <ClInclude Include="FreeCamera.h">
       <Filter>ソース ファイル\Collision</Filter>
     </ClInclude>
-    <ClInclude Include="Sound.h">
-      <Filter>ソース ファイル\Sound</Filter>
-    </ClInclude>
     <ClInclude Include="MiniMapComponent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
     </ClInclude>
@@ -599,26 +545,98 @@
     <ClInclude Include="HomingComponent.h">
       <Filter>ソース ファイル\Component\Bullet</Filter>
     </ClInclude>
-    <ClInclude Include="DamageComponent.h">
-      <Filter>ソース ファイル\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="PushOutComponent.h">
-      <Filter>ソース ファイル\Collision</Filter>
-    </ClInclude>
     <ClInclude Include="IMovable.h">
       <Filter>ヘッダー ファイル\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="SphereColliderComponent.h">
-      <Filter>ソース ファイル\Collision</Filter>
+    <ClInclude Include="BulletTrailComponent.h">
+      <Filter>ヘッダー ファイル\Component</Filter>
     </ClInclude>
-    <ClInclude Include="EffectManager.h">
-      <Filter>ソース ファイル\Manager</Filter>
+    <ClInclude Include="BoxComponent.h">
+      <Filter>ヘッダー ファイル\Component</Filter>
     </ClInclude>
     <ClInclude Include="BillboardEffectComponent.h">
-      <Filter>ソース ファイル\Component</Filter>
+      <Filter>ヘッダー ファイル\Component</Filter>
     </ClInclude>
-    <ClInclude Include="BulletTrailComponent.h">
-      <Filter>ソース ファイル\Component</Filter>
+    <ClInclude Include="DamageComponent.h">
+      <Filter>ヘッダー ファイル\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="HitPointCompornent.h">
+      <Filter>ヘッダー ファイル\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraShakeComponent.h">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectManager.h">
+      <Filter>ヘッダー ファイル\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h">
+      <Filter>ヘッダー ファイル\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureManager.h">
+      <Filter>ヘッダー ファイル\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="TransitionManager.h">
+      <Filter>ヘッダー ファイル\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="BuildingSpawner.h">
+      <Filter>ヘッダー ファイル\Spawner</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemySpawner.h">
+      <Filter>ヘッダー ファイル\Spawner</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugScene.h">
+      <Filter>ヘッダー ファイル\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="GameScene.h">
+      <Filter>ヘッダー ファイル\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultScene.h">
+      <Filter>ヘッダー ファイル\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="TitleScene.h">
+      <Filter>ヘッダー ファイル\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="AABBColliderComponent.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="ColliderComponent.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionHelpers.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionManager.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionResolver.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionResponse.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="OBBColliderComponent.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="PushOutComponent.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="RaycastHit.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="SphereColliderComponent.h">
+      <Filter>ヘッダー ファイル\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Sound.h">
+      <Filter>ヘッダー ファイル\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="IniFile.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="GameConfig.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -17,22 +17,13 @@ void PatrolComponent::Initialize()
 
 void PatrolComponent::Update(float dt)
 {
-    if (!GetOwner())
-    {
-        return;
-    }
-    if (m_waypoints.size() < 2)
-    {
-        return;
-    }
-    if (dt <= 0.0f)
-    {
-        return;
-    }
-    if (!m_useSpline)
-    {
-        return;
-    }
+    if (!GetOwner()){ return; }
+
+    if (m_waypoints.size() < 2){ return; }
+    
+    if (dt <= 0.0f){ return; }
+    
+    if (!m_useSpline){ return; }
 
     GameObject* owner = GetOwner();
 
