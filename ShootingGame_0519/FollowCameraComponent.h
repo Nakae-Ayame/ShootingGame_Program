@@ -38,10 +38,18 @@ public:
     Matrix GetProj() const { return m_ProjectionMatrix; }
     Vector3 GetForward() const override{ return m_ViewMatrix.Invert().Forward(); }
     Vector3 GetRight() const override{ return m_ViewMatrix.Invert().Right(); }
-    Vector3 GetPosition() const override { return m_spring.GetPosition(); }
+    //Vector3 GetPosition() const override { return m_spring.GetPosition(); }
     Vector3 GetAimPoint() const override;
     Vector2 GetReticleScreen() const { return m_reticleScreen; }
     Vector3 GetAimDirectionFromReticle() const;
+    Vector3 GetUp() const;
+	Vector3 GetLookTarget() const { return m_LookTarget; }
+    Vector3 GetCachedAimPoint() const { return m_cachedAimPoint; }
+    Vector3 GetCachedAimDir() const { return m_cachedAimDir; }
+    bool GetHasCachedAim() const { return m_hasCachedAim; }
+    Vector3 GetPosition() const override { return m_cameraWorldPos; }
+    Vector3 GetShootRayOrigin() const { return m_shootRayOrigin; }
+    Vector3 GetShootRayDir() const { return m_shootRayDir; }
 
     //-------カメラ演出--------
     enum class ShakeMode
@@ -67,10 +75,16 @@ private:
                                         const Vector3& rayDir,
                                         const Vector3& planePoint,
                                         const Vector3& planeNormal) const;
+    void UpdateShootCache();
 
     //-------追従対象関連--------
     GameObject* m_target = nullptr;           //追従対象
     PlayAreaComponent* m_playArea = nullptr;  //プレイ範囲
+
+
+    //--------------射撃用レイ関連------------------
+    Vector3 m_shootRayOrigin = Vector3::Zero;
+    Vector3 m_shootRayDir = Vector3::Forward;
 
     //-------入力/回転関連--------
     float m_yaw = 0.0f;               //回転角(ヨー)
@@ -80,6 +94,9 @@ private:
     float m_pitchLimitMin = XMConvertToRadians(-15.0f); //ピッチの制限値
     float m_pitchLimitMax = XMConvertToRadians( 45.0f); //ピッチの制限値
     float m_yawLimit      = XMConvertToRadians(120.0f); //ヨーの制限値
+
+
+
 
     //-------カメラ距離/高さ関連--------
     float m_defaultDistance = 0.05f;    //追従対象の後方にどのぐらいにカメラがいるのか
@@ -91,9 +108,7 @@ private:
     bool m_isAiming = false;          //今エイムしているかどうかのbool型
     bool m_isBoosting = false;
     
-    //-------行列/スプリング関連--------
-    Matrix m_viewsMatrix;        //ビュー行列
-    Matrix m_projectionMatrix;  //プロジェクト行列
+    //-------行列/スプリング関連-------
     SpringVector3 m_spring;     //カメラ位置をスプリングで滑らかに追従させるラッパー
 
     float m_normalFov = DirectX::XMConvertToRadians(50.0f);
@@ -106,6 +121,9 @@ private:
 
     float m_normalStiffness = 35.0f;
     float m_normalDamping   = 22.0f;
+
+
+
 
     //-------レティクル/注視関連--------
     Vector2 m_reticleScreen{ 440.0f, 160.0f };
@@ -132,9 +150,19 @@ private:
     float m_screenOffsetScale = 20.0f; // 画面幅 1.0 正規化あたりのワールド単位換算（調整可）
     float m_maxScreenOffset   = 24.0f;  // 最大シフト（ワールド単位）
 
+
+
+
     //-------ブースト関連-------
     bool m_boostRequested = false;   // 現在ボタンでブースト要求中か（MoveComponent から SetBoostState）
-    float m_boostDistanceMul = 0.85f;  // ブースト中は距離を 85% にする（近づく）
+
+    //-------ブースト揺れ関連-------
+    float m_boostShakeBlend = 0.0f;        // 0.0f:無し → 1.0f:最大
+    float m_boostShakeInSpeed = 10.0f;      // フェードイン速度
+    float m_boostShakeOutSpeed = 12.0f;    // フェードアウト速度
+    float m_boostShakeMagnitude = 0.1f;   // 微振動の振幅（ワールド単位、要調整）
+    float m_boostShakeFrequency = 28.0f;   // 微振動周波数（Hz、要調整）
+    float m_boostShakePhase = 0.0f;
 
     //-------シェイク関連--------
     float m_shakeMagnitude = 0.0f;        //現在の振幅（ワールド単位）
@@ -145,4 +173,11 @@ private:
 
     Vector3 m_shakeOffset = DirectX::SimpleMath::Vector3::Zero;
     ShakeMode m_shakeMode = ShakeMode::Horizontal;  //現在の振動方向を決めるモード
+
+    //--------------射撃照準キャッシュ関連------------------
+    Vector3 m_cachedAimPoint = Vector3::Zero;   // 次フレームで射撃が使う照準点
+    Vector3 m_cachedAimDir = Vector3::Forward;// 次フレームで射撃が使う照準方向（正規化）
+    bool    m_hasCachedAim = false;           // 初期化直後などの安全用
+
+    Vector3 m_cameraWorldPos = Vector3::Zero;
 };

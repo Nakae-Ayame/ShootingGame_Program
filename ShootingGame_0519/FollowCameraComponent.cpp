@@ -1,5 +1,4 @@
-﻿// FollowCameraComponent.cpp
-#define NOMINMAX
+﻿#define NOMINMAX
 #include <cmath> 
 #include "FollowCameraComponent.h"
 #include "Renderer.h"
@@ -12,6 +11,20 @@
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
+
+Vector3 FollowCameraComponent::GetUp() const
+{
+    Matrix invView = m_ViewMatrix.Invert();
+    Vector3 up = invView.Up();
+
+    if (up.LengthSquared() > 1e-6f)
+    {
+        up.Normalize();
+        return up;
+    }
+
+    return Vector3::Up;
+}
 
 Vector3 FollowCameraComponent::GetAimPoint() const
 {
@@ -59,7 +72,7 @@ Vector3 FollowCameraComponent::GetAimPoint() const
     Vector3 camPos = m_spring.GetPosition();
 
     // カメラから一定距離だけ先の点を AimPoint とする（距離は適当に調整可）
-    float dist = m_aimPlaneDistance; // 300.0f など
+    float dist = m_aimPlaneDistance; 
     return camPos + dir * dist;
 }
 
@@ -360,25 +373,12 @@ void FollowCameraComponent::UpdateAimPoint(float dt, const Vector3& cameraPos)
     m_aimPoint = m_aimPoint + (worldTarget - m_aimPoint) * t;
 }
 
-
+//★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 void FollowCameraComponent::UpdateShake(float dt, const Vector3& cameraPos)
 {
     m_shakeOffset = Vector3::Zero;
 
-    if (m_shakeTimeRemaining <= 0.0f){ return; }
-
     if (!m_target){ return; }
-
-    float safeTotal = std::max(1e-6f, m_shakeTotalDuration);
-    float t = m_shakeTimeRemaining / safeTotal;
-    float falloff = t;
-
-    m_shakePhase += dt * m_shakeFrequency * 2.0f * XM_PI;
-
-    float sampleX = std::sin(m_shakePhase);
-    float sampleY = std::sin(m_shakePhase * 1.5f + 3.1f);
-
-    float baseAmp = m_shakeMagnitude * falloff;
 
     Vector3 forward = m_target->GetPosition() - cameraPos;
     if (forward.LengthSquared() > 1e-6f)
@@ -416,40 +416,83 @@ void FollowCameraComponent::UpdateShake(float dt, const Vector3& cameraPos)
         camUp = Vector3::Up;
     }
 
-    switch (m_shakeMode)
+    if (m_shakeTimeRemaining > 0.0f)
     {
+        float safeTotal = std::max(1e-6f, m_shakeTotalDuration);
+        float t = m_shakeTimeRemaining / safeTotal;
+        float falloff = t;
+
+        m_shakePhase += dt * m_shakeFrequency * 2.0f * XM_PI;
+
+        float sampleX = std::sin(m_shakePhase);
+        float sampleY = std::sin(m_shakePhase * 1.5f + 3.1f);
+
+        float baseAmp = m_shakeMagnitude * falloff;
+
+        switch (m_shakeMode)
+        {
         case ShakeMode::Horizontal:
         {
-            m_shakeOffset = camRight * (baseAmp * (0.7f * sampleX + 0.3f * sampleY));
+            m_shakeOffset += camRight * (baseAmp * (0.7f * sampleX + 0.3f * sampleY));
             break;
         }
         case ShakeMode::Vertical:
         {
-            m_shakeOffset = camUp * (baseAmp * (0.7f * sampleY + 0.3f * sampleX));
+            m_shakeOffset += camUp * (baseAmp * (0.7f * sampleY + 0.3f * sampleX));
             break;
         }
         case ShakeMode::ALL:
         {
-
-            m_shakeOffset =
+            m_shakeOffset +=
                 camRight * (baseAmp * (0.7f * sampleX + 0.3f * sampleY)) +
                 camUp * (baseAmp * (0.7f * sampleY + 0.3f * sampleX));
             break;
         }
+        }
+
+        m_shakeTimeRemaining -= dt;
+        if (m_shakeTimeRemaining <= 0.0f)
+        {
+            m_shakeMagnitude = 0.0f;
+            m_shakeTimeRemaining = 0.0f;
+            m_shakeTotalDuration = 0.0f;
+            m_shakePhase = 0.0f;
+        }
     }
 
-    m_shakeTimeRemaining -= dt;
-    if (m_shakeTimeRemaining <= 0.0f)
+	//ブースト時の微振動
+    float targetBlend = 0.0f;
+    if (m_boostRequested)
     {
-        m_shakeMagnitude = 0.0f;
-        m_shakeTimeRemaining = 0.0f;
-        m_shakeTotalDuration = 0.0f;
-        m_shakePhase = 0.0f;
-        m_shakeOffset = Vector3::Zero;
+        targetBlend = 1.0f;
+    }
+
+    float speed = m_boostShakeOutSpeed;
+    if (targetBlend > m_boostShakeBlend)
+    {
+        speed = m_boostShakeInSpeed;
+    }
+
+    float ti = std::min(1.0f, speed * dt);
+    m_boostShakeBlend = m_boostShakeBlend + (targetBlend - m_boostShakeBlend) * ti;
+
+    if (m_boostShakeBlend > 1e-4f)
+    {
+        m_boostShakePhase += dt * m_boostShakeFrequency * 2.0f * XM_PI;
+
+        //float sx = std::sin(m_boostShakePhase);
+        float sy = std::sin(m_boostShakePhase * 1.7f + 1.3f);
+
+        float amp = m_boostShakeMagnitude * m_boostShakeBlend;
+
+        // とりあえず確認用に上下も強めに（後で0.2～0.4に戻す）
+        m_shakeOffset +=
+            camRight * (amp/* * sx*/) +
+            camUp * (amp * 1.0f * sy);
     }
 }
 
-
+//★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 void FollowCameraComponent::Update(float dt)
 {
     if (!m_target){ return; }
@@ -470,6 +513,8 @@ void FollowCameraComponent::Update(float dt)
 
     Vector3 cameraPos = springPos + m_shakeOffset;
 
+    m_cameraWorldPos = cameraPos;
+
     UpdateAimPoint(dt, cameraPos);
     UpdateLookTarget(dt, cameraPos);
 
@@ -479,6 +524,8 @@ void FollowCameraComponent::Update(float dt)
 
     Renderer::SetViewMatrix(m_ViewMatrix);
     Renderer::SetProjectionMatrix(m_ProjectionMatrix);
+
+    UpdateShootCache();
 }
 
 void FollowCameraComponent::UpdateCameraPosition(float dt)
@@ -709,8 +756,6 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
         }
     }
 }
-
-
 /*void FollowCameraComponent::UpdateCameraPosition(float dt)
 {
     if (!m_target){ return; }
@@ -732,6 +777,7 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     m_spring.Update(desiredPos, dt);
 }*/
 
+//★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 void FollowCameraComponent::Shake(float magnitude, float duration , ShakeMode mode)
 {
     if (magnitude <= 0.0f || duration <= 0.0f) { return; }
@@ -740,7 +786,49 @@ void FollowCameraComponent::Shake(float magnitude, float duration , ShakeMode mo
     m_shakeTimeRemaining = std::max(m_shakeTimeRemaining, duration);
     m_shakeTotalDuration = std::max(m_shakeTotalDuration, duration);
 
-   m_shakeMode = mode;
+    m_shakeMode = mode;
 
     m_shakePhase = 0.0f;
 }
+//★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+void FollowCameraComponent::UpdateShootCache()
+{
+	float w = static_cast<float>(Application::GetWidth());
+    float h = static_cast<float>(Application::GetHeight());
+
+    // カメラの最終位置（shake込み）を使うこと
+    Vector3 camPos = GetPosition();
+
+    XMVECTOR nearP = XMVector3Unproject(
+        XMVectorSet(m_reticleScreen.x, m_reticleScreen.y, 0.0f, 1.0f),
+        0.0f, 0.0f, w, h,
+        0.0f, 1.0f,
+        m_ProjectionMatrix, m_ViewMatrix, XMMatrixIdentity());
+
+    XMVECTOR farP = XMVector3Unproject(
+        XMVectorSet(m_reticleScreen.x, m_reticleScreen.y, 1.0f, 1.0f),
+        0.0f, 0.0f, w, h,
+        0.0f, 1.0f,
+        m_ProjectionMatrix, m_ViewMatrix, XMMatrixIdentity());
+
+    Vector3 nearWorld;
+    Vector3 farWorld;
+    XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&nearWorld), nearP);
+    XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&farWorld), farP);
+
+    Vector3 dir = farWorld - nearWorld;
+    if (dir.LengthSquared() < 1e-6f)
+    {
+        m_shootRayOrigin = camPos;
+        m_shootRayDir = Vector3::Forward;
+        return;
+    }
+
+    dir.Normalize();
+
+    m_shootRayOrigin = camPos;
+    m_shootRayDir = dir;
+}
+
+
