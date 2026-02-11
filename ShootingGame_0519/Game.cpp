@@ -52,12 +52,19 @@ void Game::GameUpdate(float deltaTime)
 
 void Game::GameDraw(float deltaTime)
 {    
+    ////フレームの開始
+    //Renderer::Begin();
+    //SceneManager::Draw(deltaTime);
+    //EffectManager::Draw3D(deltaTime);
+    //TransitionManager::Draw(deltaTime);
+    ////フレームの終了
+    //Renderer::End();
     //フレームの開始
     Renderer::Begin();
-    //シーンマネージャーの描画処理
-    SceneManager::Draw(deltaTime);
+    SceneManager::DrawWorld(deltaTime);
     EffectManager::Draw3D(deltaTime);
+    Renderer::ApplyMotionBlur();
+    SceneManager::DrawUI(deltaTime);
     TransitionManager::Draw(deltaTime);
-    //フレームの終了
     Renderer::End();
 }

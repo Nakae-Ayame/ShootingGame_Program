@@ -25,9 +25,8 @@
 //---------------------------------
 enum class GameState
 {
+	Countdown,
 	Playing,
-	Clear,
-	GameOver
 };
 
 class GameScene : public IScene
@@ -46,6 +45,7 @@ public:
 	void DebugCollisionMode();
 	void DebugSetPlayerSpeed();
 	void DebugSetAimDistance();
+	void DebugMotionBlur();
 	
 	//-------------オブジェクト関連の関数-------------
 	void AddObject(std::shared_ptr<GameObject> obj) override;
@@ -54,29 +54,25 @@ public:
 	void RemoveObject(GameObject* obj) override;
 	void FinishFrameCleanup() override;
 
-	bool Raycast(const DirectX::SimpleMath::Vector3& origin,
-				 const DirectX::SimpleMath::Vector3& dir,
-				 float maxDistance,
-				 RaycastHit& outHit,
-				 std::function<bool(GameObject*)> predicate = nullptr,
-				 GameObject* ignore = nullptr);
-
-	bool RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
-					  const DirectX::SimpleMath::Vector3& dir,
-					  float maxDistance,
-				      RaycastHit& outHit,
-					  GameObject* ignore = nullptr);
-
 	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
 	PlayAreaComponent* GetPlayArea() const { return m_playArea.get(); }
+
+	bool Raycast(const Vector3& origin,
+		const Vector3& dir,
+		float maxDistance,
+		RaycastHit& outHit,
+		std::function<bool(GameObject*)> predicate,
+		GameObject* ignore) override;
 
 	//---------フレーム終了時に削除・追加予定のオブジェクト配列---------
 	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
 	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
 
 private:
-	GameState m_GameState = GameState::Playing;
+	GameState m_gameState = GameState::Countdown;
+
+	float m_countdownRemaining = 4.0f;		//開始カウントダウン用
 
 	float m_aimMarginX = 80.0f;   // 左右マージン（好きな値に変えてOK）
 	float m_aimMarginY = 45.0f;   // 上下マージン
@@ -92,6 +88,12 @@ private:
 	std::shared_ptr<Player> m_player;
 	std::shared_ptr<CameraObject> m_FollowCamera;
 	std::shared_ptr<SkyDome> m_SkyDome;
+
+	std::shared_ptr<GameObject> m_CountDown01;
+	std::shared_ptr<GameObject> m_CountDown02;
+	std::shared_ptr<GameObject> m_CountDown03;
+	std::shared_ptr<GameObject> m_CountDownGo;
+	std::shared_ptr<GameObject> m_CountDownNow;
 	
 	//GameScene内の3Dオブジェクトの配列
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
@@ -146,6 +148,8 @@ private:
 		}
 	}
 
+
+
 	std::shared_ptr<Reticle> m_reticle;
 
 	bool isCollisionDebugMode = false;
@@ -153,6 +157,9 @@ private:
 	float setSpeed = 10.0f;
 
 	float setAimDistance = 2000.0f;
+
+	float motionX = 0.5f;
+	float motionY = 0.5f;
 
 	Vector3 setRot = { 0,0,0 };
 

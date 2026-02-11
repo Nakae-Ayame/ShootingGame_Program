@@ -9,6 +9,7 @@ Reticle::Reticle(const std::wstring& texturePath, float size)
     : m_texturePath(texturePath), m_size(size)
 {
     m_pos = Vector2(0.0f, 0.0f);
+    camera = m_pos;
 }
 
 void Reticle::Initialize()
@@ -33,6 +34,7 @@ void Reticle::Initialize()
     GetClientRect(Application::GetWindow(), &rc);
     m_pos.x = static_cast<float>((rc.right - rc.left) / 2);
     m_pos.y = static_cast<float>((rc.bottom - rc.top) / 2);
+    camera = m_pos;
 
     // TextureComponent ‚Í SetScreenPosition ‚ª¶ãŠî€‚È‚Ì‚Å‚±‚±‚ÅÝ’è‚µ‚Ä‚¨‚­
     float left = m_pos.x - m_size * 0.5f;
@@ -72,14 +74,14 @@ void Reticle::Update(float dt)
         float left = cx - m_size * 0.5f;
         float top = cy - m_size * 0.5f;
         if (m_texture) m_texture->SetScreenPosition(left, top);
-
-        camera = { cx ,cy };
     }
 
     if (!Input::IsMouseLeftDown() && m_isDragging)
     {
         m_isDragging = false;
     }
+
+    camera = m_pos;
 }
 
 void Reticle::Draw(float alpha)

@@ -1,6 +1,7 @@
 #pragma once
 #include "Component.h"
 #include "commontypes.h"
+#include "RaycastHit.h"
 
 //コライダーの種類
 enum ColliderType

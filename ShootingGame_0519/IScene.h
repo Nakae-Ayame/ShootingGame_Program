@@ -47,6 +47,7 @@ public:
 		const DirectX::SimpleMath::Vector3& dir,
 		float maxDistance,
 		RaycastHit& outHit,
+		std::function<bool(GameObject*)> predicate,
 		GameObject* ignore = nullptr) { return false; };
 	
 	//---------------シーン内にあるオブジェクトを持ってくる関数------------------

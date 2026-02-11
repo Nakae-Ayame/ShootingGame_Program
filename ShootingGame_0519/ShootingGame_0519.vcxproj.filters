@@ -264,9 +264,6 @@
     <ClCompile Include="PatrolComponent.cpp">
       <Filter>ソース ファイル\Component\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="EnemyAIComponent.cpp">
-      <Filter>ソース ファイル\Component\Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="DebugScene.cpp">
       <Filter>ソース ファイル\Scene</Filter>
     </ClCompile>
@@ -303,9 +300,6 @@
     <ClCompile Include="MiniMapComponent.cpp">
       <Filter>ソース ファイル\Component</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerController.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="BulletComponent.cpp">
       <Filter>ソース ファイル\Component\Bullet</Filter>
     </ClCompile>
@@ -330,14 +324,8 @@
     <ClCompile Include="BulletTrailComponent.cpp">
       <Filter>ソース ファイル\Component</Filter>
     </ClCompile>
-    <ClCompile Include="CameraShakeComponent.cpp">
-      <Filter>ソース ファイル\Component\Camera</Filter>
-    </ClCompile>
     <ClCompile Include="BillboardEffectComponent.cpp">
       <Filter>ソース ファイル\Component\Effect</Filter>
-    </ClCompile>
-    <ClCompile Include="IniFile.cpp">
-      <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -518,9 +506,6 @@
     <ClInclude Include="EnemyMoveComponent.h">
       <Filter>ヘッダー ファイル\Component\Enemy</Filter>
     </ClInclude>
-    <ClInclude Include="EnemyAIComponent.h">
-      <Filter>ヘッダー ファイル\Component\Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="FixedTurretComponent.h">
       <Filter>ヘッダー ファイル\Component\Enemy</Filter>
     </ClInclude>
@@ -538,9 +523,6 @@
     </ClInclude>
     <ClInclude Include="MiniMapComponent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="PlayerController.h">
-      <Filter>ソース ファイル</Filter>
     </ClInclude>
     <ClInclude Include="HomingComponent.h">
       <Filter>ソース ファイル\Component\Bullet</Filter>
@@ -562,9 +544,6 @@
     </ClInclude>
     <ClInclude Include="HitPointCompornent.h">
       <Filter>ヘッダー ファイル\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraShakeComponent.h">
-      <Filter>ソース ファイル\Component\Camera</Filter>
     </ClInclude>
     <ClInclude Include="EffectManager.h">
       <Filter>ヘッダー ファイル\Manager</Filter>

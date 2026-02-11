@@ -227,5 +227,215 @@ namespace Collision
         return (v.LengthSquared() <= r * r);
     }
 
-    
+    inline bool RayVsAABB(
+        const Vector3& origin,
+        const Vector3& dir,
+        float maxDistance,
+        const Vector3& aabbMin,
+        const Vector3& aabbMax,
+        float& outT,
+        Vector3& outNormal)
+    {
+        const float EPS = 1e-6f;
+
+        float tMin = 0.0f;
+        float tMax = maxDistance;
+        Vector3 hitNormal = Vector3::Zero;
+
+        auto updateSlab = [&](float originAxis, float dirAxis, float minAxis, float maxAxis, const Vector3& nNeg, const Vector3& nPos) -> bool
+            {
+                if (std::fabs(dirAxis) < EPS)
+                {
+                    if (originAxis < minAxis || originAxis > maxAxis)
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+
+                float invD = 1.0f / dirAxis;
+                float t1 = (minAxis - originAxis) * invD;
+                float t2 = (maxAxis - originAxis) * invD;
+
+                Vector3 nEnter = nNeg;
+                Vector3 nExit = nPos;
+
+                if (t1 > t2)
+                {
+                    std::swap(t1, t2);
+                    std::swap(nEnter, nExit);
+                }
+
+                if (t1 > tMin)
+                {
+                    tMin = t1;
+                    hitNormal = nEnter;
+                }
+
+                if (t2 < tMax)
+                {
+                    tMax = t2;
+                }
+
+                if (tMin > tMax)
+                {
+                    return false;
+                }
+                return true;
+            };
+
+        if (!updateSlab(origin.x, dir.x, aabbMin.x, aabbMax.x, Vector3(-1, 0, 0), Vector3(1, 0, 0)))
+        {
+            return false;
+        }
+        if (!updateSlab(origin.y, dir.y, aabbMin.y, aabbMax.y, Vector3(0, -1, 0), Vector3(0, 1, 0)))
+        {
+            return false;
+        }
+        if (!updateSlab(origin.z, dir.z, aabbMin.z, aabbMax.z, Vector3(0, 0, -1), Vector3(0, 0, 1)))
+        {
+            return false;
+        }
+
+        if (tMin < 0.0f)
+        {
+            return false;
+        }
+
+        outT = tMin;
+        outNormal = hitNormal;
+        return true;
+    }
+
+    inline bool RayVsOBB(
+        const Vector3& origin,
+        const Vector3& dir,
+        float maxDistance,
+        const Vector3& obbCenter,
+        const Matrix& obbRot,
+        const Vector3& obbHalfSize,
+        float& outT,
+        Vector3& outNormal)
+    {
+        Vector3 axes[3];
+        ExtractAxesFromRotation(obbRot, axes);
+
+        float tMin = 0.0f;
+        float tMax = maxDistance;
+
+        Vector3 p = obbCenter - origin;
+        Vector3 hitNormal = Vector3::Zero;
+
+        for (int i = 0; i < 3; ++i)
+        {
+            float e = axes[i].Dot(p);
+            float f = axes[i].Dot(dir);
+
+            float half = 0.0f;
+            if (i == 0) { half = obbHalfSize.x; }
+            if (i == 1) { half = obbHalfSize.y; }
+            if (i == 2) { half = obbHalfSize.z; }
+
+            const float EPS = 1e-6f;
+
+            if (std::fabs(f) > EPS)
+            {
+                float t1 = (e - half) / f;
+                float t2 = (e + half) / f;
+
+                Vector3 nEnter = -axes[i];
+                Vector3 nExit = axes[i];
+
+                if (t1 > t2)
+                {
+                    std::swap(t1, t2);
+                    std::swap(nEnter, nExit);
+                }
+
+                if (t1 > tMin)
+                {
+                    tMin = t1;
+                    hitNormal = nEnter;
+                }
+
+                if (t2 < tMax)
+                {
+                    tMax = t2;
+                }
+
+                if (tMin > tMax)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (-e - half > 0.0f || -e + half < 0.0f)
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (tMin < 0.0f)
+        {
+            return false;
+        }
+
+        outT = tMin;
+        outNormal = hitNormal;
+        return true;
+    }
+
+    inline bool RayVsSphere(
+        const Vector3& origin,
+        const Vector3& dir,
+        float maxDistance,
+        const Vector3& center,
+        float radius,
+        float& outT,
+        Vector3& outNormal)
+    {
+        Vector3 m = origin - center;
+
+        float b = m.Dot(dir);
+        float c = m.Dot(m) - radius * radius;
+
+        if (c > 0.0f && b > 0.0f)
+        {
+            return false;
+        }
+
+        float discr = b * b - c;
+        if (discr < 0.0f)
+        {
+            return false;
+        }
+
+        float t = -b - std::sqrt(discr);
+        if (t < 0.0f)
+        {
+            t = 0.0f;
+        }
+
+        if (t > maxDistance)
+        {
+            return false;
+        }
+
+        Vector3 hitPos = origin + dir * t;
+        Vector3 n = hitPos - center;
+        if (n.LengthSquared() > 1e-6f)
+        {
+            n.Normalize();
+        }
+        else
+        {
+            n = Vector3::Up;
+        }
+
+        outT = t;
+        outNormal = n;
+        return true;
+    }
 }

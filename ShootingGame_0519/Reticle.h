@@ -20,8 +20,8 @@ public:
     void SetSize(float size) { m_size = size; if (m_texture) m_texture->SetSize(m_size, m_size); }
 
     //スクリーン上での位置のゲッター
-    Vector2 GetScreenPos() const { return m_pos; } 
-    Vector2 camera;
+    Vector2 GetScreenPos() const { return m_pos; }
+    Vector2 camera{ 0.0f, 0.0f };
 private:
     std::wstring m_texturePath;
     float m_size;                 // 表示サイズ（幅＝高さ）

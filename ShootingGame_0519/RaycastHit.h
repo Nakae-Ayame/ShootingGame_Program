@@ -1,13 +1,15 @@
 #pragma once
-#include <memory>
 #include <SimpleMath.h>
 
 class GameObject;
+class ColliderComponent;
 
-struct  RaycastHit
+struct RaycastHit
 {
-	DirectX::SimpleMath::Vector3 position;  //ヒット位置
-	DirectX::SimpleMath::Vector3 normal;    //ヒット法線
-	float distance = 0.0f;                  //ヒット距離
-	std::shared_ptr<GameObject> hitObject;  //ヒットしたオブジェクト
+    DirectX::SimpleMath::Vector3 position = DirectX::SimpleMath::Vector3::Zero;
+    DirectX::SimpleMath::Vector3 normal   = DirectX::SimpleMath::Vector3::Up;
+    float distance = 0.0f;
+
+    GameObject* hitObject = nullptr;
+    ColliderComponent* hitCollider = nullptr;
 };

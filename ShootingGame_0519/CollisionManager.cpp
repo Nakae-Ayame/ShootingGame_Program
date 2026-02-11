@@ -449,3 +449,116 @@ void CollisionManager::KillInwardVelocity(GameObject* obj,
     }
 }
 
+bool CollisionManager::RaycastWorld(
+    const Vector3& origin,
+    const Vector3& dir,
+    float maxDistance,
+    RaycastHit& outHit,
+    std::function<bool(GameObject*)> predicate,
+    GameObject* ignore)
+{
+    if (maxDistance <= 0.0f)
+    {
+        return false;
+    }
+
+    Vector3 d = dir;
+    if (d.LengthSquared() < 1e-6f)
+    {
+        return false;
+    }
+    d.Normalize();
+
+    bool anyHit = false;
+    float bestT = maxDistance;
+
+    RaycastHit bestHit;
+    bestHit.distance = maxDistance;
+
+    for (auto* col : m_Colliders)
+    {
+        if (!col)
+        {
+            continue;
+        }
+
+        if (!col->IsEnabled())
+        {
+            continue;
+        }
+
+        GameObject* owner = col->GetOwner();
+        if (!owner)
+        {
+            continue;
+        }
+
+        if (owner == ignore)
+        {
+            continue;
+        }
+
+        if (predicate)
+        {
+            if (!predicate(owner))
+            {
+                continue;
+            }
+        }
+
+        float t = 0.0f;
+        Vector3 n = Vector3::Zero;
+        bool hit = false;
+
+        ColliderType type = col->GetColliderType();
+
+        if (type == ColliderType::AABB)
+        {
+            auto* aabb = static_cast<AABBColliderComponent*>(col);
+            hit = Collision::RayVsAABB(origin, d, bestT, aabb->GetMin(), aabb->GetMax(), t, n);
+        }
+        else if (type == ColliderType::OBB)
+        {
+            auto* obb = static_cast<OBBColliderComponent*>(col);
+            Vector3 half = obb->GetSize() * 0.5f;
+            hit = Collision::RayVsOBB(origin, d, bestT, obb->GetCenter(), obb->GetRotationMatrix(), half, t, n);
+        }
+        else if (type == ColliderType::SPHERE)
+        {
+            auto* s = static_cast<SphereColliderComponent*>(col);
+            hit = Collision::RayVsSphere(origin, d, bestT, s->GetCenter(), s->GetRadius(), t, n);
+        }
+        else
+        {
+            hit = false;
+        }
+
+        if (!hit)
+        {
+            continue;
+        }
+
+        if (t < 0.0f || t > bestT)
+        {
+            continue;
+        }
+
+        bestT = t;
+        anyHit = true;
+
+        bestHit.distance = t;
+        bestHit.position = origin + d * t;
+        bestHit.normal = n;
+        bestHit.hitObject = owner;
+        bestHit.hitCollider = col;
+    }
+
+    if (!anyHit)
+    {
+        return false;
+    }
+
+    outHit = bestHit;
+    return true;
+}
+

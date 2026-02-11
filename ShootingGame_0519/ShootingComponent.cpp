@@ -1,4 +1,6 @@
 ﻿#include "ShootingComponent.h"
+#include "FollowCameraComponent.h"
+#include "GameScene.h"
 #include "Bullet.h"
 #include "Enemy.h"
 #include "Input.h"
@@ -227,126 +229,55 @@ static bool GetMouseRayWorld(ICameraViewProvider* camera,
 
 void ShootingComponent::Update(float dt)
 {
-    //経過時間更新
+    // 経過時間更新
     m_timer += dt;
 
-    //本体取得
     GameObject* owner = GetOwner();
-    if (!owner) { return; }
+    if (!owner)
+    {
+        return;
+    }
 
-    //色定義
-    Vector4 colorC(1.0f, 1.0f, 0.0f, 1.0f);     //黄色
-    Vector4 colorSpace(1.0f, 0.0f, 0.0f, 1.0f); //赤
-
-	//追尾弾の発射（Cキー）
+    // ---------------- 追尾弾（C） ----------------
     bool cDown = Input::IsKeyDown('C');
     bool justPressedC = (cDown && !m_prevHomingKeyDown);
     m_prevHomingKeyDown = cDown;
 
-    //Cキーが押されたら
     if (justPressedC)
     {
-
-        if (m_timer < m_cooldown) { return; }
-       
-         //ターゲットを探す
-         std::shared_ptr<GameObject> targetSp = FindBestHomingTarget();
-
-         if (targetSp)
-         {
-             //ターゲットが見つかったらホーミング弾を撃つ
-             FireHomingBullet(owner, targetSp);
-             m_timer = 0.0f;
-             return;
-         }
-         else
-         { 
-             //ターゲットがいない場合は発射しない
-             return;
-         }
-    }
-
-    //通常弾の発射（SPACEキー）
-    bool wantFire = m_autoFire || Input::IsKeyDown(VK_SPACE);
-    if (!wantFire) { return; }
-
-    if (m_timer < m_cooldown) { return; }
-
-    if (!m_camera)
-    {
-        Vector3 forward = owner->GetForward();
-        if (forward.LengthSquared() < 1e-6f)
+        if (m_timer < m_cooldown)
         {
-            forward = Vector3::UnitZ;
-        }
-        else
-        {
-            forward.Normalize();
+            return;
         }
 
-        Vector3 muzzleLocal(0.0f, 0.0f, m_spawnOffset);
-        Vector3 rot = owner->GetRotation();
-        Matrix rotM = Matrix::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
-        Vector3 spawnPos = owner->GetPosition() + Vector3::Transform(muzzleLocal, rotM);
-
-        auto bullet = CreateBullet(spawnPos, forward, colorSpace);
-        if (bullet)
+        std::shared_ptr<GameObject> targetSp = FindBestHomingTarget();
+        if (!targetSp)
         {
-            if (auto bc = bullet->GetComponent<BulletComponent>())
-            {
-                bc->SetVelocity(forward);
-                bc->SetSpeed(m_bulletSpeed);
-            }
-            AddBulletToScene(bullet);
+            return;
         }
 
+        FireHomingBullet(owner, targetSp);
         m_timer = 0.0f;
         return;
     }
 
-    // カメラあり：レティクル方向に合わせて発射点・方向を決定（赤）
-    Vector3 camPos = m_camera->GetPosition();
-    Vector3 camDir = m_camera->GetAimDirectionFromReticle();
-    if (camDir.LengthSquared() < 1e-6f)
+    // ---------------- 通常弾（SPACE / Auto） ----------------
+    bool wantFire = (m_autoFire || Input::IsKeyDown(VK_SPACE));
+    if (!wantFire)
     {
-        camDir = m_camera->GetForward();
-    }
-    camDir.Normalize();
-
-    Vector3 ownerForward = owner->GetForward();
-    if (ownerForward.LengthSquared() < 1e-6f)
-    {
-        ownerForward = Vector3::UnitZ;
-    }
-    else
-    {
-        ownerForward.Normalize();
+        return;
     }
 
-    Vector3 muzzleGuess = owner->GetPosition() + ownerForward * m_spawnOffset;
-    Vector3 camToMuzzle = muzzleGuess - camPos;
-    float t = camToMuzzle.Dot(camDir);
-    if (t < 1.0f)
+    if (m_timer < m_cooldown)
     {
-        t = 1.0f;
+        return;
     }
 
-    Vector3 spawnPos = camPos + camDir * t;
-    Vector3 aimDir = camDir;
-
-    auto bullet = CreateBullet(spawnPos, aimDir, colorSpace);
-    if (bullet)
-    {
-        if (auto bc = bullet->GetComponent<BulletComponent>())
-        {
-            bc->SetVelocity(aimDir);
-            bc->SetSpeed(m_bulletSpeed);
-        }
-        AddBulletToScene(bullet);
-    }
-
-    m_timer = 0.0f;
+    Fire();
+    // Fire() 内で m_timer = 0.0f; してるならここは不要
+    // してない場合はここで m_timer = 0.0f;
 }
+
 
 /// <summary>
 /// 弾を実際に生成するための関数
@@ -401,42 +332,101 @@ void ShootingComponent::AddBulletToScene(const std::shared_ptr<GameObject>& bull
 
 void ShootingComponent::Fire()
 {
-    if (!m_scene) { return; }
-    if (!m_owner) { return; }
-    if (!m_camera) { return; }
-
-    Vector3 rayOrigin = m_camera->GetShootRayOrigin();
-    Vector3 rayDir = m_camera->GetShootRayDir();
-
-    if (rayDir.LengthSquared() < 1e-6f)
+    GameObject* owner = GetOwner();
+    if (!owner)
     {
         return;
     }
 
-    RaycastHit hit;
-    bool isHit = m_scene->Raycast(rayOrigin, rayDir, m_aimMaxDist, hit, m_owner);
+    // ---------------- Scene 取得 ----------------
+    GameScene* gameScene = nullptr;
 
-    Vector3 aimPoint = Vector3::Zero;
-    if (isHit)
+    if (m_scene)
     {
-        aimPoint = hit.position;
+        gameScene = dynamic_cast<GameScene*>(m_scene);
+    }
+
+    if (!gameScene)
+    {
+        if (owner->GetScene())
+        {
+            gameScene = dynamic_cast<GameScene*>(owner->GetScene());
+        }
+    }
+
+    if (!gameScene)
+    {
+        return;
+    }
+
+    // ---------------- Ray 取得 ----------------
+    Vector3 rayOrigin = Vector3::Zero;
+    Vector3 rayDir = Vector3::Forward;
+
+    if (m_camera)
+    {
+        // FollowCameraComponent の shoot cache を使えるなら最優先
+        // （ICameraViewProvider に GetShootRayOrigin/Dir が無い場合もあるので dynamic_cast で保険）
+        auto* followCam = dynamic_cast<FollowCameraComponent*>(m_camera);
+        if (followCam)
+        {
+            rayOrigin = followCam->GetShootRayOrigin();
+            rayDir = followCam->GetShootRayDir();
+        }
+        else
+        {
+            rayOrigin = m_camera->GetPosition();
+            rayDir = m_camera->GetAimDirectionFromReticle();
+        }
     }
     else
     {
-        aimPoint = rayOrigin + rayDir * m_aimMaxDist;
+        // カメラ無しフォールバック：機体前方
+        rayOrigin = owner->GetPosition();
+        rayDir = owner->GetForward();
     }
 
-    // 弾の出現位置（例：オーナーのTransformから）
-    Vector3 spawnPos = m_owner->GetPosition();
+    if (rayDir.LengthSquared() < 1e-6f)
+    {
+        rayDir = Vector3::Forward;
+    }
+    else
+    {
+        rayDir.Normalize();
+    }
 
-    // ローカル銃口オフセットを回転させて足す（例）
-    Vector3 forward = m_owner->GetForward();
-    Vector3 up = m_owner->GetUp();
-    Vector3 right = m_owner->GetRight();
-    spawnPos += right * m_muzzleLocalOffset.x;
-    spawnPos += up * m_muzzleLocalOffset.y;
-    spawnPos += forward * m_muzzleLocalOffset.z;
+    // ---------------- Raycast ----------------
+    const float maxDistance = 3000.0f;
 
+    RaycastHit hit{};
+    bool hitSomething = gameScene->Raycast(
+        rayOrigin,
+        rayDir,
+        maxDistance,
+        hit,
+        [](GameObject* obj)
+        {
+            if (!obj)
+            {
+                return false;
+            }
+            return true;
+        },
+        owner);
+
+    Vector3 aimPoint = rayOrigin + rayDir * maxDistance;
+    if (hitSomething)
+    {
+        aimPoint = hit.position;
+    }
+
+    // ---------------- マズル位置（回転反映） ----------------
+    Vector3 rot = owner->GetRotation();
+    Matrix rotM = Matrix::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
+
+    Vector3 spawnPos = owner->GetPosition() + Vector3::Transform(m_muzzleLocalOffset, rotM);
+
+    // ---------------- 弾方向 ----------------
     Vector3 bulletDir = aimPoint - spawnPos;
     if (bulletDir.LengthSquared() < 1e-6f)
     {
@@ -444,8 +434,19 @@ void ShootingComponent::Fire()
     }
     bulletDir.Normalize();
 
-    // ここで Bullet を生成して速度設定
-    // bullet->SetPosition(spawnPos);
-    // bullet->SetVelocity(bulletDir * m_bulletSpeed);
-}
+    // ---------------- 生成＆シーン追加 ----------------
+    auto bullet = CreateBullet(spawnPos, bulletDir, m_normalBulletColor);
+    if (bullet)
+    {
+        if (auto bc = bullet->GetComponent<BulletComponent>())
+        {
+            bc->SetVelocity(bulletDir);
+            bc->SetSpeed(m_bulletSpeed);
+            bc->SetBulletType(BulletComponent::PLAYER);
+        }
 
+        AddBulletToScene(bullet);
+    }
+
+    m_timer = 0.0f;
+}

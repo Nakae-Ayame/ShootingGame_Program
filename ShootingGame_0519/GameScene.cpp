@@ -73,205 +73,37 @@ void GameScene::DebugSetAimDistance()
     ImGui::End();
 }
 
-static bool RaySphereIntersect(const DirectX::SimpleMath::Vector3& rayOrigin,
-    const DirectX::SimpleMath::Vector3& rayDir,
-    const DirectX::SimpleMath::Vector3& sphereCenter,
-    float sphereRadius,
-    float& outT)
+void GameScene::DebugMotionBlur()
 {
-    using namespace DirectX::SimpleMath;
-    Vector3 m = rayOrigin - sphereCenter;
-    float b = m.Dot(rayDir);
-    float c = m.LengthSquared() - sphereRadius * sphereRadius;
+    ImGui::Begin("DebugMotionBlur");
 
-    if (c > 0.0f && b > 0.0f) { return false; }
+    static float x = 0.5f;
+    static float y = 0.5f;
 
-    float discr = b * b - c;
-    if (discr < 0.0f) { return false; }
+    ImGui::SliderFloat("MotionBlurX", &x, 0.01f, 0.99f);
+    ImGui::SliderFloat("MotionBlurY", &y, 0.01f, 0.99f);
 
-    float t = -b - sqrtf(discr);
-    if (t < 0.0f)
-    {
-        t = -b + sqrtf(discr);
-    }
-    if (t < 0.0f) { return false; }
+	motionX = x;
+	motionY = y;
 
-    outT = t;
-    return true;
+    ImGui::End();
 }
 
-bool GameScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
-    const DirectX::SimpleMath::Vector3& dir,
+bool GameScene::Raycast(const Vector3& origin,
+    const Vector3& dir,
     float maxDistance,
     RaycastHit& outHit,
     std::function<bool(GameObject*)> predicate,
     GameObject* ignore)
 {
-    using namespace DirectX::SimpleMath;
-
-    // Normalize dir for distance correctness
-    Vector3 ndir = dir;
-    if (ndir.LengthSquared() <= 1e-6f)
-    {
-        return false;
-    }
-    ndir.Normalize();
-
-    float bestT = std::numeric_limits<float>::infinity();
-    std::shared_ptr<GameObject> bestObj;
-
-    for (auto& obj : m_GameObjects)
-    {
-        if (!obj) { continue; }
-        if (obj.get() == ignore) { continue; }
-
-        if (predicate)
-        {
-            if (!predicate(obj.get()))
-            {
-                continue;
-            }
-        }
-
-        float t;
-        float radius = 0.0f;
-
-        bool hasSphere = false;
-
-        {
-            Enemy* e = dynamic_cast<Enemy*>(obj.get());
-            if (e)
-            {
-                radius = e->GetBoundingRadius();
-                hasSphere = true;
-            }
-        }
-
-        if (hasSphere)
-        {
-            if (RaySphereIntersect(origin, ndir, obj->GetPosition(), radius, t))
-            {
-                if (t >= 0.0f && t <= maxDistance && t < bestT)
-                {
-                    bestT = t;
-                    bestObj = obj;
-                }
-            }
-        }
-        else
-        {
-
-        }
-    }
-
-    if (bestObj)
-    {
-        outHit.hitObject = bestObj;
-        outHit.distance = bestT;
-        outHit.position = origin + ndir * bestT;
-        outHit.normal = (outHit.position - bestObj->GetPosition());
-        if (outHit.normal.LengthSquared() > 1e-6f)
-        {
-            outHit.normal.Normalize();
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool GameScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
-    const DirectX::SimpleMath::Vector3& dir,
-    float maxDistance,
-    RaycastHit& outHit,
-    GameObject* ignore)
-{
-    using namespace DirectX::SimpleMath;
-
-    Vector3 ndir = dir;
-    if (ndir.LengthSquared() <= 1e-6f)
-        return false;
-    ndir.Normalize();
-
-    float bestT = std::numeric_limits<float>::infinity();
-    std::shared_ptr<GameObject> bestObj;
-
-    for (auto& obj : m_GameObjects)
-    {
-        if (!obj) continue;
-        if (obj.get() == ignore) continue;
-
-        //コライダーを持っていないなら無視
-        auto obb = obj->GetComponent<OBBColliderComponent>();
-        auto aabb = obj->GetComponent<AABBColliderComponent>();
-        bool hasCollider = (obb || aabb);
-
-        //Enemy の簡易球 or Building の AABB など…
-        float radius = 0.0f;
-        bool hasSphere = false;
-
-        if (auto e = dynamic_cast<Enemy*>(obj.get()))
-        {
-            radius = e->GetBoundingRadius();
-            if (radius > 0.0f) hasSphere = true;
-        }
-        else if (hasCollider)
-        {
-            //コライダーからざっくり半径を作る（対角長の半分）
-            //きっちりした Ray vs OBB/AABB は後で実装でもOK
-            Vector3 center = obj->GetPosition();
-            Vector3 extents;
-
-            if (obb)
-            {
-                extents = obb->GetSize() * 0.5f; // size が全長なら半分で半径相当
-            }
-            else // AABB
-            {
-                Vector3 size = aabb->GetSize();
-                extents = size * 0.5f;
-            }
-
-            radius = extents.Length(); // 対角線の長さ ≒ おおざっぱな半径
-            hasSphere = (radius > 0.0f);
-        }
-
-        if (!hasSphere) continue;
-
-        float t;
-        if (RaySphereIntersect(origin, ndir, obj->GetPosition(), radius, t))
-        {
-            if (t >= 0.0f && t <= maxDistance && t < bestT)
-            {
-                bestT = t;
-                bestObj = obj;
-            }
-        }
-    }
-
-    if (bestObj)
-    {
-        outHit.hitObject = bestObj;
-        outHit.distance = bestT;
-        outHit.position = origin + ndir * bestT;
-
-        // 簡易法線（中心からの方向）
-        outHit.normal = outHit.position - bestObj->GetPosition();
-        if (outHit.normal.LengthSquared() > 1e-6f)
-            outHit.normal.Normalize();
-
-        return true;
-    }
-
-    return false;
+    return CollisionManager::RaycastWorld(origin, dir, maxDistance, outHit, predicate, ignore);
 }
 
 void GameScene::InitializeDebug()
 {
-    //デバッグMODE SELECT
-    //DebugUI::RedistDebugFunction([this]() {DebugCollisionMode();  });
     DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed(); });
     //DebugUI::RedistDebugFunction([this]() {DebugSetAimDistance(); });
+	DebugUI::RedistDebugFunction([this]() {DebugMotionBlur(); });
 
     //DebugRendererの初期化
     m_debugRenderer = std::make_unique<DebugRenderer>();
@@ -290,14 +122,15 @@ void GameScene::InitializePlayArea()
 
 void GameScene::InitializePhase()
 {
-
+    m_gameState = GameState::Playing;
+    m_countdownRemaining = 4.0f;
 }
 
 void GameScene::InitializeCamera()
 {
     m_FollowCamera = std::make_shared<CameraObject>();
     m_cameraComp = m_FollowCamera->AddCameraComponent<FollowCameraComponent>().get();
-    AddObject(m_FollowCamera);
+    //AddObject(m_FollowCamera);
     m_FollowCamera->Initialize();
 
 	auto moveComp = m_player->GetComponent<MoveComponent>();
@@ -318,9 +151,10 @@ void GameScene::InitializeCamera()
     if (m_cameraComp)
     {
         m_cameraComp->SetPlayArea(m_playArea.get());
-        //m_cameraComp->SetDistance(15.0f);
     }
-    
+
+    Vector3 Ppos = m_player->GetPosition();
+    m_FollowCamera->SetPosition({ Ppos.x, Ppos.y, Ppos.z - 20 });
 }
 
 void GameScene::InitializePlayer()
@@ -346,18 +180,12 @@ void GameScene::InitializePlayer()
 void GameScene::InitializeEnemy()
 {
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 4;
+    m_enemySpawner->patrolCfg.spawnCount = 1;
     m_enemySpawner->circleCfg.spawnCount = 0;
-    m_enemySpawner->turretCfg.spawnCount = 2;
-    m_enemySpawner->fleeCfg.spawnCount = 0;
+    m_enemySpawner->turretCfg.spawnCount = 0;
 
     enemyCount = m_enemySpawner->patrolCfg.spawnCount + m_enemySpawner->circleCfg.spawnCount + m_enemySpawner->turretCfg.spawnCount;
 
-    //m_enemySpawner->SetWaypoints(
-    //    { { 30.0f, 20.0f, 30.0f },
-    //      {-30.0f, 20.0f, 30.0f },
-    //      {-30.0f, 20.0f,-30.0f },
-    //      { 30.0f, 20.0f,-30.0f } });
 
     m_enemySpawner->SetWaypoints(
         { { 80.0f, 20.0f,  0.0f },
@@ -393,7 +221,7 @@ void GameScene::InitializeEnemy()
 
     m_enemySpawner->EnsurePatrolCount();
     m_enemySpawner->turretCfg.target = m_player;
-    m_enemySpawner->turretCfg.bulletSpeed = 80.0f;
+    m_enemySpawner->turretCfg.bulletSpeed = 100.0f;
     m_enemySpawner->SetTurretPos({ 100.0f,100.0f,0.0f });
     m_enemySpawner->SetTurretPos({ -100.0f,100.0f,0.0f });
 
@@ -430,7 +258,7 @@ void GameScene::InitializeStageObject()
         {   0.0f, -12.0f,    0.0f },
     };
 
-    int placed = m_buildingSpawner->Spawn(bc);
+    //int placed = m_buildingSpawner->Spawn(bc);
 
     //------------------スカイドーム作成-------------------------
 
@@ -475,6 +303,34 @@ void GameScene::InitializeUI()
     auto hpUI = std::make_shared<HPBar>(L"Asset/UI/HPBar01.png", L"Asset/UI/HPGauge01.png", 100.0f, 475.0f);
     hpUI->SetScreenPos(30.0f, 200.0f);
     hpUI->Initialize();
+
+    m_CountDown01 = std::make_shared<GameObject>();
+    auto LogoTexter01 = std::make_shared<TextureComponent>();
+    LogoTexter01->LoadTexture(L"Asset/UI/CountDown_01.png");
+    LogoTexter01->SetSize(200.0f, 200.0f);
+    LogoTexter01->SetScreenPosition(540.0f, 200.0f);
+    m_CountDown01->AddComponent(LogoTexter01);
+
+    m_CountDown02 = std::make_shared<GameObject>();
+    auto LogoTexter02 = std::make_shared<TextureComponent>();
+    LogoTexter02->LoadTexture(L"Asset/UI/CountDown_02.png");
+    LogoTexter02->SetSize(200.0f, 200.0f);
+    LogoTexter02->SetScreenPosition(540.0f, 200.0f);
+    m_CountDown02->AddComponent(LogoTexter02);
+
+    m_CountDown03 = std::make_shared<GameObject>();
+    auto LogoTexter03 = std::make_shared<TextureComponent>();
+    LogoTexter03->LoadTexture(L"Asset/UI/CountDown_03.png");
+    LogoTexter03->SetSize(200.0f, 200.0f);
+    LogoTexter03->SetScreenPosition(540.0f, 200.0f);
+    m_CountDown03->AddComponent(LogoTexter03);
+
+    m_CountDownGo = std::make_shared<GameObject>();
+    auto LogoTexterGo = std::make_shared<TextureComponent>();
+    LogoTexterGo->LoadTexture(L"Asset/UI/CountDown_Go.png");
+    LogoTexterGo->SetSize(500.0f, 200.0f);
+    LogoTexterGo->SetScreenPosition(430.0f, 200.0f);
+    m_CountDownGo->AddComponent(LogoTexterGo);
 
     //-------------ミニマップ設定----------------
     m_miniMapBgSRV = TextureManager::Load("Asset/UI/minimap_Background.png");
@@ -546,6 +402,9 @@ void GameScene::Init()
 
 	//プレイエリア初期化
     InitializePlayArea();
+
+    //ステート関連初期化
+    InitializePhase();
     
     //プレイヤー初期化
     InitializePlayer();
@@ -566,8 +425,10 @@ void GameScene::Init()
 
     m_FollowCamera->GetFollowCameraComponent()->SetTarget(m_player.get());
 
+    
     AddObject(m_player);
     AddObject(m_FollowCamera);
+
 
     if (m_FollowCamera && m_FollowCamera->GetFollowCameraComponent())
     {
@@ -583,153 +444,192 @@ void GameScene::Update(float deltatime)
 {
     static float currentBlur = 0.0f;
 
-    // MoveComponent をキャッシュ
-    if (!m_playerMove)
+    if (m_gameState == GameState::Countdown)
     {
-        m_playerMove = m_player->GetComponent<MoveComponent>();
-    }
+        m_countdownRemaining -= deltatime;
 
-    if (m_playerMove)
-    {
-        //ブーストの“強さ”を 0～1 で取得（MoveComponent 側で用意済み）
-        float boostIntensity = m_playerMove->GetBoostIntensity(); // 0～1
+        m_FollowCamera->Update(deltatime);
+        m_SkyDome->Update(deltatime);
 
-        // ② ブラーの目標値（強すぎるなら 0.7f とかにしてもOK）
-        float targetBlur = boostIntensity * 1.0f;
-
-        // ③ 補間（急にON/OFFせず、なめらかに変化）
-        float interpSpeed = 6.0f; // 大きいほど追従が速い
-        float alpha = std::min(1.0f, interpSpeed * deltatime);
-        currentBlur += (targetBlur - currentBlur) * alpha;
-
-        //---------------------------------------------------------
-        // ★ Renderer のポストプロセス設定に反映する
-        //---------------------------------------------------------
-        PostProcessSettings pp = Renderer::GetPostProcessSettings();
-
-        // ブラー強度（0～1）
-        pp.motionBlurAmount = currentBlur;
-
-        // 画面上の伸びる方向（とりあえず前方へ）
-        pp.motionBlurDir = { 0.0f, -1.0f };
-
-        // ブラーの伸びる長さ（調整ポイント）
-        pp.motionBlurStretch = 0.03f;
-
-        Renderer::SetPostProcessSettings(pp);
-    }
-
-    //フレーム先頭で前フレームの登録を消す
-    CollisionManager::Clear();
-
-    //新規オブジェクトをGameSceneのオブジェクト配列に追加する
-    SetSceneObject();
-
-    auto PlayerMove = m_player->GetComponent<MoveComponent>();
-    if (PlayerMove)
-    {
-        PlayerMove->SetSpeed(setSpeed);
-    }
-
-
-    //----------------- レティクルのドラッグ処理 -----------------
-    if (Input::IsMouseLeftPressed())
-    {
-        m_isDragging = true;
-    }
-
-    /*if (m_isDragging && Input::IsMouseLeftDown()) 
-    {
-        m_lastDragPos = Input::GetMousePosition();
-        SetReticleByCenter(m_lastDragPos);
-    }*/
-
-    if (!Input::IsMouseLeftDown() && m_isDragging)
-    {
-        m_isDragging = false;
-    }
-
-    //カメラにレティクル座標を渡す（最新のものを渡す）
-    if (m_FollowCamera && m_FollowCamera->GetCameraComponent())
-    {
-        m_FollowCamera->GetFollowCameraComponent()->SetReticleScreen(Vector2((float)m_lastDragPos.x, (float)m_lastDragPos.y));
-    }
-
-    //----------------------------------------------
-    
-    auto followCan = m_FollowCamera->GetComponent<FollowCameraComponent>();
-    if (m_FollowCamera && m_reticle)
-    {
-        followCan->SetReticleScreen(m_reticle->GetScreenPos());
-    }
-
-    followCan->SetReticleScreen(m_reticle->camera);
-
-    //全オブジェクト Update を一回だけ実行（重要）
-    for (auto& obj : m_GameObjects)
-    {
-        if (obj) obj->Update(deltatime);
-    }
-
-    
-
-    //全オブジェクト Update を一回だけ実行（重要）
-    for (auto& obj : m_TextureObjects)
-    {
-        if (obj) obj->Update(deltatime);
-    }
-
-    for (auto& obj : m_GameObjects)
-    {
-        if (!obj) continue;
-        auto collider = obj->GetComponent<ColliderComponent>();
-        if (collider)
+        if (m_countdownRemaining <= 0.0f)
         {
-            CollisionManager::RegisterCollider(collider.get());
+            m_gameState = GameState::Playing;
+            m_countdownRemaining = 0.0f;
         }
     }
 
-    //当たり判定チェック実行
-    CollisionManager::CheckCollisions();
-
-    for (auto& obj : m_GameObjects)
+    if (m_gameState == GameState::Playing)
     {
-        if (!obj) { continue; }
-
-        auto push = obj->GetComponent<PushOutComponent>();
-        if (push)
+        if (!m_playerMove)
         {
-            push->ApplyPush();
+            m_playerMove = m_player->GetComponent<MoveComponent>();
         }
-    }
 
-    if (m_miniMap)
-    {
-        std::vector<GameObject*> enemies;
-        std::vector<GameObject*> buildings;
-
-        for (std::shared_ptr<GameObject> obj : m_GameObjects)
+        if (m_playerMove)
         {
-            if (!obj)
+            float boostIntensity = m_playerMove->GetBoostIntensity(); // 0～1
+
+            float targetBlur = boostIntensity * 1.0f;
+
+            float interpSpeed = 6.0f; //大きいほど追従が速い
+            float alpha = std::min(1.0f, interpSpeed * deltatime);
+            currentBlur += (targetBlur - currentBlur) * alpha;
+
+            //---------------------------------------------------------
+            //  Renderer のポストプロセス設定に反映する
+            //---------------------------------------------------------
+            PostProcessSettings pp = Renderer::GetPostProcessSettings();
+
+            // ブラー強度（0～1）
+            pp.motionBlurAmount = currentBlur 
+                * 5.3;
+
+            //行列取得
+            Matrix projMatrix = m_FollowCamera->GetCameraComponent()->GetProj();
+            Matrix viewMatrix = m_FollowCamera->GetCameraComponent()->GetView();
+
+			//⓪Playerの位置と注視点の位置取得
+            Vector3 playerPos  = m_player->GetPosition();
+
+            std::shared_ptr<FollowCameraComponent> followCamera = m_FollowCamera->GetFollowCameraComponent();
+            if (!followCamera){ return; }
+            Vector3 cameraLook = followCamera->GetLookTarget();
+
+			Vector3 playerToLook = cameraLook - playerPos;
+
+			//②このベクトル
+            // と0.0f~1.0fの間の中でどこを中心にブラーをかけるかを決定
+            Vector3 blurCenter = playerPos + (cameraLook - playerPos) * 0.8f;
+
+			//③ワールド座標→スクリーン座標変換
+            XMVECTOR clip = XMVector3TransformCoord(XMLoadFloat3(&blurCenter), viewMatrix * projMatrix);
+
+            float w = Application::GetWidth();
+            float h = Application::GetHeight();
+
+            XMMATRIX screenMat =
             {
-                continue;
-            }
+                w / 2,   0,      0, 0,
+                0,      -h / 2,  0, 0,
+                0,       0,      1, 0,
+                w / 2,   h / 2,  0, 1
+            };
 
-            if (auto enemy = std::dynamic_pointer_cast<Enemy>(obj))
-            { 
-                enemies.push_back(obj.get());
-            }
-            else if (auto building = std::dynamic_pointer_cast<Building>(obj))
-            { 
-                buildings.push_back(obj.get());
+           XMVECTOR screen = XMVector3TransformCoord(clip, screenMat);
+
+            XMFLOAT3 screenPos{};
+            XMStoreFloat3(&screenPos, screen);
+
+            float normalizedX = screenPos.x / w;
+            float normalizedY = screenPos.y / h;
+
+			pp.motionBlurCenter.x = normalizedX;
+			pp.motionBlurCenter.y = normalizedY;
+
+            //ブラーの伸びる長さ（調整ポイント）
+            pp.motionBlurStretch = 0.5f;
+
+			pp.motionBlurStart01 = 0.2f;
+			pp.motionBlurEnd01 = 1.0f;
+
+            Renderer::SetPostProcessSettings(pp);
+        }
+
+        //フレーム先頭で前フレームの登録を消す
+        CollisionManager::Clear();
+
+        //新規オブジェクトをGameSceneのオブジェクト配列に追加する
+        SetSceneObject();
+
+        auto PlayerMove = m_player->GetComponent<MoveComponent>();
+        if (PlayerMove)
+        {
+            PlayerMove->SetSpeed(setSpeed);
+        }
+
+        //----------------- レティクルのドラッグ処理 -----------------
+        if (Input::IsMouseLeftPressed())
+        {
+            m_isDragging = true;
+        }
+
+        if (!Input::IsMouseLeftDown() && m_isDragging)
+        {
+            m_isDragging = false;
+        }
+
+        if (m_FollowCamera && m_reticle)
+        {
+            if (auto followCan = m_FollowCamera->GetComponent<FollowCameraComponent>())
+            {
+                followCan->SetReticleScreen(m_reticle->GetScreenPos());
             }
         }
 
-        m_miniMap->SetEnemies(enemies);
-        m_miniMap->SetBuildings(buildings);
+
+        //全オブジェクト Update を一回だけ実行（重要）
+        for (auto& obj : m_GameObjects)
+        {
+            if (obj) obj->Update(deltatime);
+        }
+
+        //全オブジェクト Update を一回だけ実行（重要）
+        for (auto& obj : m_TextureObjects)
+        {
+            if (obj) obj->Update(deltatime);
+        }
+
+        for (auto& obj : m_GameObjects)
+        {
+            if (!obj) continue;
+            auto collider = obj->GetComponent<ColliderComponent>();
+            if (collider)
+            {
+                CollisionManager::RegisterCollider(collider.get());
+            }
+        }
+
+        //当たり判定チェック実行
+        CollisionManager::CheckCollisions();
+
+        for (auto& obj : m_GameObjects)
+        {
+            if (!obj) { continue; }
+
+            auto push = obj->GetComponent<PushOutComponent>();
+            if (push)
+            {
+                push->ApplyPush();
+            }
+        }
+
+        if (m_miniMap)
+        {
+            std::vector<GameObject*> enemies;
+            std::vector<GameObject*> buildings;
+
+            for (std::shared_ptr<GameObject> obj : m_GameObjects)
+            {
+                if (!obj)
+                {
+                    continue;
+                }
+
+                if (auto enemy = std::dynamic_pointer_cast<Enemy>(obj))
+                {
+                    enemies.push_back(obj.get());
+                }
+                else if (auto building = std::dynamic_pointer_cast<Building>(obj))
+                {
+                    buildings.push_back(obj.get());
+                }
+            }
+
+            m_miniMap->SetEnemies(enemies);
+            m_miniMap->SetBuildings(buildings);
+        }
+
     }
-
-
 	auto hp = m_player->GetComponent<HitPointComponent>();
 	if (enemyCount <= 0)
     {
@@ -740,12 +640,6 @@ void GameScene::Update(float deltatime)
     {
         SceneManager::SetCurrentScene("ResultScene02");
     }
-
-    if (Input::IsKeyDown('P'))
-    {
-        //EffectManager::SpawnExplosion(m_player->GetPosition());
-    }
-
 }
 
 void GameScene::Draw(float dt)
@@ -757,8 +651,8 @@ void GameScene::Draw(float dt)
         Renderer::SetViewMatrix(cam->GetView());
         Renderer::SetProjectionMatrix(cam->GetProj());
     }
-    EffectManager::Draw3D(dt);
-    DrawUI(dt);
+
+   
 }
 
 void GameScene::DrawWorld(float deltatime)
@@ -783,15 +677,10 @@ void GameScene::DrawWorld(float deltatime)
     if (m_player)
     {
         Renderer::BeginPlayerRenderTarget();
-
-        // View/Projはすでにセット済みなのでそのまま
         m_player->Draw(deltatime);
-
-        // ③ 描画先をsceneColorへ戻す（クリアしない）
         Renderer::SetSceneRenderTarget();
     }
 
-    // コリジョンデバッグ描画（ワールド空間なのでここに入れる）
     if (isCollisionDebugMode)
     {
         if (m_debugRenderer && m_FollowCamera && m_FollowCamera->GetCameraComponent())
@@ -846,74 +735,149 @@ void GameScene::DrawWorld(float deltatime)
 
 void GameScene::DrawUI(float deltatime)
 {
-    for (auto& obj : m_TextureObjects)
+    if (m_gameState == GameState::Countdown)
     {
-        if (!obj) { continue; }
-        if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; } // HUD はあとで描く
-        obj->Draw(deltatime);
+        if (m_countdownRemaining >= 3.0f)
+        {
+            m_CountDown03->Draw(deltatime);
+        }
+        else if (m_countdownRemaining >= 2.0f)
+        {
+            m_CountDown02->Draw(deltatime);
+        }
+        else if (m_countdownRemaining >= 1.0f)
+        {
+            m_CountDown01->Draw(deltatime);
+        }
+        else if (m_countdownRemaining >= 0.0f)
+        {
+            m_CountDownGo->Draw(deltatime);
+        }
     }
 
-    // HUD(レティクル)を最後に描く
-    if (m_reticle)
+    if (m_gameState == GameState::Playing)
     {
-        m_reticle->Draw(deltatime);
-    }
+        for (auto& obj : m_TextureObjects)
+        {
+            if (!obj) { continue; }
+            if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; } // HUD はあとで描く
+            obj->Draw(deltatime);
+        }
 
-    // 旧レティクル描画が残っている場合
-    if (m_reticleTex && m_reticleTex->GetSRV())
-    {
-        Vector2 size(m_reticleW, m_reticleH);
-        Renderer::DrawReticle(m_reticleTex->GetSRV(), m_lastDragPos, size);
-    }
+        // HUD(レティクル)を最後に描く
+        if (m_reticle)
+        {
+            m_reticle->Draw(deltatime);
+        }
+
+        // 旧レティクル描画が残っている場合
+        if (m_reticleTex && m_reticleTex->GetSRV())
+        {
+            Vector2 size(m_reticleW, m_reticleH);
+            Renderer::DrawReticle(m_reticleTex->GetSRV(), m_lastDragPos, size);
+        }
+    }    
 }
 
 
 void GameScene::Uninit()
 {
+    // ---------------- 外部登録の解除 ----------------
+    CollisionManager::Clear();
+
+    // DebugUI に「登録解除」があるならここで呼ぶ
+    // DebugUI::Clear();
+
+    // ---------------- SRVの解放（必要な設計の場合のみ） ----------------
+    // TextureManager が所有しているなら Release しないこと！
+    if (m_miniMapBgSRV)
+    {
+        m_miniMapBgSRV->Release();
+        m_miniMapBgSRV = nullptr;
+    }
+    if (m_miniMapPlayerSRV)
+    {
+        m_miniMapPlayerSRV->Release();
+        m_miniMapPlayerSRV = nullptr;
+    }
+    if (m_miniMapEnemySRV)
+    {
+        m_miniMapEnemySRV->Release();
+        m_miniMapEnemySRV = nullptr;
+    }
+    if (m_miniMapBuildingSRV)
+    {
+        m_miniMapBuildingSRV->Release();
+        m_miniMapBuildingSRV = nullptr;
+    }
+
+    // ---------------- spawner / renderer ----------------
     if (m_enemySpawner)
     {
         m_enemySpawner.reset();
     }
 
-    //DebugRenderer をクリアして破棄
+    if (m_buildingSpawner)
+    {
+        m_buildingSpawner.reset();
+    }
+
     if (m_debugRenderer)
     {
         m_debugRenderer->Clear();
-
         m_debugRenderer.reset();
     }
 
-    //GameObject解放
+    // ---------------- GameObject 解放 ----------------
     for (auto& obj : m_GameObjects)
     {
-        if (!obj) { continue; }
-        // GameObject::Uninit を実装しておくこと（下で例示）
+        if (!obj)
+        {
+            continue;
+        }
+
         obj->Uninit();
         obj->SetScene(nullptr);
     }
 
-    //テクスチャオブジェクト解放
     for (auto& obj : m_TextureObjects)
     {
-        if (!obj) { continue; }
+        if (!obj)
+        {
+            continue;
+        }
+
         obj->Uninit();
         obj->SetScene(nullptr);
     }
 
-    //vectors をクリアして shared_ptr の参照カウントを下げる
     m_GameObjects.clear();
     m_TextureObjects.clear();
     m_AddObjects.clear();
     m_DeleteObjects.clear();
 
-    //個別メンバ（player, camera, etc.）を reset
+    // ---------------- キャッシュ生ポインタは必ずnullに ----------------
+    m_cameraComp = nullptr;
+    m_miniMap = nullptr;
+
+    // ---------------- shared_ptr / 参照を切る ----------------
+    m_playerMove.reset();
+    m_playArea.reset();
+
     m_player.reset();
     m_FollowCamera.reset();
     m_SkyDome.reset();
+
     m_reticleObj.reset();
+    m_HPObj.reset();
     m_reticleTex.reset();
     m_reticle.reset();
+
+    // ここで enemyCount 等を初期化したいならやる
+    enemyCount = 0;
+    m_isDragging = false;
 }
+
 
 void GameScene::AddObject(std::shared_ptr<GameObject> obj)
 {
@@ -1056,7 +1020,6 @@ void GameScene::FinishFrameCleanup()
 
     m_DeleteObjects.clear();
 }
-
 
 void GameScene::SetSceneObject()
 { 

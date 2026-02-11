@@ -5,6 +5,7 @@
 #include "DebugRenderer.h"
 
 class DebugRenderer;
+class RaycastHit;
 
 //当たっているペを保存する際に使用する構造体
 struct CollisionInfoLite
@@ -32,6 +33,14 @@ public:
     static void CheckCollisions();
 
     static void DebugDrawAllColliders(DebugRenderer& dr);
+
+    static bool RaycastWorld(
+        const DirectX::SimpleMath::Vector3& origin,
+        const DirectX::SimpleMath::Vector3& dir,
+        float maxDistance,
+        RaycastHit& outHit,
+        std::function<bool(GameObject*)> predicate = nullptr,
+        GameObject* ignore = nullptr);
 
 private:
 
