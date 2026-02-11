@@ -3,7 +3,6 @@
 #include "ModelComponent.h"
 #include "MoveComponent.h"
 #include "ShootingComponent.h"
-#include "AABBColliderComponent.h"
 #include "OBBColliderComponent.h"
 #include "HitPointCompornent.h"
 #include "BulletComponent.h"
@@ -14,9 +13,6 @@
 
 void Player::Initialize()
 {
-    //基底クラスの初期化（Component群）
-    GameObject::Initialize(); 
-
     //モデルコンポーネントの生成
     auto modelComp = std::make_shared<ModelComponent>();
     //モデルの読み込み
@@ -49,12 +45,10 @@ void Player::Initialize()
     AddComponent(push);
   //----------------------------------------------
     
-    SetPosition({ 0.0f, 0.0f, 125.0f });
+    SetPosition({ 0.0f, 0.0f, -350.0f });
     SetRotation({ 0.0,60.0,0.0 });
     SetScale({ 1.0f, 1.0f, 1.0f });
     GameObject::Initialize();
-
-    
 }
 
 void Player::Update(float dt)
@@ -179,7 +173,7 @@ void Player::OnCollision(GameObject* other)
                 // 見栄え用（ヒットストップ等）を入れるならここで呼ぶ
                 if (auto s = GetScene())
                 {
-                    // s->ApplyHitStop(0.05f); // 実装があれば呼ぶ
+                
                 }
             }
         }

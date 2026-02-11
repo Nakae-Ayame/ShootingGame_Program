@@ -174,7 +174,7 @@ void GameScene::InitializePlayer()
         shootComp->SetScene(this);
     }
 
-
+    AddObject(m_player);
 }
 
 void GameScene::InitializeEnemy()
@@ -425,8 +425,7 @@ void GameScene::Init()
 
     m_FollowCamera->GetFollowCameraComponent()->SetTarget(m_player.get());
 
-    
-    AddObject(m_player);
+
     AddObject(m_FollowCamera);
 
 

@@ -43,8 +43,8 @@ public:
 	//---------------他からオブジェクトの削除を行う関数------------------
 	virtual void FinishFrameCleanup() = 0;
 	//-----------------Raycastで当たった物を取ってくる関数------------------
-	virtual bool Raycast(const DirectX::SimpleMath::Vector3& origin,
-		const DirectX::SimpleMath::Vector3& dir,
+	virtual bool Raycast(const Vector3& origin,
+		const Vector3& dir,
 		float maxDistance,
 		RaycastHit& outHit,
 		std::function<bool(GameObject*)> predicate,
