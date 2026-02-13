@@ -163,7 +163,7 @@ void TitleScene::Update(float deltatime)
             TransitionManager::Start(3.0f,
                 []()
                 {
-                    SceneManager::SetCurrentScene("DebugScene");
+                    SceneManager::SetCurrentScene("GameScene");
                 });
         }
     }
