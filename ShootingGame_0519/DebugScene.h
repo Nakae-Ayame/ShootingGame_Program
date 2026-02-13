@@ -16,7 +16,6 @@
 #include "HPBar.h"
 #include "EnemySpawner.h"
 #include "BuildingSpawner.h"
-//#include "PlayAreaComponent.h"
 #include "MoveComponent.h"
 #include "MiniMapComponent.h"
 
@@ -51,22 +50,15 @@ public:
 	void RemoveObject(GameObject* obj) override;
 	void FinishFrameCleanup() override;
 
-	bool Raycast(const DirectX::SimpleMath::Vector3& origin,
-		const DirectX::SimpleMath::Vector3& dir,
-		float maxDistance,
-		RaycastHit& outHit,
-		std::function<bool(GameObject*)> predicate = nullptr,
-		GameObject* ignore = nullptr);
-
-	bool RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
-		const DirectX::SimpleMath::Vector3& dir,
-		float maxDistance,
-		RaycastHit& outHit,
-		GameObject* ignore = nullptr);
-
 	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
-	//PlayAreaComponent* GetPlayArea() const { return m_playArea.get(); }
+	bool Raycast(
+		const DirectX::SimpleMath::Vector3& origin,
+		const DirectX::SimpleMath::Vector3& dir,
+		float maxDistance,
+		RaycastHit& outHit,
+		std::function<bool(GameObject*)> predicate,
+		GameObject* ignore = nullptr) override;
 
 	//---------フレーム終了時に削除・追加予定のオブジェクト配列---------
 	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
@@ -118,39 +110,6 @@ private:
 	//SceneのUpdate時に追加予定であったオブジェクトの配列の追加などを行う関数
 	void SetSceneObject();
 
-	void SetReticleByCenter(const POINT& screenPos)
-	{
-		if (!m_reticleTex) { return; }
-
-		float screenW = static_cast<float>(Application::GetWidth());
-		float screenH = static_cast<float>(Application::GetHeight());
-
-		// --- 内側の枠を定義 ---
-		float minX = m_aimMarginX;
-		float maxX = screenW - m_aimMarginX;
-		float minY = m_aimMarginY;
-		float maxY = screenH - m_aimMarginY;
-
-		// マウスが指した中心候補
-		float cx = static_cast<float>(screenPos.x);
-		float cy = static_cast<float>(screenPos.y);
-
-		// ★ 枠の内側にクランプ（ここが肝）
-		cx = std::clamp(cx, minX, maxX);
-		cy = std::clamp(cy, minY, maxY);
-
-		// 1) レティクル画像の左上座標に変換してセット
-		float x = cx - m_reticleW * 0.5f;
-		float y = cy - m_reticleH * 0.5f;
-		m_reticleTex->SetScreenPosition(x, y);
-
-		// 2) カメラにも“中心座標”を教える
-		if (auto camera = m_player->GetComponent<FollowCameraComponent>())   // Init でセットしておく
-		{
-			camera->SetReticleScreen(DirectX::SimpleMath::Vector2(cx, cy));
-		}
-	}
-
 	std::shared_ptr<Reticle> m_reticle;
 
 	bool isCollisionDebugMode = false;
@@ -183,10 +142,26 @@ private:
 	std::string m_iniPath = "Data/GameSettings.ini";
 
 	//--------------Player設定関連------------------
-	float m_playerMoveSpeed = 35.0f;
+	float m_playerMoveSpeed       = 35.0f;
 	float m_playerBoostMultiplier = 2.0f;
-	float m_playerBulletSpeed = 300.0f;
-	float m_playerHp = 20.0f;
+	float m_playerBulletSpeed     = 300.0f;
+	float m_playerHp              = 20.0f;
+
+	//-------------Camera設定関連-----------------
+	float m_cameraDistance  = 20.0f;
+	float m_cameraHeight    = 6.0f;
+	float m_cameraFovDeg    = 50.0f;
+	float m_cameraBoostFovDeg = 65.0f;
+	float m_cameraSensitivity = 1.0f;
+
+	//--------------Blur設定関連------------------
+	float m_blurStretch    = 0.5;
+	float m_blurStartPoint = 0.2;
+	float m_blurEndPoint   = 1.0;
+	float m_blurCenterX = 0.5;
+	float m_blurCenterY = 0.5;
+
+	PostProcessSettings pp;
 
 	//----------------初期化分業用関数--------------------
 	void InitializeDebug();
@@ -198,6 +173,13 @@ private:
 	void InitializeStageObject();
 	void InitializeUI();
 
-	void LoadPlayerConfigFromIni();
+	//--------------Ini設定関連------------------
+	bool LoadPlayerConfigFromIni();
+	void SavePlayerConfigToIni();
+
+	std::string m_imguiMessageLog;
+
+	//-------------ゲームセッティング関連--------------
+	void DebugGameDateSet();
 
 };

@@ -13,7 +13,7 @@ public:
     void Update(float dt) override = 0;
 
     //-----------------------------------SetŠÖ”ŠÖ˜A------------------------------------
-    void SetFov(float fovRad) { m_Fov = fovRad; }
+    virtual void SetFov(float fovRad) { m_Fov = fovRad; }
     void SetNearFar(float nearZ, float farZ) { m_NearZ = nearZ; m_FarZ = farZ; }
 
     //-----------------------------------GetŠÖ”ŠÖ˜A------------------------------------

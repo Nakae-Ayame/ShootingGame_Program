@@ -12,7 +12,6 @@
 #include "PatrolComponent.h"
 #include "CircularPatrolComponent.h"
 #include "FloorComponent.h"
-//#include "PlayAreaComponent.h"
 #include "HitPointCompornent.h"
 #include "PushOutComponent.h"
 #include "SphereColliderComponent.h"
@@ -21,241 +20,270 @@
 #include "IniFile.h"
 #include <algorithm>
 
-void DebugScene::LoadPlayerConfigFromIni()
+/// <summary>
+/// ファイルが存在しているかどうかを探す関数
+/// </summary>
+/// <param name="path">ファイルパス</param>
+/// <returns></returns>
+static bool IsFileExists(const std::string& path)
+{
+    DWORD attr = GetFileAttributesA(path.c_str());
+
+	//ファイルが存在しないか、ディレクトリだった場合は失敗
+    if (attr == INVALID_FILE_ATTRIBUTES)
+    {
+        return false;
+    }
+
+	//ファイルがディレクトリだった場合は失敗
+    if (attr & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/// <summary>
+/// PlayerやCameraの設定を.iniファイルから読み込む為の関数
+/// </summary>
+bool DebugScene::LoadPlayerConfigFromIni()
+{
+    if (!IsFileExists(m_iniPath))
+    {
+        m_imguiMessageLog = "Load FAILED: ini not found";
+        return false;
+    }
+
+    IniFile ini(m_iniPath.c_str());
+
+    //読み込み
+    m_playerMoveSpeed       = ini.ReadFloat("Player", "MoveSpeed", m_playerMoveSpeed);
+    m_playerBoostMultiplier = ini.ReadFloat("Player", "BoostMultiplier", m_playerBoostMultiplier);
+    m_playerBulletSpeed     = ini.ReadFloat("Player", "BulletSpeed", m_playerBulletSpeed);
+    m_playerHp              = ini.ReadFloat("Player", "HpMax", m_playerHp);
+
+    //読み込み
+    m_cameraDistance    = ini.ReadFloat("Camera", "Distance", m_cameraDistance);
+    m_cameraHeight      = ini.ReadFloat("Camera", "Height", m_cameraHeight);
+    m_cameraFovDeg      = ini.ReadFloat("Camera", "FovDeg", m_cameraFovDeg);
+    m_cameraBoostFovDeg = ini.ReadFloat("Camera", "BoostFovDeg", m_cameraBoostFovDeg);
+    m_cameraSensitivity = ini.ReadFloat("Camera", "Sensitivity", m_cameraSensitivity);
+
+    //読み込み
+	m_blurStretch    = ini.ReadFloat("Blur", "Stretch", m_blurStretch);
+	m_blurStartPoint = ini.ReadFloat("Blur", "StartPoint", m_blurStartPoint);
+	m_blurEndPoint   = ini.ReadFloat("Blur", "EndPoint", m_blurEndPoint);
+    m_blurCenterX    = ini.ReadFloat("Blur", "CenterX", m_blurCenterX);
+    m_blurCenterY    = ini.ReadFloat("Blur", "CenterY", m_blurCenterY);
+    
+    m_imguiMessageLog = "Loaded: GameSetting.ini";
+
+    return true;
+}
+
+void DebugScene::SavePlayerConfigToIni()
 {
     IniFile ini(m_iniPath.c_str());
 
-    m_playerMoveSpeed = ini.ReadFloat("Player", "MoveSpeed", m_playerMoveSpeed);
-    m_playerBoostMultiplier = ini.ReadFloat("Player", "BoostMultiplier", m_playerBoostMultiplier);
-    m_playerBulletSpeed = ini.ReadFloat("Player", "BulletSpeed", m_playerBulletSpeed);
-    m_playerHp = ini.ReadFloat("Player", "HpMax", m_playerHp);
+    bool ok = true;
+
+    //書き込み
+    ok = ok && ini.WriteFloatResult("Player", "MoveSpeed", m_playerMoveSpeed);
+    ok = ok && ini.WriteFloatResult("Player", "BoostMultiplier", m_playerBoostMultiplier);
+    ok = ok && ini.WriteFloatResult("Player", "BulletSpeed", m_playerBulletSpeed);
+    ok = ok && ini.WriteFloatResult("Player", "HpMax", m_playerHp);
+
+	//書き込み
+    ok = ok && ini.WriteFloatResult("Camera", "Distance", m_cameraDistance);
+    ok = ok && ini.WriteFloatResult("Camera", "Heigh", m_cameraHeight);
+    ok = ok && ini.WriteFloatResult("Camera", "FovDeg", m_cameraFovDeg);
+    ok = ok && ini.WriteFloatResult("Camera", "BoostFovDeg", m_cameraBoostFovDeg);
+    ok = ok && ini.WriteFloatResult("Camera", "Sensitivity", m_cameraSensitivity);
+
+	//書き込み
+    ok = ok && ini.WriteFloatResult("Blur", "Stretch", m_blurStretch);
+    ok = ok && ini.WriteFloatResult("Blur", "StartPoint", m_blurStartPoint);
+    ok = ok && ini.WriteFloatResult("Blur", "EndPoint", m_blurEndPoint);
+    ok = ok && ini.WriteFloatResult("Blur", "CenterX", m_blurCenterX);
+    ok = ok && ini.WriteFloatResult("Blur", "CenterY", m_blurCenterY);
+
+    if (ok)
+    {
+         m_imguiMessageLog = "Saved: GameSetting.ini";
+    }
+    else
+    {
+        m_imguiMessageLog = "Save FAILED: GameSetting.ini";
+    }
+
 }
 
 void DebugScene::DebugConfigWindow()
 {
-    ImGui::Begin("Save Window");
+    ImGui::Begin("Game Settings");
 
-    //--------------Player設定関連------------------
-    ImGui::Text("Player Config");
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+    float spacingX = ImGui::GetStyle().ItemSpacing.x;
+    float halfWidth = (avail.x - spacingX) * 0.5f;
+
+    //ボタン用の高さを確保
+    float buttonAreaHeight = 60.0f;
+
+    float topHeight = (avail.y - buttonAreaHeight) * 0.48f;
+    float bottomHeight = (avail.y - buttonAreaHeight) - topHeight;
+
+    //======================
+    // 上段：Player
+    //======================
+    ImGui::BeginChild("PlayerPanel", ImVec2(halfWidth, topHeight), true);
+
+    ImGui::Text("Player");
     ImGui::Separator();
 
-    ImGui::SliderFloat("Player Speed", &m_playerMoveSpeed, 0.1f, 150.0f);
-    ImGui::SliderFloat("Boost Multiplier", &m_playerBoostMultiplier, 1.0f, 5.0f);
-    ImGui::SliderFloat("Bullet Speed", &m_playerBulletSpeed, 1.0f, 500.0f);
-    ImGui::SliderFloat("Player HP", &m_playerHp, 1.0f, 500.0f);
+    ImGui::SliderFloat("MoveSpeed", &m_playerMoveSpeed, 0.1f, 150.0f);
+    ImGui::SliderFloat("BoostMultiplier", &m_playerBoostMultiplier, 1.0f, 10.0f);
+    ImGui::SliderFloat("BulletSpeed", &m_playerBulletSpeed, 1.0f, 500.0f);
+    ImGui::SliderFloat("HpMax", &m_playerHp, 1.0f, 500.0f);
 
-    ImGui::Spacing();
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    //======================
+    // 上段：Camera
+    //======================
+    ImGui::BeginChild("CameraPanel", ImVec2(halfWidth, topHeight), true);
+
+    ImGui::Text("Camera");
     ImGui::Separator();
-    ImGui::Spacing();
 
-    if (ImGui::Button("Save Settings"))
+    ImGui::SliderFloat("Distance", &m_cameraDistance, 1.0f, 80.0f);
+    ImGui::SliderFloat("Height", &m_cameraHeight, 0.0f, 30.0f);
+    ImGui::SliderFloat("FovDeg", &m_cameraFovDeg, 30.0f, 120.0f);
+    ImGui::SliderFloat("BoostFovDeg", &m_cameraBoostFovDeg, 30.0f, 140.0f);
+    ImGui::SliderFloat("Sensitivity", &m_cameraSensitivity, 0.1f, 5.0f);
+
+    ImGui::EndChild();
+
+    //======================
+    // 下段：Blur
+    //======================
+    ImGui::BeginChild("BlurPanel", ImVec2(0.0f, bottomHeight), true);
+
+    ImGui::Text("Blur");
+    ImGui::Separator();
+
+    ImGui::SliderFloat("Stretch", &m_blurStretch, 0.0f, 2.0f);
+    ImGui::SliderFloat("StartPoint", &m_blurStartPoint, 0.0f, 1.0f);
+    ImGui::SliderFloat("EndPoint", &m_blurEndPoint, 0.0f, 1.0f);
+
+    if (m_blurEndPoint < m_blurStartPoint)
     {
-        OutputDebugStringA("Save button pressed!\n");
+        m_blurEndPoint = m_blurStartPoint;
+    }
+
+    ImGui::EndChild();
+
+    //======================
+    // 最下部：ボタンエリア
+    //======================
+
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (!m_imguiMessageLog.empty())
+    {
+        ImGui::TextWrapped("%s", m_imguiMessageLog.c_str());
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (ImGui::Button("Save All (ini)", ImVec2(-1.0f, 0.0f)))
+    {
+        SavePlayerConfigToIni();
+    }
+
+    if (ImGui::Button("Load All (ini)", ImVec2(-1.0f, 0.0f)))
+    {
+        LoadPlayerConfigFromIni();
+    }
+
+    float buttonWidth = avail.x * 0.5f - spacingX * 0.5f;
+
+    if (ImGui::Button("Save All (ini)", ImVec2(buttonWidth, 40.0f)))
+    {
+        SavePlayerConfigToIni();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load All (ini)", ImVec2(buttonWidth, 40.0f)))
+    {
+        LoadPlayerConfigFromIni();
     }
 
     ImGui::End();
 }
 
-
-static bool RaySphereIntersect(const DirectX::SimpleMath::Vector3& rayOrigin,
-    const DirectX::SimpleMath::Vector3& rayDir,
-    const DirectX::SimpleMath::Vector3& sphereCenter,
-    float sphereRadius,
-    float& outT)
+void DebugScene::DebugGameDateSet()
 {
-    using namespace DirectX::SimpleMath;
-    Vector3 m = rayOrigin - sphereCenter;
-    float b = m.Dot(rayDir);
-    float c = m.LengthSquared() - sphereRadius * sphereRadius;
-    if (c > 0.0f && b > 0.0f) { return false; }
-
-    float discr = b * b - c;
-
-    if (discr < 0.0f)
+    if (m_player)
     {
-        return false;
+		auto moveComp = m_player->GetComponent<MoveComponent>();
+        if (moveComp)
+        {
+			moveComp->SetSpeed(m_playerMoveSpeed);
+			moveComp->SetBoostMultiplier(m_playerBoostMultiplier);
+        }
+
+		auto shootComp = m_player->GetComponent<ShootingComponent>();
+        if (shootComp)
+        {
+			shootComp->SetBulletSpeed(m_playerBulletSpeed);
+        }
+
+		auto hpComp = m_player->GetComponent<HitPointComponent>();
+        if (hpComp)
+        {
+            if (hpComp->GetMaxHP() != m_playerHp)
+            {
+                hpComp->SetMaxHP(m_playerHp);
+            }
+        }
     }
 
-    float t = -b - sqrtf(discr);
-
-    if (t < 0.0f)
+    if (m_FollowCamera)
     {
-        t = -b + sqrtf(discr);
+        auto followCom = m_FollowCamera->GetComponent<FollowCameraComponent>();
+        if (followCom)
+        {
+            followCom->SetFov(m_cameraFovDeg);
+            followCom->SetBoostFov(m_cameraFovDeg);
+            followCom->SetSensitivity(m_cameraSensitivity);
+			followCom->SetDistance(m_cameraDistance);
+			followCom->SetHeight(m_cameraHeight);
+        }
     }
 
-    if (t < 0.0f)
-    {
-        return false;
-    }
-
-    outT = t;
-    return true;
+	pp.motionBlurCenter  = { m_blurCenterX, m_blurCenterY };
+	pp.motionBlurStart01 = m_blurStartPoint;
+	pp.motionBlurEnd01   = m_blurEndPoint;
+    pp.motionBlurStretch = m_blurStretch;
 }
 
-bool DebugScene::Raycast(const DirectX::SimpleMath::Vector3& origin,
-    const DirectX::SimpleMath::Vector3& dir,
+
+bool DebugScene::Raycast(const Vector3& origin,
+    const Vector3& dir,
     float maxDistance,
     RaycastHit& outHit,
     std::function<bool(GameObject*)> predicate,
     GameObject* ignore)
 {
-    using namespace DirectX::SimpleMath;
-
-    // Normalize dir for distance correctness
-    Vector3 ndir = dir;
-    if (ndir.LengthSquared() <= 1e-6f)
-    {
-        return false;
-    }
-    ndir.Normalize();
-
-    float bestT = std::numeric_limits<float>::infinity();
-    std::shared_ptr<GameObject> bestObj;
-
-    for (auto& obj : m_GameObjects)
-    {
-        if (!obj) { continue; }
-        if (obj.get() == ignore) { continue; }
-
-        if (predicate)
-        {
-            if (!predicate(obj.get()))
-            {
-                continue;
-            }
-        }
-
-        float t;
-        float radius = 0.0f;
-
-        bool hasSphere = false;
-
-        {
-            Enemy* e = dynamic_cast<Enemy*>(obj.get());
-            if (e)
-            {
-                radius = e->GetBoundingRadius();
-                hasSphere = true;
-            }
-        }
-
-        if (hasSphere)
-        {
-            if (RaySphereIntersect(origin, ndir, obj->GetPosition(), radius, t))
-            {
-                if (t >= 0.0f && t <= maxDistance && t < bestT)
-                {
-                    bestT = t;
-                    bestObj = obj;
-                }
-            }
-        }
-        else
-        {
-
-        }
-    }
-
-    if (bestObj)
-    {
-        outHit.hitObject = bestObj;
-        outHit.distance = bestT;
-        outHit.position = origin + ndir * bestT;
-        outHit.normal = (outHit.position - bestObj->GetPosition());
-        if (outHit.normal.LengthSquared() > 1e-6f)
-        {
-            outHit.normal.Normalize();
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool DebugScene::RaycastForAI(const DirectX::SimpleMath::Vector3& origin,
-    const DirectX::SimpleMath::Vector3& dir,
-    float maxDistance,
-    RaycastHit& outHit,
-    GameObject* ignore)
-{
-    using namespace DirectX::SimpleMath;
-
-    Vector3 ndir = dir;
-    if (ndir.LengthSquared() <= 1e-6f)
-        return false;
-    ndir.Normalize();
-
-    float bestT = std::numeric_limits<float>::infinity();
-    std::shared_ptr<GameObject> bestObj;
-
-    for (auto& obj : m_GameObjects)
-    {
-        if (!obj) continue;
-        if (obj.get() == ignore) continue;
-
-        //コライダーを持っていないなら無視
-        auto obb = obj->GetComponent<OBBColliderComponent>();
-        auto aabb = obj->GetComponent<AABBColliderComponent>();
-        bool hasCollider = (obb || aabb);
-
-        //Enemy の簡易球 or Building の AABB など…
-        float radius = 0.0f;
-        bool hasSphere = false;
-
-        if (auto e = dynamic_cast<Enemy*>(obj.get()))
-        {
-            radius = e->GetBoundingRadius();
-            if (radius > 0.0f) hasSphere = true;
-        }
-        else if (hasCollider)
-        {
-            //コライダーからざっくり半径を作る（対角長の半分）
-            //きっちりした Ray vs OBB/AABB は後で実装でもOK
-            Vector3 center = obj->GetPosition();
-            Vector3 extents;
-
-            if (obb)
-            {
-                extents = obb->GetSize() * 0.5f; // size が全長なら半分で半径相当
-            }
-            else // AABB
-            {
-                Vector3 size = aabb->GetSize();
-                extents = size * 0.5f;
-            }
-
-            radius = extents.Length(); // 対角線の長さ ≒ おおざっぱな半径
-            hasSphere = (radius > 0.0f);
-        }
-
-        if (!hasSphere) continue;
-
-        float t;
-        if (RaySphereIntersect(origin, ndir, obj->GetPosition(), radius, t))
-        {
-            if (t >= 0.0f && t <= maxDistance && t < bestT)
-            {
-                bestT = t;
-                bestObj = obj;
-            }
-        }
-    }
-
-    if (bestObj)
-    {
-        outHit.hitObject = bestObj;
-        outHit.distance = bestT;
-        outHit.position = origin + ndir * bestT;
-
-        // 簡易法線（中心からの方向）
-        outHit.normal = outHit.position - bestObj->GetPosition();
-        if (outHit.normal.LengthSquared() > 1e-6f)
-            outHit.normal.Normalize();
-
-        return true;
-    }
-
-    return false;
+    return CollisionManager::RaycastWorld(origin, dir, maxDistance, outHit, predicate, ignore);
 }
 
 void DebugScene::InitializeDebug()
@@ -335,7 +363,7 @@ void DebugScene::InitializePlayer()
     auto hpComp = m_player->GetComponent<HitPointComponent>();
     if (hpComp)
     {
-		hpComp->SetHP(m_playerHp);
+		//hpComp->SetHP(m_playerHp);
     }
 
 }
@@ -559,6 +587,8 @@ void DebugScene::Init()
 
 void DebugScene::Update(float deltatime)
 {
+    DebugGameDateSet();
+
     static float currentBlur = 0.0f;
 
     if (m_gameState == DebugState::Countdown)
@@ -582,18 +612,8 @@ void DebugScene::Update(float deltatime)
             m_playerMove = m_player->GetComponent<MoveComponent>();
         }
 
-		auto shootComp = m_player->GetComponent<ShootingComponent>();
-
-        if (shootComp)
-        {
-			shootComp->SetBulletSpeed(m_playerBulletSpeed);
-        }
-
         if (m_playerMove)
         {
-			m_playerMove->SetSpeed(m_playerMoveSpeed);
-
-
             float boostIntensity = m_playerMove->GetBoostIntensity(); // 0～1
 
             float targetBlur = boostIntensity * 1.0f;
@@ -605,7 +625,7 @@ void DebugScene::Update(float deltatime)
             //---------------------------------------------------------
             //  Renderer のポストプロセス設定に反映する
             //---------------------------------------------------------
-            PostProcessSettings pp = Renderer::GetPostProcessSettings();
+            pp = Renderer::GetPostProcessSettings();
 
             // ブラー強度（0～1）
             pp.motionBlurAmount = currentBlur * 3.3;
