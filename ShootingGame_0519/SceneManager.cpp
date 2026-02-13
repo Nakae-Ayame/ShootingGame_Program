@@ -9,6 +9,7 @@
 #include "CollisionManager.h"
 #include "Application.h" 
 #include "ResultLooseScene.h"
+#include "IScene.h"
        
 std::unordered_map<std::string, std::unique_ptr<IScene>> SceneManager::m_scenes;
 

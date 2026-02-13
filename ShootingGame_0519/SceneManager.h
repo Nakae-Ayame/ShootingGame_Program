@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <string>
 #include "NonCopyable.h"
-#include "IScene.h"
 
 // ‘O•ûéŒ¾
 class IScene;
