@@ -28,7 +28,7 @@ public:
     //ê›íË/éÊìæ
     float GetHP() const    { return m_hp; }
     float GetMaxHP() const { return m_maxHp; }
-    bool IsDead() const  { return m_hp <= 0; }
+    bool IsDead() const    { return m_hp <= 0; }
 
     //ñ≥ìG(îÌíeå„é©ìÆÇ≈ì¸ÇÍÇÈÇ»ÇÁ m_invOnHit ÇégÇ§)
     void SetInvincibilityOnHit(float seconds) { m_invOnHit = seconds; }
@@ -37,6 +37,12 @@ public:
     void SetOnDamaged(std::function<void(const DamageInfo&)> cb) { m_onDamaged = std::move(cb); }
     void SetOnHealed(std::function<void(int)> cb) { m_onHealed = std::move(cb); }
     void SetOnDeath(std::function<void()> cb) { m_onDeath = std::move(cb); }
+
+    void SetMaxHP(float maxHp)
+    {
+        m_maxHp = maxHp;
+        m_hp = maxHp;
+    };
 
 private:
 	float m_hp;       //åªç›ÇÃHP

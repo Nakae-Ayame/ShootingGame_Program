@@ -20,31 +20,32 @@ public:
     virtual void Draw(float alpha); 
     virtual void Uninit();
 
-    template<typename T, typename... Args>
-    std::shared_ptr<T> AddComponent(Args&&... args)
-    {
-        auto comp = std::make_shared<T>(std::forward<Args>(args)...);
-        comp->SetOwner(this);
-        m_components.push_back(comp);
-        return comp;
-    }
-
-    void AddComponent(std::shared_ptr<Component> comp);
-
-    //位置・回転・大きさのセッター
+    //--------Set関数-------
     void SetPosition(const Vector3& pos) { m_transform.pos = pos;}
     void SetRotation(const Vector3& rot) { m_transform.rot = rot; }
     void SetScale(const Vector3& scl) { m_transform.scale = scl; }
+    void SetScene(IScene* s) { m_scene = s; }
 
-    //位置・回転・大きさのセッター
+    //--------Get関数-------
     const Vector3& GetPosition() { return m_transform.pos; }
     const Vector3& GetPrevPosition() const { return m_prevPosition; }
     const Vector3& GetRotation() { return m_transform.rot; }
     const Vector3& GetScale()    { return m_transform.scale;}
+    IScene* GetScene() const { return m_scene; }
+
+    //--------Component関連-------
+
+    void AddComponent(std::shared_ptr<Component> comp);
+
+    template<typename T, typename... Args>
+    std::shared_ptr<T> AddComponent(Args&&... args)
+    {
+        auto comp = std::make_shared<T>(std::forward<Args>(args)...);
+        AddComponent(comp);
+        return comp;
+    }
 
     //現在シーンのゲッター・セッター
-    void SetScene(IScene* s) { m_scene = s; }
-    IScene* GetScene() const { return m_scene; }
 
     //まとめてトランスフォームのゲッターセッター
     const SRT& GetTransform() const { return m_transform; }
@@ -74,6 +75,8 @@ public:
 
 private:
     std::vector<std::shared_ptr<Component>> m_components;
+    std::vector<std::shared_ptr<Component>> m_pendingAddComponents;
+
     bool m_uninitialized = false;
     SRT m_transform;
     Vector3 m_localPosition; // 現在ある位置

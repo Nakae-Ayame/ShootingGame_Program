@@ -25,11 +25,13 @@ public:
     void SetTarget(GameObject* target);
     void SetPlayArea(PlayAreaComponent* p) { m_playArea = p; }
     void SetVerticalAimScale(float s) { m_verticalAimScale = std::clamp(s, 0.0f, 1.0f); }
-    void SetDistance(float dist) { m_defaultDistance = dist; }    
+    void SetDistance(float dist) { m_defaultDistance = dist; }
     void SetHeight(float h) { m_defaultHeight = h; }
     void SetSensitivity(float s) { m_sensitivity = s; }
     void SetBoostState(bool isBoosting) override { m_boostRequested = isBoosting; };
     void SetReticleScreen(const Vector2& center){ m_reticleScreen = center; };
+    void SetFov(float fovRad) override { m_normalFov = DirectX::XMConvertToRadians(fovRad);};
+    void SetBoostFov(float fovRad) { m_boostFov = DirectX::XMConvertToRadians(fovRad); };
 
     //--------Get関数-------
     float GetVerticalAimScale() const { return m_verticalAimScale; }
@@ -95,9 +97,6 @@ private:
     float m_pitchLimitMax = XMConvertToRadians( 45.0f); //ピッチの制限値
     float m_yawLimit      = XMConvertToRadians(120.0f); //ヨーの制限値
 
-
-
-
     //-------カメラ距離/高さ関連--------
     float m_defaultDistance = 0.05f;    //追従対象の後方にどのぐらいにカメラがいるのか
     float m_defaultHeight   = 3.5f;     //追従対象からどのぐらい高い所にカメラがいるのか
@@ -149,9 +148,6 @@ private:
     
     float m_screenOffsetScale = 20.0f; // 画面幅 1.0 正規化あたりのワールド単位換算（調整可）
     float m_maxScreenOffset   = 24.0f;  // 最大シフト（ワールド単位）
-
-
-
 
     //-------ブースト関連-------
     bool m_boostRequested = false;   // 現在ボタンでブースト要求中か（MoveComponent から SetBoostState）
