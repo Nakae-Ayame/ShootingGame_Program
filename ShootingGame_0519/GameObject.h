@@ -75,11 +75,9 @@ public:
 
 private:
     std::vector<std::shared_ptr<Component>> m_components;
-    std::vector<std::shared_ptr<Component>> m_pendingAddComponents;
 
     bool m_uninitialized = false;
     SRT m_transform;
-    Vector3 m_localPosition; // 現在ある位置
     GameObject* m_parent = nullptr; // 親オブジェクト（親がいない場合は nullptr）]
     SRT m_prevTransform; // ← 補間用に追加
     Vector3 m_prevPosition = Vector3::Zero;
