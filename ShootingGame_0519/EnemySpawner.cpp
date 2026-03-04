@@ -6,10 +6,10 @@
 #include "PatrolComponent.h"
 #include "CircularPatrolComponent.h"
 #include "FixedTurretComponent.h"
-#include "EnemyAIComponent.h"
 #include "HitPointCompornent.h"
 #include "PushOutComponent.h"
 #include "SphereColliderComponent.h"
+#include "RouteDecisionComponent.h"
 
 EnemySpawner::EnemySpawner(GameScene* scene) : m_scene(scene)
 {
@@ -25,8 +25,9 @@ EnemySpawner::EnemySpawner(GameScene* scene) : m_scene(scene)
 /// <param name="cfg">敵の設定の入れたコンフィグ</param>
 /// <param name="pos">敵のスポーン位置</param>
 /// <returns></returns>
-std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(const PatrolConfig& cfg, 
-                                                           const DirectX::SimpleMath::Vector3& pos)
+std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(
+    const PatrolConfig& cfg, 
+    const DirectX::SimpleMath::Vector3& pos)
 {
     //Enemyを生成し、初期設定を行う
     auto enemy = std::make_shared<Enemy>();
@@ -39,7 +40,7 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(const PatrolConfig& c
     model->LoadModel("Asset/Model/Enemy/EnemyFighterjet.obj");
     enemy->AddComponent(model);
 
-    //PatrolEnemyの設定を行い、Componentを付ける
+    //--------------PatrolComponent------------------
     auto patrol = std::make_shared<PatrolComponent>();
     if (!cfg.waypoints.empty())
     {
@@ -57,6 +58,51 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(const PatrolConfig& c
 
     //コンポーネント追加(敵の動き)
     enemy->AddComponent(patrol);
+
+    //--------------RouteDecisionComponent（追加）------------------
+    auto routeDecision = std::make_shared<RouteDecisionComponent>();
+    routeDecision->SetPatrol(patrol.get());
+    routeDecision->SetMainWaypoints(cfg.waypoints);
+    routeDecision->SetArrivalThreshold(cfg.arrival);
+    routeDecision->SetBranchCooldown(0.25f); // 好みで
+
+    // 分岐点を登録
+    if (!cfg.branchPoints.empty())
+    {
+        for (const auto& bp : cfg.branchPoints)
+        {
+            if (bp.mainIndex < 0)
+            {
+                continue;
+            }
+
+            if (static_cast<size_t>(bp.mainIndex) >= cfg.waypoints.size())
+            {
+                continue;
+            }
+
+            routeDecision->AddBranchPoint(static_cast<size_t>(bp.mainIndex));
+
+            // 最大3候補（bp.options 側で3以内にしておく想定）
+            for (const auto& opt : bp.options)
+            {
+                if (opt.loopWaypoints.empty())
+                {
+                    continue;
+                }
+
+                float w = opt.weight;
+                if (w <= 0.0f)
+                {
+                    w = 1.0f;
+                }
+
+                routeDecision->AddBranchOption(opt.loopWaypoints, w);
+            }
+        }
+    }
+
+    enemy->AddComponent(routeDecision);
 
     //HP設定
     auto hp = std::make_shared<HitPointComponent>(1.0f);
@@ -167,99 +213,68 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnTurretEnemy(const TurretConfig& c
     return enemy;
 }
 
-std::shared_ptr<GameObject> EnemySpawner::SpawnFleeEnemy(const FleeConfig& cfg,
-    const DirectX::SimpleMath::Vector3& pos)
-{
-    using namespace DirectX::SimpleMath;
-
-    //Enemyを生成し、初期設定を行う
-    auto enemy = std::make_shared<Enemy>();
-    enemy->SetScene(m_scene);
-    enemy->SetPosition(pos);
-    enemy->SetScale({ 3.0f, 3.0f, 3.0f });
-    enemy->SetInitialHP(3);
-    enemy->SetBoundingRadius(3.0f); //Raycast用の半径（GameScene::Raycast が使う）
-
-    //モデル
-    auto model = std::make_shared<ModelComponent>();
-    model->LoadModel("Asset/Model/Enemy/EnemyFighterjet.obj");
-    enemy->AddComponent(model);
-
-    //コライダー
-    auto col = std::make_shared<OBBColliderComponent>();
-    col->SetSize({ 3,3,3 });
-    enemy->AddComponent(col);
-
-    //AIコンポーネント
-    auto ai = std::make_shared<EnemyAIComponent>();
-    ai->SetMaxSpeed(cfg.maxSpeed);
-    ai->SetMaxForce(cfg.maxForce);
-    ai->SetFleeStrength(cfg.fleeStrength);
-    ai->SetLookahead(cfg.lookahead);
-    ai->SetFeelerCount(cfg.feelerCount);
-    ai->SetFeelerSpread(cfg.feelerSpread);
-
-    if (auto p = cfg.player.lock())
-    {
-        ai->SetTarget(p.get());
-    }
-
-    //PlayArea を渡す
-    if (m_scene && m_scene->GetPlayArea()) 
-    {
-        ai->SetPlayArea(m_scene->GetPlayArea());
-    }
-
-    enemy->AddComponent(ai);
-
-    enemy->Initialize();
-
-    m_scene->AddObject(enemy);
-
-    return enemy;
-}
-
 void EnemySpawner::EnsurePatrolCount()
 {
-    //今生きているweak_ptrを参照に変換し整理
+    // 今生きている weak_ptr を参照に変換し整理
     std::vector<std::shared_ptr<GameObject>> live;
 
-    for (auto& w : m_spawnedPatrols) 
+    for (auto& w : m_spawnedPatrols)
     {
-        //このptrが生きているかどうか
-        if (auto sp = w.lock()) 
+        if (auto sp = w.lock())
         {
             live.push_back(sp);
         }
     }
 
-    //空にする
+    // 空にする
     m_spawnedPatrols.clear();
 
     for (auto& s : live)
     {
-        //起動しているやつを配列に戻す
+        // 起動しているやつを配列に戻す
         m_spawnedPatrols.push_back(s);
     }
 
-    int current = (int)live.size();
+    int current = static_cast<int>(live.size());
     int want = patrolCfg.spawnCount;
 
-    //今の生成数が指定数より少ないなら
-    if (current < want) 
+    // 生成に必要なウェイポイントセットが無いなら何もしない
+    if (patrolWaypointSets.empty())
+    {
+        return;
+    }
+
+    // 今の生成数が指定数より少ないなら
+    if (current < want)
     {
         int baseIndex = current;
 
         for (int i = 0; i < want - current; ++i)
         {
             int slot = baseIndex + i;
-            //サイクルしてウェイポイントセットを選ぶ（セット数が 2 個なら 0/1/0/1...）
+
+            // サイクルしてウェイポイントセットを選ぶ（セット数が 2 個なら 0/1/0/1...）
             const auto& selectedWaypoints = patrolWaypointSets[slot % patrolWaypointSets.size()];
+            if (selectedWaypoints.empty())
+            {
+                continue;
+            }
 
-            PatrolConfig localCfg = patrolCfg;           //コピーして編集
-            localCfg.waypoints = selectedWaypoints;      //この敵用にウェイポイントをセット
+            PatrolConfig localCfg = patrolCfg;      // コピーして編集
+            localCfg.waypoints = selectedWaypoints; // この敵用にウェイポイントをセット
 
-            // spawnPos は適宜決める。最初のウェイポイント上に置きたいなら:
+            // 分岐点セットもサイクルして選ぶ（登録が無ければ空）
+            if (!patrolBranchPointSets.empty())
+            {
+                const auto& selectedBranches = patrolBranchPointSets[slot % patrolBranchPointSets.size()];
+                localCfg.branchPoints = selectedBranches;
+            }
+            else
+            {
+                localCfg.branchPoints.clear();
+            }
+
+            // spawnPos は最初のウェイポイント上に置く
             DirectX::SimpleMath::Vector3 spawnPos = selectedWaypoints.front();
 
             auto e = SpawnPatrolEnemy(localCfg, spawnPos);
@@ -270,17 +285,25 @@ void EnemySpawner::EnsurePatrolCount()
     {
         // 余剰分を削除（末尾から）
         int removeCount = current - want;
+
         for (int i = 0; i < removeCount; ++i)
         {
-            if (auto sp = m_spawnedPatrols.back().lock()) 
+            if (m_spawnedPatrols.empty())
+            {
+                return;
+            }
+
+            if (auto sp = m_spawnedPatrols.back().lock())
             {
                 // シーンの削除キューへ入れる（FinishFrameCleanup と合わせる）
-                m_scene->m_DeleteObjects.push_back(sp); // 仮 API。なければ m_scene->m_DeleteObjects.push_back(sp) 相当を行う
+                m_scene->m_DeleteObjects.push_back(sp);
             }
+
             m_spawnedPatrols.pop_back();
         }
     }
 }
+
 
 void EnemySpawner::EnsureTurretCount()
 {
@@ -383,11 +406,11 @@ void EnemySpawner::EnsureCircleCount()
             CircleConfig localCfg = circleCfg;           //コピーして編集
 
             //半径を選ぶ（セット数が 2 個なら 0/1/0/1...）
-            const auto& selectedRadius = circlePatrolRadiusSets[slot % patrolWaypointSets.size()];
+            const auto& selectedRadius = circlePatrolRadiusSets[slot % circlePatrolRadiusSets.size()];
             localCfg.radius = selectedRadius;
 
             //中心座標を選ぶ（セット数が 2 個なら 0/1/0/1...）
-            const auto& selectedCenter = circlePatrolCenterSets[slot % patrolWaypointSets.size()];
+            const auto& selectedCenter = circlePatrolCenterSets[slot % circlePatrolCenterSets.size()];
             localCfg.center = selectedCenter;
 
             float ang = (2.0f * DirectX::XM_PI * idx) / want;
@@ -411,62 +434,6 @@ void EnemySpawner::EnsureCircleCount()
         }
     }
 }
-
-void EnemySpawner::EnsureFleeCount()
-{
-    // 今生きている weak_ptr を整理
-    std::vector<std::shared_ptr<GameObject>> live;
-    for (auto& w : m_spawnedFlees)
-    {
-        if (auto sp = w.lock())
-        {
-            live.push_back(sp);
-        }
-    }
-
-    m_spawnedFlees.clear();
-    for (auto& s : live)
-    {
-        m_spawnedFlees.push_back(s);
-    }
-
-    int current = static_cast<int>(live.size());
-    int want = fleeCfg.spawnCount;
-
-    if (current < want)
-    {
-        int baseIndex = current;
-
-        for (int i = 0; i < want - current; ++i)
-        {
-            int idx = baseIndex + i;
-
-            // とりあえず適当なスポーン位置（原点周りに円形配置）
-            DirectX::SimpleMath::Vector3 center = { 0.0f, 3.0f, 0.0f };
-            float radius = 50.0f;
-            float ang = (2.0f * DirectX::XM_PI * idx) / max(want, 1);
-            float x = center.x + cosf(ang) * radius;
-            float z = center.z + sinf(ang) * radius;
-            DirectX::SimpleMath::Vector3 spawnPos(x, center.y, z);
-
-            auto e = SpawnFleeEnemy(fleeCfg, {0.0f,20.0f,0.0f});
-            m_spawnedFlees.push_back(e);
-        }
-    }
-    else if (current > want)
-    {
-        int removeCount = current - want;
-        for (int i = 0; i < removeCount; ++i)
-        {
-            if (auto sp = m_spawnedFlees.back().lock())
-            {
-                m_scene->m_DeleteObjects.push_back(sp);
-            }
-            m_spawnedFlees.pop_back();
-        }
-    }
-}
-
 
 void EnemySpawner::ApplyPatrolSettingsToAll()
 {
@@ -527,32 +494,6 @@ void EnemySpawner::ApplyTurretSettingsToAll()
         }
     }
 }
-
-void EnemySpawner::ApplyFleeSettingsToAll()
-{
-    for (auto& w : m_spawnedFlees)
-    {
-        if (auto sp = w.lock())
-        {
-            auto ai = sp->GetComponent<EnemyAIComponent>();
-            if (ai)
-            {
-                ai->SetMaxSpeed(fleeCfg.maxSpeed);
-                ai->SetMaxForce(fleeCfg.maxForce);
-                ai->SetFleeStrength(fleeCfg.fleeStrength);
-                ai->SetLookahead(fleeCfg.lookahead);
-                ai->SetFeelerCount(fleeCfg.feelerCount);
-                ai->SetFeelerSpread(fleeCfg.feelerSpread);
-
-                if (auto p = fleeCfg.player.lock())
-                {
-                    ai->SetTarget(p.get());
-                }
-            }
-        }
-    }
-}
-
 
 void EnemySpawner::DestroyAll()
 {

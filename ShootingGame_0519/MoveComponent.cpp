@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <DirectXMath.h>
 
-
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
@@ -90,27 +89,27 @@ float MoveComponent::GetBoostIntensity() const
 
 void MoveComponent::Update(float dt)
 {
-    using namespace DirectX::SimpleMath;
+    std::cout << "Player Speed: " << m_baseSpeed << std::endl;
 
-    //カメラ or オーナーがなければ何もしない
+    //カメラ又は所持者がいなければ何もしない
     if (!m_camera || !GetOwner()) { return; }
-    if (dt <= 0.0f) { return; }
 
     GameObject* owner = GetOwner();
 
-    m_totalPushThisFrame = Vector3::Zero;
-    m_hasPushThisFrame = false;
+    //オブジェクトの押し出し量とフラグリセット
+    m_totalPushThisFrame = Vector3::Zero;       
+	m_hasPushThisFrame = false;
 
     //現在位置・回転取得
     Vector3 pos = owner->GetPosition();
     Vector3 rot = owner->GetRotation();
 
+	//現在のyaw・pitch取得
     float currentYaw = rot.y;
     float currentPitch = m_currentPitch;
 
-    //--------------------ブースト入力処理---------------------
+    //------------ブースト入力処理------------
     bool keyDown = Input::IsKeyPressed(m_boostKey);
-
     bool startBoost = false;
 
     //キーが押されている&クールダウンが終わっている&前フレームでキーが押されていないか
@@ -118,15 +117,18 @@ void MoveComponent::Update(float dt)
     {
         startBoost = true;
     }
+    //ブースト情報を記録
     m_prevBoostKeyDown = keyDown;
 
-    //ブーストがスタートしたなら
+    //---------ブーストがスタートしたなら---------
     if (startBoost)
     {
         m_isBoosting = true;    //ブースト開始
         m_boostTimer = 0.0f;    //経過時間リセット
-        m_recoverTimer = -1.0f;
-        m_cooldownTimer = m_boostCooldown;  //
+		m_recoverTimer = -1.0f; //回復時間リセット
+
+		m_cooldownTimer = m_boostCooldown;
+
         //カメラの動きにも関係があるので送る
         if (m_camera)
         {
@@ -134,16 +136,20 @@ void MoveComponent::Update(float dt)
         }
     }
 
-    //ブースト中なら
+    //---------------ブースト中なら---------------
     if (m_isBoosting)
     {
+        //タイム加算
         m_boostTimer += dt;
 
         //ブーストが終わったら
         if (m_boostTimer >= m_boostSeconds)
         {
             m_isBoosting = false;
+
+			//回復時間開始
             m_recoverTimer = 0.0f;
+
             //カメラの動きにも関係があるので送る
             if (m_camera)
             {
@@ -162,7 +168,7 @@ void MoveComponent::Update(float dt)
         }
     }
 
-    //-------------------------スピード決定-------------------------
+    //--------------スピード設定距離--------------
 
     float currentSpeed = m_baseSpeed;
 
@@ -175,16 +181,19 @@ void MoveComponent::Update(float dt)
     //回復時間が0秒以上&回復時間にまだ達していない
     else if (m_recoverTimer >= 0.0f && m_recoverTimer < m_boostRecover)
     {
+		//回復時間加算　
         m_recoverTimer += dt;
-        //回復経過時間÷回復の時間を0~1に収める
+
+        //回復までの経過量を指定範囲に収める
         float t = std::clamp(m_recoverTimer / m_boostRecover, 0.0f, 1.0f);
-        //イージングして、勢いよく戻らないように
+
+		//違和感がないようにイーズインで補間
         float ease = 1.0f - (1.0f - t) * (1.0f - t);
         float currentMultiplier = 1.0f + (m_boostMultiplier - 1.0f) * (1.0f - ease);
         currentSpeed = m_baseSpeed * currentMultiplier;
     }
 
-    //--------------------レティクル方向の計算--------------------
+    //--------------レティクル方向の計算--------------
 
     //カメラ側でレティクルのワールド座標を返す
     Vector3 aimTarget = m_camera->GetAimPoint();
@@ -192,6 +201,7 @@ void MoveComponent::Update(float dt)
     //プレイヤー位置からレティクルのワールド座標へのベクトル
     Vector3 toTarget = aimTarget - pos;
 
+    //ベクトルがすごく短い場合
     if (toTarget.LengthSquared() < 1e-6f)
     {
         //目標点がほぼ現在位置なら、今の向きで進むだけ
@@ -229,22 +239,22 @@ void MoveComponent::Update(float dt)
     Vector3 desired = toTarget;
     desired.Normalize();
 
-    // 現在の yaw だけから「前方」と「右方向」の基準ベクトルを作る
-    Vector3 forwardYaw(
-        std::sin(currentYaw),
-        0.0f,
-        std::cos(currentYaw)
-    );
-    if (forwardYaw.LengthSquared() > 1e-6f)
+    Vector3 forwardYaw(std::sin(currentYaw),
+                       0.0f,
+                       std::cos(currentYaw));
+
+    if (forwardYaw.LengthSquared() < 1e-6f)
     {
-        forwardYaw.Normalize();
+		//一旦Z方向を前方にする
+        forwardYaw = Vector3(0, 0, 1);
     }
     else
     {
-        forwardYaw = Vector3(0, 0, 1);
+        forwardYaw.Normalize();
     }
 
-    Vector3 rightYaw = Vector3::Up.Cross(forwardYaw);   // ← メンバー関数で呼ぶ
+
+    Vector3 rightYaw = Vector3::Up.Cross(forwardYaw);
     if (rightYaw.LengthSquared() > 1e-6f)
     {
         rightYaw.Normalize();
@@ -255,11 +265,10 @@ void MoveComponent::Update(float dt)
     float r = desired.Dot(rightYaw);   // 左右成分
     float u = desired.y;               // 上下成分
 
-    // ★ 左右成分だけ弱める（0.0～1.0 で調整）
-    const float lateralScale = 0.4f;   // 小さいほど左右への曲がりが弱くなる
+    float lateralScale = 0.7f;   //小さいほど左右への曲がりが弱くなる
     r *= lateralScale;
 
-    // 弱めた左右成分で方向ベクトルを再構成
+    //弱めた左右成分で方向ベクトルを再構成
     Vector3 blended = forwardYaw * f + rightYaw * r + Vector3(0.0f, u, 0.0f);
     if (blended.LengthSquared() > 1e-6f)
     {
@@ -273,8 +282,7 @@ void MoveComponent::Update(float dt)
         desired = Vector3(0, 0, 1);
     }
 
-    //------------------------目標ヨー/ピッチを計算-----------------------
-    //XZ平面上で前方向(z軸)にどれだけ回っているか(左右)
+    //--------------目標ヨー/ピッチを計算--------------
     float targetYaw = std::atan2(desired.x, desired.z);
     float horiz = std::sqrt(desired.x * desired.x + desired.z * desired.z);
     float targetPitch = std::atan2(desired.y, horiz);
@@ -282,10 +290,10 @@ void MoveComponent::Update(float dt)
     float deltaYaw = NormalizeAngleDelta(targetYaw - currentYaw);
     float deltaPitch = NormalizeAngleDelta(targetPitch - currentPitch);
 
-    const float yawDeadZone = DirectX::XMConvertToRadians(3.0f);
-    const float yawSoftZone = DirectX::XMConvertToRadians(13.0f);
-    const float pitchDeadZone = DirectX::XMConvertToRadians(2.0f);
-    const float pitchSoftZone = DirectX::XMConvertToRadians(15.0f);
+    constexpr float yawDeadZone = DirectX::XMConvertToRadians(3.0f);
+    constexpr float yawSoftZone = DirectX::XMConvertToRadians(13.0f);
+    constexpr float pitchDeadZone = DirectX::XMConvertToRadians(2.0f);
+    constexpr float pitchSoftZone = DirectX::XMConvertToRadians(15.0f);
 
     deltaYaw   = ApplyDeadZoneAndCurve(deltaYaw, yawDeadZone, yawSoftZone);
     deltaPitch = ApplyDeadZoneAndCurve(deltaPitch, pitchDeadZone, pitchSoftZone);
@@ -294,7 +302,7 @@ void MoveComponent::Update(float dt)
     //ヨーの指数補間係数でどんな感じで動くか決める
     float yawAlpha = LerpExpFactor(m_rotSmoothK, dt);
 
-    //ピッチは少しだけ重めにしてヌルっとさせる
+    //ピッチは少しだけ重めにしてヌルっとさせる(上下がキビキビ動くと 酔いやすいkara)
     const float pitchSmoothK = m_rotSmoothK * 0.6f;
 
     //ピッチの指数補間係数でどんな感じで動くか決める
@@ -348,9 +356,8 @@ void MoveComponent::Update(float dt)
     const float lateralDeadZone = 0.05f; // 横方向のずれがこの範囲内なら無視
     const float yawDeadZoneRoll = 0.25f; // ヨー回転速度がこの範囲内なら無視
 
-    // ★カーソルを動かしていない＝ほぼ直進 → ロールを0に戻すだけ★
-    if (std::fabs(lateral) < lateralDeadZone &&
-        std::fabs(yawSpeed) < yawDeadZoneRoll)
+    // カーソルを動かしていない＝ほぼ直進 → ロールを0に戻すだけ★
+    if (std::fabs(lateral) < lateralDeadZone && std::fabs(yawSpeed) < yawDeadZoneRoll)
     {
         // 目標ロール 0 に向かって指数的に戻す
         float rollAlpha = LerpExpFactor(m_rollLerpK, dt);
@@ -373,10 +380,8 @@ void MoveComponent::Update(float dt)
         m_currentRoll = m_currentRoll + (rawRoll - m_currentRoll) * rollAlpha;
     }
 
-    //================= 8. 見た目用の縦揺れ（いらなければ全部0にしてもOK） =================
     float vertComponent = newForward.y * currentSpeed;
-    float pitchTargetTilt =
-        -std::atan(vertComponent / m_pitchSaturationFactor) * m_verticalTiltFactor;
+    float pitchTargetTilt = -std::atan(vertComponent / m_pitchSaturationFactor) * m_verticalTiltFactor;
     pitchTargetTilt = std::clamp(pitchTargetTilt, -m_maxVerticalTilt, m_maxVerticalTilt);
 
     float pitchTiltAlpha = LerpExpFactor(m_pitchTiltSmoothK, dt);
@@ -390,14 +395,12 @@ void MoveComponent::Update(float dt)
     if (delta < -maxDeltaRad) delta = -maxDeltaRad;
     m_visualPitchTilt += delta;
 
-    //================= 9. 回転をオブジェクトに反映 =================
     rot.x = -currentPitch + m_visualPitchTilt; // 上下 = ピッチ + 演出
     rot.y = currentYaw;
     rot.z = -m_currentRoll;
     owner->SetRotation(rot);
     m_prevYaw = currentYaw;
 
-    //================= 10. 速度 & 位置更新 =================
     m_velocity = newForward * currentSpeed + m_externalVelocity;
 
     pos += m_velocity * dt;
@@ -436,23 +439,14 @@ void MoveComponent::HandleCollisionCorrection(const DirectX::SimpleMath::Vector3
     using namespace DirectX::SimpleMath;
 
     GameObject* owner = GetOwner();
-    if (!owner)
-    {
-        return;
-    }
+    if (!owner){ return; }
 
-    // 押し出しがほぼゼロなら何もしない
     float lenSq = push.LengthSquared();
-    if (lenSq < 1e-8f)
-    {
-        return;
-    }
+    if (lenSq < 1e-8f){ return; }
 
-    // 1) 押し出しを蓄積する（位置はここでは変えない）
     m_totalPushThisFrame = m_totalPushThisFrame + push;
     m_hasPushThisFrame = true;
 
-    // 2) 速度の内向き成分を削る（壁の方向へ進まないようにする）
     Vector3 n = contactNormal;
     if (n.LengthSquared() > 1e-6f)
     {
@@ -460,11 +454,9 @@ void MoveComponent::HandleCollisionCorrection(const DirectX::SimpleMath::Vector3
     }
     else
     {
-        // 安全な法線
         n = Vector3(0, 1, 0);
     }
 
-    // 内向き成分を消すヘルパ
     auto KillInwardComponent = [&](Vector3& v)
         {
             float vn = v.Dot(n);
@@ -503,7 +495,7 @@ void MoveComponent::RequestBoost()
     m_recoverTimer = -1.0f;
     m_cooldownTimer = m_boostCooldown;
 
-    if (m_camera)
+    if (m_camera) 
     {
         m_camera->SetBoostState(true);
     }

@@ -6,6 +6,20 @@
 
 class EnemyAIComponent;
 
+struct BranchOptionConfig
+{
+	float weight = 1.0f;
+	std::vector<DirectX::SimpleMath::Vector3> loopWaypoints;
+
+};
+
+struct BranchPointConfig
+{
+	int mainIndex = 0;
+	std::vector<BranchOptionConfig> options;
+
+};
+
 struct PatrolConfig
 {
 	int spawnCount = 4;
@@ -13,6 +27,7 @@ struct PatrolConfig
 	float arrival = 0.5f;
 	bool pingPong = true;
 	std::vector<DirectX::SimpleMath::Vector3> waypoints;
+	std::vector<BranchPointConfig> branchPoints;
 };
 
 struct CircleConfig
@@ -34,19 +49,6 @@ struct TurretConfig
 	std::weak_ptr<GameObject> target;
 };
 
-//逃げる行動をするEnemyの初期設定
-struct FleeConfig
-{	
-	int spawnCount = 3;			//生成数
-	float maxSpeed = 20.0f;		//最大速度
-	float maxForce = 40.0f;		//最大力
-	float fleeStrength = 1.0f;	//逃げる力の強さ
-	float lookahead = 15.0f;	//先読み距離
-	int   feelerCount = 5;		//Enemyが前方に何本Rayを飛ばすか
-	float feelerSpread = DirectX::XM_PI / 4.0f;		//Rayを飛ばす時の広がり角度
-	std::weak_ptr<GameObject> player;  //逃げる対象(プレイヤー)
-};
-
 class GameScene;
 
 class EnemySpawner
@@ -58,19 +60,16 @@ public:
 	PatrolConfig patrolCfg;
 	CircleConfig circleCfg;
 	TurretConfig turretCfg;
-	FleeConfig   fleeCfg;
 
 	//現在設定に合わせて生成又は破棄を行う
 	void EnsurePatrolCount();
 	void EnsureCircleCount();
 	void EnsureTurretCount();
-	void EnsureFleeCount();
 
 	//既存の敵に設定をすぐ反映する
 	void ApplyPatrolSettingsToAll();
 	void ApplyCircleSettingsToAll();
 	void ApplyTurretSettingsToAll();
-	void ApplyFleeSettingsToAll();
 
 	// 全部消す
 	void DestroyAll();
@@ -93,6 +92,11 @@ public:
 	void SetTurretPos(DirectX::SimpleMath::Vector3 Pos)
 	{
 		TurretPosSets.push_back(Pos);
+	}
+
+	void SetBranchPoints(const std::vector<BranchPointConfig>& branchPoints)
+	{
+		patrolBranchPointSets.push_back(branchPoints);
 	}
 
 private:
@@ -120,6 +124,6 @@ private:
 	std::shared_ptr<GameObject> SpawnPatrolEnemy(const PatrolConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
 	std::shared_ptr<GameObject> SpawnCircleEnemy(const CircleConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
 	std::shared_ptr<GameObject> SpawnTurretEnemy(const TurretConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
-	std::shared_ptr<GameObject> SpawnFleeEnemy  (const FleeConfig& cfg,   const DirectX::SimpleMath::Vector3& pos);
 
+	std::vector<std::vector<BranchPointConfig>> patrolBranchPointSets;
 };

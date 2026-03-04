@@ -21,7 +21,7 @@ public:
     void Uninit() override;
 
     //-------------Set関数--------------
-    void SetSpeed(float speed) { m_baseSpeed = speed; }
+    void SetSpeed(float speed){ m_baseSpeed = speed; }
     void SetCameraView(ICameraViewProvider* camera) { m_camera = camera; }
     void SetPlayArea(PlayAreaComponent* playArea) { m_playArea = playArea; }
     void SetBoostKey(int vk) { m_boostKey = vk; }
@@ -30,6 +30,7 @@ public:
         m_velocity = velocity;
         m_externalVelocity = DirectX::SimpleMath::Vector3::Zero;
     }
+	void SetBoostMultiplier(float mult) { m_boostMultiplier = mult; }
 
     //-------------Get関数--------------
     bool GetBoostingState() const { return m_isBoosting; }

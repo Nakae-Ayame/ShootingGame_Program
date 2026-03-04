@@ -7,8 +7,6 @@ using namespace DirectX::SimpleMath;
 
 void PatrolComponent::Initialize()
 {
-	//向かう地点が最低一つは設定されており、かつ今設定されているインデックスが
-	//全ウェイポイント数以上の場合
 	if (!m_waypoints.empty() && m_currentIndex >= m_waypoints.size())
 	{
 		m_currentIndex = 0;

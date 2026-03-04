@@ -190,17 +190,23 @@
     </ClCompile>
     <ClCompile Include="EnemySpawner.cpp" />
     <ClCompile Include="FloorComponent.cpp" />
+    <ClCompile Include="ForwardFollowCameraComponent.cpp" />
+    <ClCompile Include="ForwardMoveComponent.cpp" />
     <ClCompile Include="FreeCamera.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="FreeCameraComponent.cpp" />
+    <ClCompile Include="GameForwardScene.cpp" />
     <ClCompile Include="HitPointCompornent.cpp" />
     <ClCompile Include="HomingComponent.cpp" />
     <ClCompile Include="MiniMapComponent.cpp" />
     <ClCompile Include="ModelResource.cpp" />
     <ClCompile Include="PlayAreaComponent.cpp" />
     <ClCompile Include="PushOutComponent.cpp" />
+    <ClCompile Include="RailShooterPlayer.cpp" />
     <ClCompile Include="ResultLooseScene.cpp" />
+    <ClCompile Include="RouteDecisionComponent.cpp" />
+    <ClCompile Include="ScreenMoveComponent.cpp" />
     <ClCompile Include="Sound.cpp" />
     <ClCompile Include="SphereColliderComponent.cpp" />
     <ClCompile Include="system\imgui\imgui.cpp" />
@@ -282,11 +288,14 @@
     </ClInclude>
     <ClInclude Include="EnemySpawner.h" />
     <ClInclude Include="FloorComponent.h" />
+    <ClInclude Include="ForwardFollowCameraComponent.h" />
+    <ClInclude Include="ForwardMoveComponent.h" />
     <ClInclude Include="FreeCamera.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="FreeCameraComponent.h" />
     <ClInclude Include="GameConfig.h" />
+    <ClInclude Include="GameForwardScene.h" />
     <ClInclude Include="HitPointCompornent.h" />
     <ClInclude Include="HomingComponent.h" />
     <ClInclude Include="IMovable.h" />
@@ -296,8 +305,11 @@
     <ClInclude Include="ModelResource.h" />
     <ClInclude Include="PlayAreaComponent.h" />
     <ClInclude Include="PushOutComponent.h" />
+    <ClInclude Include="RailShooterPlayer.h" />
     <ClInclude Include="RaycastHit.h" />
     <ClInclude Include="ResultLooseScene.h" />
+    <ClInclude Include="RouteDecisionComponent.h" />
+    <ClInclude Include="ScreenMoveComponent.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="SphereColliderComponent.h" />
     <ClInclude Include="system\imgui\imconfig.h" />

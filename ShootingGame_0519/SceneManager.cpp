@@ -1,6 +1,7 @@
 #include <Windows.h> 
 #include <iostream>
 #include "SceneManager.h"
+#include "GameForwardScene.h"
 #include "TransitionManager.h"
 #include "GameScene.h"
 #include "TitleScene.h"
@@ -93,6 +94,8 @@ void SceneManager::Init()
     
     RegisterScene("DebugScene", std::make_unique<DebugScene>());
 
+    RegisterScene("GameForwardScene", std::make_unique<GameForwardScene>());
+
     //初期シーンにTitleSceneを設定
     m_currentSceneName = "TitleScene";
     m_scenes[m_currentSceneName]->Init();
@@ -143,7 +146,7 @@ void SceneManager::DrawWorld(float deltatime)
     if (!m_currentSceneName.empty() && m_scenes.count(m_currentSceneName))
     {
         m_scenes[m_currentSceneName]->DrawWorld(deltatime);
-    }   // 各シーンで3Dオブジェクトだけ描く
+    }
 }
 
 void SceneManager::DrawUI(float deltatime)

@@ -32,7 +32,7 @@ enum class GameState
 class GameScene : public IScene
 {
 public:
-	explicit GameScene() {};
+	 GameScene() {};
 	
 	void Update(float deltatime) override;
 	void Draw(float deltatime) override;
@@ -43,9 +43,9 @@ public:
 
 	//------------------IMGUI用関数------------------
 	void DebugCollisionMode();
-	void DebugSetPlayerSpeed();
+	/*void DebugSetPlayerSpeed();
 	void DebugSetAimDistance();
-	void DebugMotionBlur();
+	void DebugMotionBlur();*/
 	
 	//-------------オブジェクト関連の関数-------------
 	void AddObject(std::shared_ptr<GameObject> obj) override;
@@ -152,4 +152,39 @@ private:
 	void InitializeEnemy();
 	void InitializeStageObject();
 	void InitializeUI();
+	void InitializeEffect();
+
+
+	//--------------Ini設定関連------------------
+	bool LoadPlayerConfigFromIni();
+	void SavePlayerConfigToIni();
+
+	//std::string m_imguiMessageLog;
+
+	//------------設定用ファイル関連------------------
+	std::string m_iniPath = "Data/GameSettings.ini";
+
+	//--------------Player設定関連------------------
+	float m_playerMoveSpeed = 35.0f;
+	float m_playerBoostMultiplier = 2.0f;
+	float m_playerBulletSpeed = 300.0f;
+	float m_playerHp = 20.0f;
+
+	//-------------Camera設定関連-----------------
+	float m_cameraDistance = 20.0f;
+	float m_cameraHeight = 6.0f;
+	float m_cameraFovDeg = 50.0f;
+	float m_cameraBoostFovDeg = 65.0f;
+	float m_cameraSensitivity = 1.0f;
+
+	//--------------Blur設定関連------------------
+	float m_blurStretch = 0.5;
+	float m_blurStartPoint = 0.2;
+	float m_blurEndPoint = 1.0;
+	float m_blurCenterX = 0.5;
+	float m_blurCenterY = 0.5;
+
+	PostProcessSettings pp;
+
+	void DebugGameDateSet();
 };

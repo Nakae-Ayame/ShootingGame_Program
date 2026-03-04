@@ -17,6 +17,67 @@
 #include "PushOutComponent.h"
 #include "SphereColliderComponent.h"
 #include "EffectManager.h"
+#include "SceneManager.h"
+#include "IniFile.h"
+
+/// <summary>
+/// ファイルが存在しているかどうかを探す関数
+/// </summary>
+/// <param name="path">ファイルパス</param>
+/// <returns></returns>
+static bool IsFileExists(const std::string& path)
+{
+    DWORD attr = GetFileAttributesA(path.c_str());
+
+    //ファイルが存在しないか、ディレクトリだった場合は失敗
+    if (attr == INVALID_FILE_ATTRIBUTES)
+    {
+        return false;
+    }
+
+    //ファイルがディレクトリだった場合は失敗
+    if (attr & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/// <summary>
+/// PlayerやCameraの設定を.iniファイルから読み込む為の関数
+/// </summary>
+bool GameScene::LoadPlayerConfigFromIni()
+{
+    if (!IsFileExists(m_iniPath))
+    {
+        return false;
+    }
+
+    IniFile ini(m_iniPath.c_str());
+
+    //読み込み
+    m_playerMoveSpeed = ini.ReadFloat("Player", "MoveSpeed", m_playerMoveSpeed);
+    m_playerBoostMultiplier = ini.ReadFloat("Player", "BoostMultiplier", m_playerBoostMultiplier);
+    m_playerBulletSpeed = ini.ReadFloat("Player", "BulletSpeed", m_playerBulletSpeed);
+    m_playerHp = ini.ReadFloat("Player", "HpMax", m_playerHp);
+
+    //読み込み
+    m_cameraDistance = ini.ReadFloat("Camera", "Distance", m_cameraDistance);
+    m_cameraHeight = ini.ReadFloat("Camera", "Height", m_cameraHeight);
+    m_cameraFovDeg = ini.ReadFloat("Camera", "FovDeg", m_cameraFovDeg);
+    m_cameraBoostFovDeg = ini.ReadFloat("Camera", "BoostFovDeg", m_cameraBoostFovDeg);
+    m_cameraSensitivity = ini.ReadFloat("Camera", "Sensitivity", m_cameraSensitivity);
+
+    //読み込み
+    m_blurStretch = ini.ReadFloat("Blur", "Stretch", m_blurStretch);
+    m_blurStartPoint = ini.ReadFloat("Blur", "StartPoint", m_blurStartPoint);
+    m_blurEndPoint = ini.ReadFloat("Blur", "EndPoint", m_blurEndPoint);
+    m_blurCenterX = ini.ReadFloat("Blur", "CenterX", m_blurCenterX);
+    m_blurCenterY = ini.ReadFloat("Blur", "CenterY", m_blurCenterY);
+
+    return true;
+}
 
 void GameScene::DebugCollisionMode()
 {
@@ -39,54 +100,9 @@ void GameScene::DebugCollisionMode()
     }
 }
 
-void GameScene::DebugSetPlayerSpeed()
+void GameScene::DebugGameDateSet()
 {
-    ImGui::Begin("DebugPlayerSpeed");
 
-    static float speed = 35.0f;
-
-    static Vector3 Rot = { 0,0,0 };
-    
-    ImGui::SliderFloat("PlayerSpeed", &speed, 0.1f, 75.0f);
-
-    ImGui::SliderFloat("PlayerRotX", &Rot.x, -180.0f, 180.0f);
-    ImGui::SliderFloat("PlayerRotY", &Rot.y, -180.0f, 180.0f);
-    ImGui::SliderFloat("PlayerRotZ", &Rot.z, -180.0f, 180.0f);
-
-    setSpeed = speed;
-
-    setRot = Rot;
-
-    ImGui::End();
-}
-
-void GameScene::DebugSetAimDistance()
-{
-    ImGui::Begin("DebugAimDistance");
-
-    static float aimDistance = 2000.0f;
-
-    ImGui::SliderFloat("AimDistance", &aimDistance, 2000.0f, 7500.0f);
-
-    setAimDistance = aimDistance;
-
-    ImGui::End();
-}
-
-void GameScene::DebugMotionBlur()
-{
-    ImGui::Begin("DebugMotionBlur");
-
-    static float x = 0.5f;
-    static float y = 0.5f;
-
-    ImGui::SliderFloat("MotionBlurX", &x, 0.01f, 0.99f);
-    ImGui::SliderFloat("MotionBlurY", &y, 0.01f, 0.99f);
-
-	motionX = x;
-	motionY = y;
-
-    ImGui::End();
 }
 
 bool GameScene::Raycast(const Vector3& origin,
@@ -101,9 +117,9 @@ bool GameScene::Raycast(const Vector3& origin,
 
 void GameScene::InitializeDebug()
 {
-    DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed(); });
+    //DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed(); });
     //DebugUI::RedistDebugFunction([this]() {DebugSetAimDistance(); });
-	DebugUI::RedistDebugFunction([this]() {DebugMotionBlur(); });
+	//DebugUI::RedistDebugFunction([this]() {DebugMotionBlur(); });
 
     //DebugRendererの初期化
     m_debugRenderer = std::make_unique<DebugRenderer>();
@@ -122,7 +138,7 @@ void GameScene::InitializePlayArea()
 
 void GameScene::InitializePhase()
 {
-    m_gameState = GameState::Playing;
+    m_gameState = GameState::Countdown;
     m_countdownRemaining = 4.0f;
 }
 
@@ -153,6 +169,19 @@ void GameScene::InitializeCamera()
         m_cameraComp->SetPlayArea(m_playArea.get());
     }
 
+    if (m_FollowCamera)
+    {
+        auto followCom = m_FollowCamera->GetComponent<FollowCameraComponent>();
+        if (followCom)
+        {
+            followCom->SetFov(m_cameraFovDeg);
+            followCom->SetBoostFov(m_cameraBoostFovDeg);
+            followCom->SetSensitivity(m_cameraSensitivity);
+            followCom->SetDistance(m_cameraDistance);
+            followCom->SetHeight(m_cameraHeight);
+        }
+    }
+
     Vector3 Ppos = m_player->GetPosition();
     m_FollowCamera->SetPosition({ Ppos.x, Ppos.y, Ppos.z - 20 });
 }
@@ -174,19 +203,45 @@ void GameScene::InitializePlayer()
         shootComp->SetScene(this);
     }
 
+    if (m_player)
+    {
+        auto moveComp = m_player->GetComponent<MoveComponent>();
+        if (moveComp)
+        {
+            moveComp->SetSpeed(m_playerMoveSpeed);
+            moveComp->SetBoostMultiplier(m_playerBoostMultiplier);
+        }
+
+        auto shootComp = m_player->GetComponent<ShootingComponent>();
+        if (shootComp)
+        {
+            shootComp->SetBulletSpeed(m_playerBulletSpeed);
+        }
+
+        if (auto hpComp = m_player->GetComponent<HitPointComponent>())
+        {
+            if (hpComp->GetMaxHP() != m_playerHp)
+            {
+                hpComp->SetMaxHP(m_playerHp);
+            }
+        }
+    }
+
     AddObject(m_player);
 }
 
 void GameScene::InitializeEnemy()
 {
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 1;
+    m_enemySpawner->patrolCfg.spawnCount = 3;
     m_enemySpawner->circleCfg.spawnCount = 0;
-    m_enemySpawner->turretCfg.spawnCount = 0;
+    m_enemySpawner->turretCfg.spawnCount = 2;
 
     enemyCount = m_enemySpawner->patrolCfg.spawnCount + m_enemySpawner->circleCfg.spawnCount + m_enemySpawner->turretCfg.spawnCount;
 
-
+    //========================
+    // Waypoint Set 0
+    //========================
     m_enemySpawner->SetWaypoints(
         { { 80.0f, 20.0f,  0.0f },
           { 40.0f, 20.0f,-80.0f },
@@ -194,12 +249,51 @@ void GameScene::InitializeEnemy()
           {-80.0f, 20.0f,  0.0f },
           { 40.0f, 20.0f, 80.0f }, });
 
-    m_enemySpawner->SetWaypoints(
-        { { 80.0f, 40.0f,  0.0f },
-          { 40.0f, 40.0f,-80.0f },
-          {-40.0f, 40.0f,-80.0f },
-          {-80.0f, 40.0f,  0.0f },
-          { 40.0f, 40.0f, 80.0f }, });
+    // 分岐：mainIndex=1 の地点で2分岐（確認用：めちゃ外れる）
+    {
+        std::vector<BranchPointConfig> branches;
+
+        BranchPointConfig bp{};
+        bp.mainIndex = 1;
+
+        BranchOptionConfig optA{};
+        optA.weight = 1.0f;
+        optA.loopWaypoints =
+        {
+            {  120.0f,  30.0f, -160.0f },
+            {  220.0f,  60.0f, -240.0f },
+            {  340.0f,  80.0f, -240.0f },
+            {  420.0f,  90.0f, -120.0f },
+            {  420.0f,  80.0f,   40.0f },
+            {  320.0f,  60.0f,  180.0f },
+            {  180.0f,  40.0f,  220.0f },
+            {   60.0f,  30.0f,  120.0f },
+            {  140.0f,  25.0f,    0.0f },
+        };
+
+        BranchOptionConfig optB{};
+        optB.weight = 1.0f;
+        optB.loopWaypoints =
+        {
+            {  -40.0f,  15.0f, -180.0f },
+            { -160.0f,   0.0f, -260.0f },
+            { -300.0f,  10.0f, -260.0f },
+            { -420.0f,  20.0f, -140.0f },
+            { -420.0f,  10.0f,   40.0f },
+            { -320.0f,   0.0f,  200.0f },
+            { -160.0f,  10.0f,  240.0f },
+            {  -40.0f,  15.0f,  140.0f },
+            {  -80.0f,  20.0f,    0.0f },
+        };
+
+        bp.options.push_back(optA);
+        bp.options.push_back(optB);
+
+        branches.push_back(bp);
+
+        m_enemySpawner->SetBranchPoints(branches);
+    }
+
 
     m_enemySpawner->SetWaypoints(
         { { 125.0f, 90.0f,    0.0f },
@@ -218,15 +312,15 @@ void GameScene::InitializeEnemy()
           {-125.5f, 120.0f,  125.0f },
           {  62.0f, 120.0f,  -62.5f },
           {-125.0f, 120.0f,   62.5f } });
-
+    // 生成
     m_enemySpawner->EnsurePatrolCount();
+
+    // Turret
     m_enemySpawner->turretCfg.target = m_player;
     m_enemySpawner->turretCfg.bulletSpeed = 100.0f;
     m_enemySpawner->SetTurretPos({ 100.0f,100.0f,0.0f });
     m_enemySpawner->SetTurretPos({ -100.0f,100.0f,0.0f });
-
     m_enemySpawner->EnsureTurretCount();
-
 }
 
 void GameScene::InitializeStageObject()
@@ -234,7 +328,7 @@ void GameScene::InitializeStageObject()
     m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
     BuildingConfig bc;
     bc.modelPath = "Asset/Build/wooden watch tower2.obj";
-    bc.count = 0;
+    bc.count = 8;
     bc.areaWidth = 300.0f;
     bc.areaDepth = 300.0f;
     bc.spacing = 30.0f;          //建物間に20単位の余裕を入れる
@@ -258,7 +352,7 @@ void GameScene::InitializeStageObject()
         {   0.0f, -12.0f,    0.0f },
     };
 
-    //int placed = m_buildingSpawner->Spawn(bc);
+    int placed = m_buildingSpawner->Spawn(bc);
 
     //------------------スカイドーム作成-------------------------
 
@@ -395,8 +489,18 @@ void GameScene::InitializeUI()
     AddTextureObject(m_miniMapUi);
 }
 
+void GameScene::InitializeEffect()
+{
+    pp.motionBlurCenter = { m_blurCenterX, m_blurCenterY };
+    pp.motionBlurStart01 = m_blurStartPoint;
+    pp.motionBlurEnd01 = m_blurEndPoint;
+    pp.motionBlurStretch = m_blurStretch;
+}
+
 void GameScene::Init()
 {    
+    LoadPlayerConfigFromIni();
+
     //デバッグ初期化
 	InitializeDebug();
 
@@ -421,6 +525,8 @@ void GameScene::Init()
 	//UI初期化
 	InitializeUI();
 
+    InitializeEffect();
+
     m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
 
     m_FollowCamera->GetFollowCameraComponent()->SetTarget(m_player.get());
@@ -441,6 +547,8 @@ void GameScene::Init()
 
 void GameScene::Update(float deltatime)
 {
+    DebugGameDateSet();
+
     static float currentBlur = 0.0f;
 
     if (m_gameState == GameState::Countdown)
@@ -539,12 +647,6 @@ void GameScene::Update(float deltatime)
 
         //新規オブジェクトをGameSceneのオブジェクト配列に追加する
         SetSceneObject();
-
-        auto PlayerMove = m_player->GetComponent<MoveComponent>();
-        if (PlayerMove)
-        {
-            PlayerMove->SetSpeed(setSpeed);
-        }
 
         //----------------- レティクルのドラッグ処理 -----------------
         if (Input::IsMouseLeftPressed())
@@ -789,7 +891,7 @@ void GameScene::Uninit()
 
     // ---------------- SRVの解放（必要な設計の場合のみ） ----------------
     // TextureManager が所有しているなら Release しないこと！
-    if (m_miniMapBgSRV)
+   /* if (m_miniMapBgSRV)
     {
         m_miniMapBgSRV->Release();
         m_miniMapBgSRV = nullptr;
@@ -808,7 +910,7 @@ void GameScene::Uninit()
     {
         m_miniMapBuildingSRV->Release();
         m_miniMapBuildingSRV = nullptr;
-    }
+    }*/
 
     // ---------------- spawner / renderer ----------------
     if (m_enemySpawner)
@@ -1030,7 +1132,3 @@ void GameScene::SetSceneObject()
         m_AddObjects.clear();
     } 
 }
-
-
-
-

@@ -5,6 +5,8 @@
 #include <SimpleMath.h>
 #include "RaycastHit.h"
 
+class GameObject;
+
 /// <summary>
 /// Sceneを作る際などに使うインターフェースとしてのクラス
 /// </summary>

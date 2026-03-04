@@ -11,6 +11,7 @@
 #include "TextureComponent.h"
 #include "Sound.h"
 #include "EffectManager.h"
+#include "SceneManager.h"
 
 void TitleScene::Init()
 {
@@ -164,6 +165,19 @@ void TitleScene::Update(float deltatime)
                 []()
                 {
                     SceneManager::SetCurrentScene("GameScene");
+                });
+        }
+
+        if (Input::IsKeyDown('D'))
+        {
+            if (TransitionManager::IsTransitioning()) { return; }
+
+            Sound::PlaySeWav(L"Asset/Sound/SE/TitleSelect01.wav", 0.5f);
+
+            TransitionManager::Start(3.0f,
+                []()
+                {
+                    SceneManager::SetCurrentScene("GameForwardScene");
                 });
         }
     }

@@ -8,8 +8,7 @@ SkyDome::SkyDome(const std::string& texPath)
 {
 	if (!texPath.empty())
 	{
-		//texPath‚ª‹ó‚Å‚È‚¯‚ê‚ÎAƒ[ƒh‚·‚é
-		m_texture.Attach(TextureManager::Load(texPath));
+		m_texture = TextureManager::Load(texPath);
 	}
 }
 

@@ -94,6 +94,12 @@
     <Filter Include="ヘッダー ファイル\Sound">
       <UniqueIdentifier>{e28fff4b-67f5-4c2e-b383-abb4c9ea45f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Controllers">
+      <UniqueIdentifier>{85abbb8d-41fd-4d8d-b454-0350c12af373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Controllers">
+      <UniqueIdentifier>{5cb20028-c5f7-4717-a9d6-e5d92085f16f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -326,6 +332,24 @@
     </ClCompile>
     <ClCompile Include="BillboardEffectComponent.cpp">
       <Filter>ソース ファイル\Component\Effect</Filter>
+    </ClCompile>
+    <ClCompile Include="RouteDecisionComponent.cpp">
+      <Filter>ソース ファイル\Component\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="GameForwardScene.cpp">
+      <Filter>ソース ファイル\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="RailShooterPlayer.cpp">
+      <Filter>ソース ファイル\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="ForwardMoveComponent.cpp">
+      <Filter>ソース ファイル\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ForwardFollowCameraComponent.cpp">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="ScreenMoveComponent.cpp">
+      <Filter>ソース ファイル\Component</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -616,6 +640,24 @@
     </ClInclude>
     <ClInclude Include="GameConfig.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="RouteDecisionComponent.h">
+      <Filter>ソース ファイル\Component\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="GameForwardScene.h">
+      <Filter>ヘッダー ファイル\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="RailShooterPlayer.h">
+      <Filter>ソース ファイル\GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="ForwardMoveComponent.h">
+      <Filter>ソース ファイル\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ForwardFollowCameraComponent.h">
+      <Filter>ソース ファイル\Component\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="ScreenMoveComponent.h">
+      <Filter>ソース ファイル\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -16,6 +16,7 @@
 #include "PushOutComponent.h"
 #include "SphereColliderComponent.h"
 #include "EffectManager.h"
+#include "SceneManager.h"
 
 #include "IniFile.h"
 #include <algorithm>

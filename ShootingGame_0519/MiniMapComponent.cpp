@@ -78,7 +78,7 @@ Vector2 MiniMapComponent::WorldToMiniMap(const Vector3& worldPos,
 	}
 
 	Vector2 pixel;
-	pixel.x = center.x + (norm.x * radiusPx);
+	pixel.x = center.x - (norm.x * radiusPx);
 
 	// Zを「上」にしたいならマイナス。上下が逆ならここを + に変える
 	pixel.y = center.y - (norm.y * radiusPx);

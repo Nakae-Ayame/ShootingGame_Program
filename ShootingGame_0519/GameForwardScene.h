@@ -4,6 +4,7 @@
 #include "IScene.h"
 
 class GameObject;
+class ForwardFollowCameraComponent;
 
 class GameForwardScene : public IScene
 {
@@ -17,6 +18,12 @@ public:
 	void Init() override;
 	void Uninit() override;
 
+	void AddObject(std::shared_ptr<GameObject> obj) override;
+	void RemoveObject(std::shared_ptr<GameObject> obj) override ;
+	void RemoveObject(GameObject* obj) override;
+	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override;
+	void FinishFrameCleanup();
+
 private:
 	//-------------Imgui関連関数-------------
 
@@ -26,4 +33,6 @@ private:
 
 	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;  //削除予定オブジェクト用配列
 	std::vector<std::shared_ptr<GameObject>> m_AddObjects;     //追加予定オブジェクト用配列
+
+	std::shared_ptr<ForwardFollowCameraComponent> m_cameraComp; // カメラコンポーネントへのキャッシュ生ポインタ
 };

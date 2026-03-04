@@ -5,6 +5,7 @@
 #include "TitleBackGround.h"
 #include "Input.h"
 #include "TransitionManager.h"
+#include "SceneManager.h"
 
 void ResultLooseScene::Init()
 {

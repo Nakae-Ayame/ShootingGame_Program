@@ -88,4 +88,8 @@ private:
 	Vector3 EvalCatmullRomTangent(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t) const;
 
 	void AdvanceSegment();
+
+	bool m_isBranchMoving = false; //•ªŠòˆÚ“®‚·‚éƒLƒƒƒ‰‚©‚Ç‚¤‚©
+	std::vector<Vector3> m_mainWaypoints;   //“G‚Ì’Êíƒ‹[ƒg
+
 };

@@ -105,6 +105,7 @@ void TransitionManager::Update(float deltaTime)
         }
     }
 }
+
 //--------------------------------------------------------
 //                     描画関数
 //--------------------------------------------------------
@@ -131,11 +132,11 @@ void TransitionManager::Draw(float deltaTime)
 
     //画像を描画
     Renderer::DrawTexture(m_TextureSRV, topLeft, size);
+
+    Renderer::SetBlendState(BS_NONE);
+    Renderer::SetDepthEnable(true);
 }
 
-//--------------------------------------------------------
-//                     描画関数
-//--------------------------------------------------------
 void TransitionManager::Uninit()
 {
     m_TextureSRV = nullptr;
@@ -152,7 +153,6 @@ void TransitionManager::Start(float duration, std::function<void()> onComplete)
 {
     if (duration <= 0.0f)
     {
-        // 即時完了扱い
         if (onComplete)
         {
             onComplete();
@@ -162,10 +162,10 @@ void TransitionManager::Start(float duration, std::function<void()> onComplete)
 
     m_duration = duration;
     m_elapsed = 0.0f;
-    m_phase = 0;           // 0: fade-out, 1: fade-in
+    m_phase = 0;
     m_isTransitioning = true;
     m_preload = onComplete;
-    m_alpha = 0.0f;        // 開始時は透明 -> フェードアウトで不透明へ
+    m_alpha = 0.0f;
 }
 
 
