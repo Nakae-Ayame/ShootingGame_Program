@@ -77,6 +77,9 @@ private:
     std::vector<std::shared_ptr<Component>> m_components;
 
     bool m_uninitialized = false;
+
+    bool m_isActive = true;
+
     SRT m_transform;
     GameObject* m_parent = nullptr; // 親オブジェクト（親がいない場合は nullptr）]
     SRT m_prevTransform; // ← 補間用に追加
