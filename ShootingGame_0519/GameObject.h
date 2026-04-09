@@ -24,6 +24,7 @@ public:
     void SetPosition(const Vector3& pos) { m_transform.pos = pos;}
     void SetRotation(const Vector3& rot) { m_transform.rot = rot; }
     void SetScale(const Vector3& scl) { m_transform.scale = scl; }
+    void SetActive(bool isActive) { m_isActive = isActive; }
     void SetScene(IScene* s) { m_scene = s; }
 
     //--------Getä÷êî-------
@@ -31,6 +32,7 @@ public:
     const Vector3& GetPrevPosition() const { return m_prevPosition; }
     const Vector3& GetRotation() { return m_transform.rot; }
     const Vector3& GetScale()    { return m_transform.scale;}
+    bool GetIsActive() const { return m_isActive; }
     IScene* GetScene() const { return m_scene; }
 
     //--------Componentä÷òA-------
