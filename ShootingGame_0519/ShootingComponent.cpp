@@ -8,6 +8,7 @@
 #include "HomingComponent.h"
 #include "TextureManager.h"
 #include "GameScene.h"
+#include "Sound.h"
 #include <iostream>
 #include <random>
 #include <DirectXMath.h>
@@ -39,7 +40,7 @@ void ShootingComponent::FireHomingBullet(GameObject* owner, const std::shared_pt
     Vector3 muzzleLocal(0.0f, 0.0f, m_spawnOffset);
     Vector3 rot = owner->GetRotation();
     Matrix rotM = Matrix::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
-    Vector3 spawnPos = owner->GetPosition() + Vector3::Transform(muzzleLocal, rotM);
+    Vector3 spawnPos = owner->GetPosition();
 
     Vector3 toTarget = targetSp->GetPosition() - spawnPos;
 
@@ -253,21 +254,21 @@ void ShootingComponent::Update(float dt)
         //ターゲットを探す
         std::shared_ptr<GameObject> targetSp = FindBestHomingTarget();
 
-        if (targetSp)
-        {
-            //ターゲットが見つかったらホーミング弾を撃つ
-            FireHomingBullet(owner, targetSp);
-            m_timer = 0.0f;
-            return;
-        }
-        else
-        {
-            //ターゲットがいない場合は発射しない
-            return;
-        }
+        if (targetSp) { return; }
+
+        FireHomingBullet(owner, targetSp);
+        return;
     }
 
-    //通常弾の発射（SPACEキー）
+    //-------------通常弾発射入力-------------
+    bool wantFire = m_autoFire || Input::IsKeyDown(VK_SPACE);
+    if (!wantFire) { return; }
+
+    if (m_timer < m_cooldown) { return; }
+
+    Fire();
+
+    /*//通常弾の発射（SPACEキー）
     bool wantFire = m_autoFire || Input::IsKeyDown(VK_SPACE);
     if (!wantFire) { return; }
 
@@ -344,9 +345,11 @@ void ShootingComponent::Update(float dt)
             bc->SetSpeed(m_bulletSpeed);
         }
         AddBulletToScene(bullet);
+
+        Sound::PlaySeWav(L"Asset/Sound/SE/PlayerShot_SE.wav", 0.3f);
     }
 
-    m_timer = 0.0f;
+    m_timer = 0.0f;*/
 }
 
 /// <summary>
@@ -408,7 +411,11 @@ void ShootingComponent::Fire()
         return;
     }
 
-    // ---------------- Scene 取得 ----------------
+    if (m_timer < m_cooldown)
+    {
+        return;
+    }
+
     GameScene* gameScene = nullptr;
 
     if (m_scene)
@@ -429,29 +436,24 @@ void ShootingComponent::Fire()
         return;
     }
 
-    // ---------------- Ray 取得 ----------------
     Vector3 rayOrigin = Vector3::Zero;
     Vector3 rayDir = Vector3::Forward;
 
     if (m_camera)
     {
-        // FollowCameraComponent の shoot cache を使えるなら最優先
-        // （ICameraViewProvider に GetShootRayOrigin/Dir が無い場合もあるので dynamic_cast で保険）
-        auto* followCam = dynamic_cast<FollowCameraComponent*>(m_camera);
-        if (followCam)
+        rayOrigin = m_camera->GetPosition();
+
+        POINT mousePos{};
+        GetCursorPos(&mousePos);
+        ScreenToClient(Application::GetWindow(), &mousePos);
+
+        if (!GetMouseRayWorld(m_camera, mousePos, rayDir))
         {
-            rayOrigin = followCam->GetShootRayOrigin();
-            rayDir = followCam->GetShootRayDir();
-        }
-        else
-        {
-            rayOrigin = m_camera->GetPosition();
-            rayDir = m_camera->GetAimDirectionFromReticle();
+            rayDir = m_camera->GetForward();
         }
     }
     else
     {
-        // カメラ無しフォールバック：機体前方
         rayOrigin = owner->GetPosition();
         rayDir = owner->GetForward();
     }
@@ -465,7 +467,6 @@ void ShootingComponent::Fire()
         rayDir.Normalize();
     }
 
-    // ---------------- Raycast ----------------
     const float maxDistance = 3000.0f;
 
     RaycastHit hit{};
@@ -474,12 +475,18 @@ void ShootingComponent::Fire()
         rayDir,
         maxDistance,
         hit,
-        [](GameObject* obj)
+        [owner](GameObject* obj)
         {
             if (!obj)
             {
                 return false;
             }
+
+            if (obj == owner)
+            {
+                return false;
+            }
+
             return true;
         },
         owner);
@@ -490,13 +497,50 @@ void ShootingComponent::Fire()
         aimPoint = hit.position;
     }
 
-    // ---------------- マズル位置（回転反映） ----------------
-    Vector3 rot = owner->GetRotation();
-    Matrix rotM = Matrix::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
+    //----------------プレイヤーの実際の軸から発射位置を作る----------------
+    Vector3 forward = owner->GetForward();
+    if (forward.LengthSquared() < 1e-6f)
+    {
+        forward = Vector3::Forward;
+    }
+    else
+    {
+        forward.Normalize();
+    }
 
-    Vector3 spawnPos = owner->GetPosition() + Vector3::Transform(m_muzzleLocalOffset, rotM);
+    Vector3 up = Vector3::Up;
 
-    // ---------------- 弾方向 ----------------
+    if (std::fabs(forward.Dot(up)) > 0.98f)
+    {
+        up = Vector3::Right;
+    }
+
+    Vector3 right = up.Cross(forward);
+    if (right.LengthSquared() < 1e-6f)
+    {
+        right = Vector3::Right;
+    }
+    else
+    {
+        right.Normalize();
+    }
+
+    up = forward.Cross(right);
+    if (up.LengthSquared() < 1e-6f)
+    {
+        up = Vector3::Up;
+    }
+    else
+    {
+        up.Normalize();
+    }
+
+    Vector3 spawnPos = owner->GetPosition()
+        + right * m_muzzleLocalOffset.x
+        + up * m_muzzleLocalOffset.y
+        + forward * m_muzzleLocalOffset.z;
+
+    //----------------発射位置から照準点へ向ける----------------
     Vector3 bulletDir = aimPoint - spawnPos;
     if (bulletDir.LengthSquared() < 1e-6f)
     {
@@ -504,19 +548,39 @@ void ShootingComponent::Fire()
     }
     bulletDir.Normalize();
 
-    // ---------------- 生成＆シーン追加 ----------------
     auto bullet = CreateBullet(spawnPos, bulletDir, m_normalBulletColor);
-    if (bullet)
+    if (!bullet)
     {
-        if (auto bc = bullet->GetComponent<BulletComponent>())
-        {
-            bc->SetVelocity(bulletDir);
-            bc->SetSpeed(m_bulletSpeed);
-            bc->SetBulletType(BulletComponent::PLAYER);
-        }
-
-        AddBulletToScene(bullet);
+        return;
     }
+
+    if (auto bulletComp = bullet->GetComponent<BulletComponent>())
+    {
+        bulletComp->SetVelocity(bulletDir);
+        bulletComp->SetSpeed(m_bulletSpeed);
+        bulletComp->SetBulletType(BulletComponent::PLAYER);
+    }
+
+    AddBulletToScene(bullet);
+    Sound::PlaySeWav(L"Asset/Sound/SE/PlayerShot_SE.wav", 0.3f);
+
+    std::cout
+        << "rayOrigin : "
+        << rayOrigin.x << ", "
+        << rayOrigin.y << ", "
+        << rayOrigin.z << "\n";
+
+    std::cout
+        << "rayDir : "
+        << rayDir.x << ", "
+        << rayDir.y << ", "
+        << rayDir.z << "\n";
+
+    std::cout
+        << "cameraPos : "
+        << m_camera->GetPosition().x << ", "
+        << m_camera->GetPosition().y << ", "
+        << m_camera->GetPosition().z << "\n";
 
     m_timer = 0.0f;
 }

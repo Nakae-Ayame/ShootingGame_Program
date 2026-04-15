@@ -54,7 +54,7 @@ private:
     float m_cooldown = 0.1f;        //クールタイム
     float m_timer = 0.0f;           //経過時間
     float m_bulletSpeed = 300.0f;  //弾の速さ
-    float m_spawnOffset = 2.8f;     //発射位置のオフセット
+    float m_spawnOffset = 5.8f;     //発射位置のオフセット
     
     bool m_autoFire = false;   //自動発射モード
 
