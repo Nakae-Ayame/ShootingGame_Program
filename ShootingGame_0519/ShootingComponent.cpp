@@ -7,6 +7,7 @@
 #include "Sound.h"
 #include "RaycastHit.h"
 #include <SimpleMath.h>
+#include <iostream>
 
 using namespace DirectX::SimpleMath;
 
@@ -21,7 +22,7 @@ void ShootingComponent::Update(float dt)
         return;
     }
 
-    UpdateAimInfo(owner);
+    //UpdateAimInfo(owner);
 
     bool wantFire = m_autoFire || Input::IsKeyDown(VK_SPACE);
 
@@ -118,8 +119,8 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(
     const Vector4& color)
 {
     auto bullet = std::make_shared<Bullet>();
-    bullet->Initialize();
     bullet->SetPosition(position);
+    bullet->Initialize();
 
     auto bulletComp = bullet->GetComponent<BulletComponent>();
 
@@ -139,7 +140,7 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(
         bulletComp->SetBulletType(BulletComponent::PLAYER);
         bulletComp->SetColor(color);
 
-        bulletComp->SetFollowAim(true);
+        bulletComp->SetFollowAim(false);
         bulletComp->SetTurnSpeed(m_followAimTurnSpeed);
 
         bulletComp->SetAimTargetProvider([this]()
@@ -187,32 +188,47 @@ void ShootingComponent::Fire()
     if (!owner) { return; }
     if (m_timer < m_cooldown) { return; }
 
-    UpdateAimInfo(owner);
-
-    // ★ ポイント1: Player の現在の前方ベクトルを正しく取得
+    // Player の前方ベクトルを取得
     Vector3 forward = owner->GetForward();
+    std::cout << "GetForward() 結果: " << forward.x << ", " << forward.y << ", " << forward.z << std::endl;
+
+    // ワールド行列から直接取得してみる
+    Matrix world = owner->GetWorldMatrix();
+    Vector3 forward_direct = world.Forward();
+    std::cout << "world.Forward() 結果: " << forward_direct.x << ", " << forward_direct.y << ", " << forward_direct.z << std::endl;
+
+    // -Z を変換した結果
+    Vector3 forward_negz = Vector3::Transform(Vector3(0.0f, 0.0f, -1.0f), world);
+    forward_negz.Normalize();
+    std::cout << "Transform(-Z) 結果: " << forward_negz.x << ", " << forward_negz.y << ", " << forward_negz.z << std::endl;
+
+    // +Z を変換した結果
+    Vector3 forward_posz = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), world);
+    forward_posz.Normalize();
+    std::cout << "Transform(+Z) 結果: " << forward_posz.x << ", " << forward_posz.y << ", " << forward_posz.z << std::endl;
+
     if (forward.LengthSquared() <= 1e-6f)
     {
         forward = Vector3::Forward;
     }
     forward.Normalize();
 
-    // ★ ポイント2: Player の回転を考慮した生成位置
+    // Player の位置から前方に少し離れた場所で生成
     Vector3 ownerPos = owner->GetPosition();
     Vector3 spawnPos = ownerPos + forward * m_spawnOffset;
 
-    // ★ ポイント3: カメラ側の照準点から弾へのベクトルを計算
-    Vector3 bulletDir = m_currentAimPoint - spawnPos;
+    std::cout << "生成位置: "
+        << spawnPos.x << ", "
+        << spawnPos.y << ", "
+        << spawnPos.z << "\n";
 
-    if (bulletDir.LengthSquared() <= 1e-6f)
-    {
-        bulletDir = m_currentAimDirection;
-    }
-    if (bulletDir.LengthSquared() <= 1e-6f)
-    {
-        return;
-    }
-    bulletDir.Normalize();
+    // 常に前方に飛ばす
+    Vector3 bulletDir = forward;
+
+    std::cout << "弾の方向: "
+        << bulletDir.x << ", "
+        << bulletDir.y << ", "
+        << bulletDir.z << "\n\n";
 
     auto bullet = CreateBullet(spawnPos, bulletDir, m_normalBulletColor);
     if (!bullet) { return; }
