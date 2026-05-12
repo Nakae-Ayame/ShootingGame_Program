@@ -16,3 +16,12 @@ void Building::Update(float dt)
     bool AABBbool = AABB->IsStatic();
 
 }
+
+void Building::SetAlpha(float alpha)
+{
+    auto model = GetComponent<ModelComponent>();
+
+    if (!model){ return; }
+
+    model->SetAlpha(alpha);
+}

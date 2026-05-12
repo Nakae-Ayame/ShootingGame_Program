@@ -51,8 +51,8 @@ int BuildingSpawner::RandomSpawn(const BuildingConfig& cfg)
             //float yaw = cfg.randomizeRotation ? RandFloatStd(m_rng, 0.0f, 2.0f * 3.14159265358979323846f) : 0.0f;
 
             //footprint（XZ）の半幅を計算（スケールをかける）
-            float halfW = (cfg.footprintSizeX * 0.5f) * scale + cfg.spacing * 0.5f;
-            float halfD = (cfg.footprintSizeZ * 0.5f) * scale + cfg.spacing * 0.5f;
+            float halfW = (cfg.scaleX * 0.5f) * scale + cfg.spacing * 0.5f;
+            float halfD = (cfg.scaleZ * 0.5f) * scale + cfg.spacing * 0.5f;
 
             //既に配置したものと矩形衝突しないかチェック（XZ平面）
             bool overlap = false;
@@ -73,7 +73,7 @@ int BuildingSpawner::RandomSpawn(const BuildingConfig& cfg)
             obj->SetScene(m_scene);
             //高さ（Y）は必要に応じて調整してください。ここでは -12 を元のコードと同じにしています
             obj->SetPosition({ x, -12.0f, z });
-            obj->SetScale({ 10.0f, 10.0f, 10.0f });
+            obj->SetScale({ 20.0f, 20.0f, 20.0f });
             obj->SetRotation({ 0.0f, 0.0f, 0.0f });
 
             //コライダー（OBB）を追加。baseColliderSize に scale を乗算
@@ -120,13 +120,19 @@ int BuildingSpawner::RandomSpawn(const BuildingConfig& cfg)
 
 int BuildingSpawner::Spawn(const BuildingConfig& cfg)
 {
-    if (!m_scene) { return 0; }
+    if (!m_scene) 
+    {
+        return 0;
+    }
 
     m_placed.clear();   // ひとまずこの呼び出しで配置した矩形だけを見る
 
     // 置く数は fixedPositions の数と count の小さい方
     int numPositions = static_cast<int>(cfg.fixedPositions.size());
-    if (numPositions <= 0) { return 0; }
+    if (numPositions <= 0)
+    { 
+        return 0;
+    }
 
     int numToSpawn = numPositions;
     if (cfg.count > 0 && cfg.count < numToSpawn)
@@ -144,8 +150,8 @@ int BuildingSpawner::Spawn(const BuildingConfig& cfg)
         float z = pos.z;
 
         // footprint（XZ）の半幅を計算（spacing も足す）
-        float halfW = (cfg.footprintSizeX * 0.5f) + cfg.spacing * 0.5f;
-        float halfD = (cfg.footprintSizeZ * 0.5f) + cfg.spacing * 0.5f;
+        float halfW = (cfg.scaleX * 0.5f) + cfg.spacing * 0.5f;
+        float halfD = (cfg.scaleZ * 0.5f) + cfg.spacing * 0.5f;
 
         // 既に配置したものと矩形衝突しないかチェック（XZ平面）
         bool overlap = false;
@@ -169,21 +175,16 @@ int BuildingSpawner::Spawn(const BuildingConfig& cfg)
             continue;
         }
 
-        // 実際のオブジェクト生成処理（RandomSpawn と合わせておく）
         auto obj = std::make_shared<Building>();
         obj->SetScene(m_scene);
 
-        // Y は fixedPositions の y をそのまま使う
-        // これまで通りにしたいなら pos.y の代わりに -12.0f に固定しても良いです
-        obj->SetPosition({ x, pos.y, z });
+        obj->SetPosition(pos);
 
-        // ★今は固定値ですが、必要なら cfg.minScale / maxScale から計算しても OK
-        obj->SetScale({ 10.0f, 10.0f, 10.0f });
-        obj->SetRotation({ 0.0f, 0.0f, 0.0f });
+        obj->SetScale({ cfg.scaleX, cfg.scaleY, cfg.scaleZ });
+        obj->SetRotation({ 0.0f, 0.0f, 0.0f }); 
 
-        // コライダー（AABB）を追加
         auto col = std::make_shared<AABBColliderComponent>();
-        col->SetSize({ 3.5f, 16.5f, 3.5f });
+        col->SetSize(cfg.baseColliderSize);
         col->SetEnabled(false);
         obj->AddComponent(col);
         col->isStatic = true;
@@ -191,6 +192,7 @@ int BuildingSpawner::Spawn(const BuildingConfig& cfg)
         // モデルを読み込む
         auto mc = std::make_shared<ModelComponent>();
         mc->LoadModel(cfg.modelPath);
+        //mc->SetAlpha(0.25f);
         obj->AddComponent(mc);
 
         auto push = std::make_shared<PushOutComponent>();
@@ -198,6 +200,13 @@ int BuildingSpawner::Spawn(const BuildingConfig& cfg)
 
         obj->Initialize();
         m_scene->AddObject(obj);
+
+        auto gameScene = dynamic_cast<GameScene*>(m_scene);
+
+        if (gameScene)
+        {
+            gameScene->AddStageBuilding(obj);
+        }
 
         // footprint を記録
         PlacedRect pr;

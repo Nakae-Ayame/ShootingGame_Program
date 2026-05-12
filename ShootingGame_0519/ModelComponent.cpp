@@ -35,45 +35,42 @@ void ModelComponent::Update(float dt)
     // 結果をシェーダへ転送する処理をここに書く
 }
 
-// 描画 (簡易)
+// 描画
 void ModelComponent::Draw(float alpha)
 {
-    // ワールド行列設定
     Matrix4x4 worldMatrix = GetOwner()->GetTransform().GetMatrix();
     Renderer::SetWorldMatrix(&worldMatrix);
 
-    // メッシュごとに描画
+    ID3D11DeviceContext* ctx = Renderer::GetDeviceContext();
+
     for (auto& mesh : m_meshes)
     {
-        // まず色をセット (ここで Diffuse 色をピクセルシェーダに渡す)
-        ID3D11DeviceContext* ctx = Renderer::GetDeviceContext();
-        // cbMaterial の構造体が Renderer 内にある想定
-        MATERIAL cb;
-        cb.Diffuse = DirectX::XMFLOAT4(
-            mesh.material.Diffuse.x,
-            mesh.material.Diffuse.y,
-            mesh.material.Diffuse.z,
-            mesh.material.Diffuse.w
-        );
-        ctx->UpdateSubresource(Renderer::GetMaterialCB(), 0, nullptr, &cb, 0, 0);
-        ctx->PSSetConstantBuffers(0, 1, Renderer::GetMaterialCBAddress());
+        if (mesh.material.Diffuse.w < 1.0f)
+        {
+            Renderer::SetBlendState(BS_ALPHABLEND);
+        }
+        else
+        {
+            Renderer::SetBlendState(BS_NONE);
+        }
 
-        // 以下、既存の頂点/インデックス/テクスチャ設定
+        Renderer::SetMaterial(mesh.material);
+
         UINT stride = sizeof(VERTEX_3D);
         UINT offset = 0;
+
         ctx->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
         ctx->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        if (mesh.srvDiffuse)
-        {
-            ctx->PSSetShaderResources(0, 1, mesh.srvDiffuse.GetAddressOf());
-        }
+        ID3D11ShaderResourceView* srv = mesh.srvDiffuse.Get();
+        ctx->PSSetShaderResources(0, 1, &srv);
 
         ctx->DrawIndexed(mesh.indexCount, 0, 0);
     }
-}
 
+    Renderer::SetBlendState(BS_NONE);
+}
 
 void ModelComponent::SetColor(const Color& color)
 {
@@ -81,6 +78,14 @@ void ModelComponent::SetColor(const Color& color)
     for (auto& mesh : m_meshes)
     {
         mesh.material.Diffuse = color;
+    }
+}
+
+void ModelComponent::SetAlpha(float alpha)
+{
+    for (auto& mesh : m_meshes)
+    {
+        mesh.material.Diffuse.w = alpha;
     }
 }
 

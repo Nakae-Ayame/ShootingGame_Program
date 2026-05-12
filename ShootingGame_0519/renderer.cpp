@@ -620,10 +620,7 @@ void Renderer::Init()
     {
         throw std::runtime_error("Failed to create Billboard input layout");
     }
-
-
 }
-
 
 //Direct3Dのリソースは明示的に解放しないとメモリリークが発生するため、
 //ComPtr::Reset()で安全にリソースを開放しています。
@@ -633,6 +630,7 @@ void Renderer::Uninit()
     {
         bs.Reset();
     }
+
     m_blendStateATC.Reset();
     m_depthStateEnable.Reset();
     m_depthStateDisable.Reset();
@@ -645,12 +643,7 @@ void Renderer::Uninit()
     m_swapChain.Reset();
     m_deviceContext.Reset();
     m_device.Reset();
-
-    char buf[256];
-    sprintf_s(buf, "Uninit: device=%p context=%p\n", m_device.Get(), m_pContext.Get());
-    OutputDebugStringA(buf);
     m_pContext.Reset();
-    m_device.Reset();
 }
 
 //画面を指定色（青色）でクリア

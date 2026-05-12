@@ -8,6 +8,8 @@
 #include "BulletComponent.h"
 #include "Collision.h" 
 #include "Enemy.h"
+#include "Sound.h"
+#include "TextureManager.h"
 #include "PushOutComponent.h"
 #include <iostream>
 
@@ -33,13 +35,14 @@ void Player::Initialize()
     //コライダーコンポーネントの生成
     m_Collider = std::make_shared<OBBColliderComponent>();
     m_Collider -> SetSize({ 6.0f, 1.5f, 8.0f }); // モデルに合わせて調整
-    //m_Collider -> SetLocalOffset(Vector3(0.0f,0.0f ,15.0f));
     m_Collider ->isStatic = false;
 
   //---------------GameObjectに追加---------------
     AddComponent(modelComp);
-    AddComponent(moveComp);
+    
     AddComponent(shootComp);
+    AddComponent(moveComp);
+    
     AddComponent(HPComp);
     AddComponent(m_Collider);
     AddComponent(push);
@@ -115,8 +118,10 @@ void Player::OnCollision(GameObject* other)
     }
 
     //--------敵衝突処理--------
-    if (auto b = dynamic_cast<Enemy*>(other))
+    if (auto enemy = dynamic_cast<Enemy*>(other))
     {
+        std::cout << "[Player] Collide Enemy : " << enemy << "\n";
+
         auto hp = GetComponent<HitPointComponent>();
         if (hp)
         {
@@ -125,55 +130,45 @@ void Player::OnCollision(GameObject* other)
             di.instigator = other;
             di.tag = "collision_enemy";
             bool applied = hp->ApplyDamage(di);
+
+            std::cout << "  applied = " << applied << "\n";
+
             if (applied)
             {
-                // 水平面での方向ベクトル（player <- other）
                 DirectX::SimpleMath::Vector3 dir = GetPosition() - other->GetPosition();
                 dir.y = 0.0f;
+
                 if (dir.LengthSquared() < 1e-6f)
                 {
-                    // 位置がほぼ被っている場合はランダムに左右を選ぶ
                     int r = std::rand() % 2;
-                    if (r == 0) 
-                    { 
+                    if (r == 0)
+                    {
                         dir = DirectX::SimpleMath::Vector3(1.0f, 0.0f, 0.0f);
                     }
                     else
-                    { 
+                    {
                         dir = DirectX::SimpleMath::Vector3(-1.0f, 0.0f, 0.0f);
                     }
                 }
+
                 dir.Normalize();
 
-                // dir に直交する水平の左方向ベクトルを作る（-z,0,x を利用）
                 DirectX::SimpleMath::Vector3 lateral = DirectX::SimpleMath::Vector3(-dir.z, 0.0f, dir.x);
                 lateral.Normalize();
 
-                // 少しだけ左右に弾く。符号はランダムor衝突の位置差で決める（ここはランダム）
                 float sign = (std::rand() % 2 == 0) ? 1.0f : -1.0f;
-
-                // インパルスの大きさ（チューニング）
-                const float impulseStrength = 3.0f; // とても小さい: 調整可
+                const float impulseStrength = 3.0f;
                 DirectX::SimpleMath::Vector3 impulse = lateral * sign * impulseStrength;
 
-                // MoveComponent にインパルスを与える
+                std::cout << "  impulse = "
+                    << impulse.x << ", "
+                    << impulse.y << ", "
+                    << impulse.z << "\n";
+
                 auto mv = GetComponent<MoveComponent>();
                 if (mv)
                 {
                     mv->AddImpulse(impulse);
-                }
-                else
-                {
-                    // 万が一 MoveComponent が無ければ位置をわずかに移動（フォールバック）
-                    DirectX::SimpleMath::Vector3 pos = GetPosition();
-                    pos += impulse * 0.05f;
-                    SetPosition(pos);
-                }
-
-                // 見栄え用（ヒットストップ等）を入れるならここで呼ぶ
-                if (auto s = GetScene())
-                {
-                
                 }
             }
         }

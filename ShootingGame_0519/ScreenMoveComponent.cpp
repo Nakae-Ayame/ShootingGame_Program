@@ -10,6 +10,10 @@ void ScreenMoveComponent::Initialize()
 
 void ScreenMoveComponent::Update(float delta)
 {
+	if (!GetOwner()){ return; }
+
+	if (!m_forwardComp){ return; }
+
 	POINT mouse = Input::GetMousePosition();
 
 	Vector2 mousePos =

@@ -1,11 +1,15 @@
 ﻿#include <iostream>
+
 #include "GameScene.h"
 #include "Input.h"
-#include "DebugGlobals.h" 
 #include "renderer.h"
 #include "Application.h"
+
+#include "DebugGlobals.h" 
+
 #include "Collision.h"
 #include "CollisionManager.h"
+
 #include "SkyDome.h"
 #include "HPBar.h"
 #include "Building.h"
@@ -19,6 +23,10 @@
 #include "EffectManager.h"
 #include "SceneManager.h"
 #include "IniFile.h"
+#include "TextureManager.h"
+#include "Sound.h"
+
+#include "CsvGridLoader.h"
 
 /// <summary>
 /// ファイルが存在しているかどうかを探す関数
@@ -115,6 +123,9 @@ bool GameScene::Raycast(const Vector3& origin,
     return CollisionManager::RaycastWorld(origin, dir, maxDistance, outHit, predicate, ignore);
 }
 
+/// <summary>
+/// IMGUI関連やデバッグ描画関連の初期化を行う関数
+/// </summary>
 void GameScene::InitializeDebug()
 {
     //DebugUI::RedistDebugFunction([this]() {DebugSetPlayerSpeed(); });
@@ -128,20 +139,29 @@ void GameScene::InitializeDebug()
                                 L"DebugLineVS.cso", L"DebugLinePS.cso");
 }
 
+/// <summary>
+/// Playerの動ける範囲などを設定する関数
+/// </summary>
 void GameScene::InitializePlayArea()
 {
     m_playArea = std::make_shared<PlayAreaComponent>();
     m_playArea->SetScene(this); 
-    m_playArea->SetBounds({ -300.0f, -1.0f, -300.0f }, { 300.0f, 200.0f, 300.0f });
+    m_playArea->SetBounds({ -300.0f, -1.0f, -300.0f }, { 300.0f, 80.0f, 300.0f });
     m_playArea->SetGroundY(-7.0f);
 }
 
+/// <summary>
+/// ステージの状態を初期化する関数
+/// </summary>
 void GameScene::InitializePhase()
 {
     m_gameState = GameState::Countdown;
     m_countdownRemaining = 4.0f;
 }
 
+/// <summary>
+/// 
+/// </summary>
 void GameScene::InitializeCamera()
 {
     m_FollowCamera = std::make_shared<CameraObject>();
@@ -191,40 +211,24 @@ void GameScene::InitializePlayer()
     m_player = std::make_shared<Player>();
     m_player->Initialize();
 
-    auto moveComp = m_player->GetComponent<MoveComponent>();
-    if (moveComp)
+    if (auto moveComp = m_player->GetComponent<MoveComponent>())
     {
         moveComp->SetPlayArea(m_playArea.get());
+
+        moveComp->SetSpeed(m_playerMoveSpeed);
+        moveComp->SetBoostMultiplier(m_playerBoostMultiplier);
     }
 
-    auto shootComp = m_player->GetComponent<ShootingComponent>();
-    if (shootComp)
+    if (auto shootComp = m_player->GetComponent<ShootingComponent>())
     {
         shootComp->SetScene(this);
+
+        shootComp->SetBulletSpeed(m_playerBulletSpeed);
     }
 
-    if (m_player)
+    if (auto hpComp = m_player->GetComponent<HitPointComponent>())
     {
-        auto moveComp = m_player->GetComponent<MoveComponent>();
-        if (moveComp)
-        {
-            moveComp->SetSpeed(m_playerMoveSpeed);
-            moveComp->SetBoostMultiplier(m_playerBoostMultiplier);
-        }
-
-        auto shootComp = m_player->GetComponent<ShootingComponent>();
-        if (shootComp)
-        {
-            shootComp->SetBulletSpeed(m_playerBulletSpeed);
-        }
-
-        if (auto hpComp = m_player->GetComponent<HitPointComponent>())
-        {
-            if (hpComp->GetMaxHP() != m_playerHp)
-            {
-                hpComp->SetMaxHP(m_playerHp);
-            }
-        }
+         hpComp->SetMaxHP(m_playerHp);
     }
 
     AddObject(m_player);
@@ -233,7 +237,17 @@ void GameScene::InitializePlayer()
 void GameScene::InitializeEnemy()
 {
     m_enemySpawner = std::make_unique<EnemySpawner>(this);
-    m_enemySpawner->patrolCfg.spawnCount = 3;
+    m_enemySpawner->SetOnPatrolEnemyDefeated([this](Enemy* enemy)
+        {
+            m_enemyKillCount += 1;
+
+            char buf[128];
+            sprintf_s(buf, "PatrolEnemy Count = %d / %d\n",
+                m_enemyKillCount,
+                m_clearKillCount);
+            OutputDebugStringA(buf);
+        });
+    m_enemySpawner->patrolCfg.spawnCount = m_keepPatrolEnemyCount;
     m_enemySpawner->circleCfg.spawnCount = 0;
     m_enemySpawner->turretCfg.spawnCount = 2;
 
@@ -243,75 +257,94 @@ void GameScene::InitializeEnemy()
     // Waypoint Set 0
     //========================
     m_enemySpawner->SetWaypoints(
-        { { 80.0f, 20.0f,  0.0f },
-          { 40.0f, 20.0f,-80.0f },
-          {-40.0f, 20.0f,-80.0f },
-          {-80.0f, 20.0f,  0.0f },
-          { 40.0f, 20.0f, 80.0f }, });
-
-    // 分岐：mainIndex=1 の地点で2分岐（確認用：めちゃ外れる）
     {
-        std::vector<BranchPointConfig> branches;
+        { -101.363f, 15.0f, -172.409f },
+        { -47.9751f, 15.0f, -84.748f },
+        {  16.7131f, 15.0f, -119.96f },
+        {  68.0036f, 15.0f, -110.977f },
+        { 117.093f,  15.0f, -13.24f },
 
-        BranchPointConfig bp{};
-        bp.mainIndex = 1;
+        { 114.194f, 15.0f,  35.7788f },
+        {  85.8455f, 15.0f, 73.4013f },
+        {  35.522f,  15.0f, 68.8446f },
 
-        BranchOptionConfig optA{};
-        optA.weight = 1.0f;
-        optA.loopWaypoints =
-        {
-            {  120.0f,  30.0f, -160.0f },
-            {  220.0f,  60.0f, -240.0f },
-            {  340.0f,  80.0f, -240.0f },
-            {  420.0f,  90.0f, -120.0f },
-            {  420.0f,  80.0f,   40.0f },
-            {  320.0f,  60.0f,  180.0f },
-            {  180.0f,  40.0f,  220.0f },
-            {   60.0f,  30.0f,  120.0f },
-            {  140.0f,  25.0f,    0.0f },
-        };
+        { -52.807f, 15.0f, 83.2626f },
+        { -76.0765f, 15.0f, 126.96f },
 
-        BranchOptionConfig optB{};
-        optB.weight = 1.0f;
-        optB.loopWaypoints =
-        {
-            {  -40.0f,  15.0f, -180.0f },
-            { -160.0f,   0.0f, -260.0f },
-            { -300.0f,  10.0f, -260.0f },
-            { -420.0f,  20.0f, -140.0f },
-            { -420.0f,  10.0f,   40.0f },
-            { -320.0f,   0.0f,  200.0f },
-            { -160.0f,  10.0f,  240.0f },
-            {  -40.0f,  15.0f,  140.0f },
-            {  -80.0f,  20.0f,    0.0f },
-        };
+        { -22.8005f, 15.0f, 196.188f },
+        {  39.4108f, 15.0f, 232.437f },
+        { 111.776f, 15.0f, 255.559f },
 
-        bp.options.push_back(optA);
-        bp.options.push_back(optB);
-
-        branches.push_back(bp);
-
-        m_enemySpawner->SetBranchPoints(branches);
-    }
+        { 149.03f, 15.0f, 230.977f },
+    });
 
 
     m_enemySpawner->SetWaypoints(
-        { { 125.0f, 90.0f,    0.0f },
-          {  62.5f, 90.0f, -125.0f },
-          { -62.5f, 90.0f,  125.0f },
-          { -62.5f, 90.0f, -125.0f },
-          {  62.5f, 90.0f,  125.0f },
-          {-125.0f, 90.0f,  -62.5f },
-          {-125.0f, 90.0f,   62.5f } });
+        {
+            { -118.601f, 35.0f, 168.216f },
+            {  5.91842f, 35.0f, 227.306f },
+            {  73.4986f, 35.0f, 268.295f },
+
+            {  137.683f, 35.0f, 237.167f },
+            {  133.894f, 35.0f, 202.164f },
+
+            {   93.4445f, 35.0f, 68.7327f },
+            {  117.852f, 35.0f, -9.21532f },
+
+            {  135.603f, 35.0f, -92.545f },
+            {  102.306f, 35.0f, -135.472f },
+
+            {   33.1515f, 35.0f, -165.786f },
+            {  -57.6906f, 35.0f, -187.063f },
+
+            { -184.946f, 35.0f, -158.122f },
+            { -142.524f, 35.0f, -76.5417f },
+
+            { -130.316f, 35.0f, 65.0955f },
+            { -141.164f, 35.0f, 175.543f },
+        });
 
     m_enemySpawner->SetWaypoints(
-        { { 62.0f, 120.0f,    0.0f },
-          {  62.5f, 120.0f, -125.0f },
-          { 125.5f, 120.0f,  125.0f },
-          { -62.5f, 120.0f, -125.0f },
-          {-125.5f, 120.0f,  125.0f },
-          {  62.0f, 120.0f,  -62.5f },
-          {-125.0f, 120.0f,   62.5f } });
+        {
+            {   47.6f,  12.1f, -246.0f },
+            {    3.6f,   7.6f, -121.5f },
+            {  -31.9f,   3.9f,  -91.0f },
+            {  -69.6f,  -1.0f,  -44.2f },
+            {  -32.8f,  -1.0f,  -30.9f },
+
+            {  -11.4f,  -1.0f,  -74.7f },
+            {   35.2f,   0.0f,  -81.9f },
+            {   82.9f,   3.8f,  -57.2f },
+            {  106.5f,   6.8f,  -27.4f },
+            {  113.6f,   7.2f,   17.5f },
+
+            {  125.8f,   5.3f,   57.5f },
+            {  166.0f,   3.0f,   88.4f },
+            {  215.7f,  -0.6f,  163.1f },
+            {  178.4f,  -0.8f,  208.8f },
+            {  142.3f,   2.6f,  243.8f },
+
+            {  100.8f,  19.1f,  261.7f },
+            {   63.6f,  28.0f,  259.8f },
+            {   -6.1f,   0.8f,  206.6f },
+            {  -56.1f,   6.6f,  165.0f },
+            {  -42.0f,   6.4f,  -13.0f },
+
+            {  -68.9f,   0.6f,  -55.2f },
+            {  -93.6f,  14.2f, -113.9f },
+            {  -80.7f,  32.4f, -163.3f },
+            {  -26.9f,  29.1f, -193.2f },
+            {   64.2f,  25.3f, -181.4f },
+        });
+
+    m_enemySpawner->SetWaypoints(
+        {
+            { -405.0f, 90.0f, -495.0f },
+            {  405.0f, 90.0f,  495.0f },
+            {  405.0f, 90.0f, -495.0f },
+            { -405.0f, 90.0f,  495.0f },
+        });
+
     // 生成
     m_enemySpawner->EnsurePatrolCount();
 
@@ -326,33 +359,84 @@ void GameScene::InitializeEnemy()
 void GameScene::InitializeStageObject()
 {
     m_buildingSpawner = std::make_unique<BuildingSpawner>(this);
-    BuildingConfig bc;
-    bc.modelPath = "Asset/Build/wooden watch tower2.obj";
-    bc.count = 8;
-    bc.areaWidth = 300.0f;
-    bc.areaDepth = 300.0f;
-    bc.spacing = 30.0f;          //建物間に20単位の余裕を入れる
-    bc.randomizeRotation = true;
-    bc.minScale = 5.0f;
-    bc.maxScale = 10.0f;
-    bc.footprintSizeX = 6.0f;    //必要ならモデルに合わせて調整
-    bc.footprintSizeZ = 6.0f;
-    bc.baseColliderSize = { 3.0f, 17.0f, 3.0f };
-    bc.maxAttemptsPerBuilding = 50;
 
-    bc.fixedPositions =
+    //-----------------------
+    // CSVから建物配置を読み込み
+    //-----------------------
+    auto grid = CsvGridLoader::LoadGrid("Data/FreeStage01.csv");
+
+    if (!grid.empty())
     {
-        { 125.0f, -12.0f,    0.0f },
-        {  62.5f, -12.0f, -125.0f },
-        { -62.5f, -12.0f,  125.0f },
-        { -62.5f, -12.0f, -125.0f },
-        {  62.5f, -12.0f,  125.0f },
-        {-125.0f, -12.0f,  -62.5f },
-        {-125.0f, -12.0f,   62.5f },
-        {   0.0f, -12.0f,    0.0f },
-    };
+        float cellSize = 45.0f;
 
-    int placed = m_buildingSpawner->Spawn(bc);
+        int rowCount = static_cast<int>(grid.size());
+        int colCount = static_cast<int>(grid[0].size());
+
+        int centerCol = colCount / 2;
+        int centerRow = rowCount / 2;
+
+        std::vector<Vector3> type1Positions;
+        std::vector<Vector3> type2Positions;
+
+        for (int row = 0; row < rowCount; row++)
+        {
+            for (int col = 0; col < static_cast<int>(grid[row].size()); col++)
+            {
+                int value = grid[row][col];
+
+                float x = static_cast<float>(col - centerCol) * cellSize;
+                float y = -12.0f;
+                float z = static_cast<float>(row - centerRow) * cellSize;
+
+                if (value == 1)
+                {
+                    type1Positions.push_back(Vector3(x, y, z));
+                }
+                else if (value == 2)
+                {
+                    type2Positions.push_back(Vector3(x, y, z));
+                }
+            }
+        }
+
+        //-----------------------
+        // 1番の岩
+        //-----------------------
+        BuildingConfig bc1;
+        bc1.modelPath = "Asset/Build/rock_0817055319_refine.obj";
+        bc1.count = static_cast<int>(type1Positions.size());
+        bc1.fixedPositions = type1Positions;
+        bc1.spacing = 30.0f;
+
+        bc1.scaleX = 60.0f;
+        bc1.scaleY = 80.0f;
+        bc1.scaleZ = 60.0f;
+
+        bc1.baseColliderSize = { 1.0f, 1.0f, 1.0f };
+        bc1.maxAttemptsPerBuilding = 50;
+
+        m_buildingSpawner->Spawn(bc1);
+
+        //-----------------------
+        // 2番の岩 大きめ
+        //-----------------------
+        BuildingConfig bc2;
+        bc2.modelPath = "Asset/Build/rock02/rock_0817054342_refine.obj";
+        bc2.count = static_cast<int>(type2Positions.size());
+        bc2.fixedPositions = type2Positions;
+        bc2.spacing = 40.0f;
+
+        bc2.scaleX = 80.0f;
+        bc2.scaleY = 200.0f;
+        bc2.scaleZ = 80.0f;
+
+        bc2.baseColliderSize = { 1.0f, 1.0f, 1.0f };
+        bc2.maxAttemptsPerBuilding = 50;
+
+        m_buildingSpawner->Spawn(bc2);
+
+
+    }
 
     //------------------スカイドーム作成-------------------------
 
@@ -371,9 +455,7 @@ void GameScene::InitializeStageObject()
     floorObj->SetRotation(Vector3(0, 0, 0));
     floorObj->SetScale(Vector3(75, 75, 75));
 
-    // AddComponent で床コンポーネントを追加（テクスチャパスは任意）
     auto floorComp = floorObj->AddComponent<FloorComponent>();
-
     floorComp->SetGridTexture("Asset/Texture/grid01.jpeg", 1, 1);
 
     floorObj->Initialize();
@@ -385,18 +467,12 @@ void GameScene::InitializeUI()
 {
     //-----------レティクル作成--------------
     m_reticle = std::make_shared<Reticle>(L"Asset/UI/26692699.png", m_reticleW);
-    RECT rc{};
-    GetClientRect(Application::GetWindow(), &rc);
-    float screenWidth = static_cast<float>(rc.right - rc.left);
-    float screenHeight = static_cast<float>(rc.bottom - rc.top);
-    float x = screenWidth * 0.5f;
-    float y = screenHeight * 0.5f;
     m_reticle->Initialize();
 
     //-------------HPバー作成-----------------
     auto hpUI = std::make_shared<HPBar>(L"Asset/UI/HPBar01.png", L"Asset/UI/HPGauge01.png", 100.0f, 475.0f);
-    hpUI->SetScreenPos(30.0f, 200.0f);
     hpUI->Initialize();
+	hpUI->SetScreenPos(16.0f, 200.0f);
 
     m_CountDown01 = std::make_shared<GameObject>();
     auto LogoTexter01 = std::make_shared<TextureComponent>();
@@ -426,6 +502,18 @@ void GameScene::InitializeUI()
     LogoTexterGo->SetScreenPosition(430.0f, 200.0f);
     m_CountDownGo->AddComponent(LogoTexterGo);
 
+    m_killLabelTexture = std::make_shared<GameObject>();
+
+    auto LogoKillTexter = std::make_shared<TextureComponent>();
+    LogoKillTexter->LoadTexture(L"Asset/UI/Gekihasu.png");
+    LogoKillTexter->SetSize(150.0f, 60.0f);
+    LogoKillTexter->SetScreenPosition(20.0f, 20.0f);
+
+    m_killLabelTexture->AddComponent(LogoKillTexter);
+    m_killLabelTexture->Initialize();
+
+    AddTextureObject(m_killLabelTexture);
+
     //-------------ミニマップ設定----------------
     m_miniMapBgSRV = TextureManager::Load("Asset/UI/minimap_Background.png");
     m_miniMapPlayerSRV = TextureManager::Load("Asset/UI/mimimap_player.png");
@@ -447,6 +535,16 @@ void GameScene::InitializeUI()
     m_miniMap->SetBuildingIconSRV(m_miniMapBuildingSRV);
 
     m_miniMap->SetPlayer(m_player.get()); // m_playerがshared_ptr<GameObject>想定
+
+    m_KillCountNumberUI.LoadDigitTextures("Asset/UI/Number");
+    m_KillCountNumberUI.SetPosition({ 40.0f, 90.0f });
+    m_KillCountNumberUI.SetDigitSize({ 60.0f, 72.0f });
+    m_KillCountNumberUI.SetSpacing(2.0f);
+
+    m_ClearCountNumberUI.LoadDigitTextures("Asset/UI/Number");
+    m_ClearCountNumberUI.SetPosition({ 180.0f, 90.0f });
+    m_ClearCountNumberUI.SetDigitSize({ 60.0f, 72.0f });
+    m_ClearCountNumberUI.SetSpacing(2.0f);
 
     auto cameraComp = m_FollowCamera->GetComponent<FollowCameraComponent>();
 
@@ -497,43 +595,38 @@ void GameScene::InitializeEffect()
     pp.motionBlurStretch = m_blurStretch;
 }
 
+void GameScene::InitializeWingTrail()
+{
+   
+}
+
 void GameScene::Init()
 {    
     LoadPlayerConfigFromIni();
-
     //デバッグ初期化
 	InitializeDebug();
-
 	//プレイエリア初期化
     InitializePlayArea();
-
     //ステート関連初期化
     InitializePhase();
-    
     //プレイヤー初期化
     InitializePlayer();
-
     //カメラ初期化
     InitializeCamera();
-
     //敵初期化
     InitializeEnemy();
-
     //建物初期化
 	InitializeStageObject();
-
 	//UI初期化
 	InitializeUI();
-
     InitializeEffect();
 
+    InitializeWingTrail();
     m_GameObjects.insert(m_GameObjects.begin(), m_SkyDome);
 
     m_FollowCamera->GetFollowCameraComponent()->SetTarget(m_player.get());
 
-
     AddObject(m_FollowCamera);
-
 
     if (m_FollowCamera && m_FollowCamera->GetFollowCameraComponent())
     {
@@ -553,6 +646,11 @@ void GameScene::Update(float deltatime)
 
     if (m_gameState == GameState::Countdown)
     {
+        if (m_countdownRemaining >= 4.0f)
+        {
+            Sound::PlaySeWav(L"Asset/Sound/SE/Countdown_SE.wav", 0.3f);
+        }
+
         m_countdownRemaining -= deltatime;
 
         m_FollowCamera->Update(deltatime);
@@ -562,11 +660,14 @@ void GameScene::Update(float deltatime)
         {
             m_gameState = GameState::Playing;
             m_countdownRemaining = 0.0f;
+            Sound::PlayBgmWav(L"Asset/Sound/BGM/StageBGM.wav", 0.1f);
         }
     }
 
     if (m_gameState == GameState::Playing)
     {
+        //DebugCollisionMode();
+
         if (!m_playerMove)
         {
             m_playerMove = m_player->GetComponent<MoveComponent>();
@@ -574,41 +675,28 @@ void GameScene::Update(float deltatime)
 
         if (m_playerMove)
         {
-            float boostIntensity = m_playerMove->GetBoostIntensity(); // 0～1
+            float boostIntensity = m_playerMove->GetBoostIntensity();
 
             float targetBlur = boostIntensity * 1.0f;
 
-            float interpSpeed = 6.0f; //大きいほど追従が速い
+            float interpSpeed = 6.0f;
             float alpha = std::min(1.0f, interpSpeed * deltatime);
             currentBlur += (targetBlur - currentBlur) * alpha;
 
-            //---------------------------------------------------------
-            //  Renderer のポストプロセス設定に反映する
-            //---------------------------------------------------------
             PostProcessSettings pp = Renderer::GetPostProcessSettings();
+            pp.motionBlurAmount = currentBlur * 5.3f;
 
-            // ブラー強度（0～1）
-            pp.motionBlurAmount = currentBlur 
-                * 5.3;
-
-            //行列取得
             Matrix projMatrix = m_FollowCamera->GetCameraComponent()->GetProj();
             Matrix viewMatrix = m_FollowCamera->GetCameraComponent()->GetView();
 
-			//⓪Playerの位置と注視点の位置取得
-            Vector3 playerPos  = m_player->GetPosition();
+            Vector3 playerPos = m_player->GetPosition();
 
             std::shared_ptr<FollowCameraComponent> followCamera = m_FollowCamera->GetFollowCameraComponent();
             if (!followCamera){ return; }
+
             Vector3 cameraLook = followCamera->GetLookTarget();
-
-			Vector3 playerToLook = cameraLook - playerPos;
-
-			//②このベクトル
-            // と0.0f~1.0fの間の中でどこを中心にブラーをかけるかを決定
             Vector3 blurCenter = playerPos + (cameraLook - playerPos) * 0.8f;
 
-			//③ワールド座標→スクリーン座標変換
             XMVECTOR clip = XMVector3TransformCoord(XMLoadFloat3(&blurCenter), viewMatrix * projMatrix);
 
             float w = Application::GetWidth();
@@ -622,31 +710,21 @@ void GameScene::Update(float deltatime)
                 w / 2,   h / 2,  0, 1
             };
 
-           XMVECTOR screen = XMVector3TransformCoord(clip, screenMat);
+            XMVECTOR screen = XMVector3TransformCoord(clip, screenMat);
 
             XMFLOAT3 screenPos{};
             XMStoreFloat3(&screenPos, screen);
 
-            float normalizedX = screenPos.x / w;
-            float normalizedY = screenPos.y / h;
-
-			pp.motionBlurCenter.x = normalizedX;
-			pp.motionBlurCenter.y = normalizedY;
-
-            //ブラーの伸びる長さ（調整ポイント）
+            pp.motionBlurCenter.x = screenPos.x / w;
+            pp.motionBlurCenter.y = screenPos.y / h;
             pp.motionBlurStretch = 0.5f;
-
-			pp.motionBlurStart01 = 0.2f;
-			pp.motionBlurEnd01 = 1.0f;
+            pp.motionBlurStart01 = 0.2f;
+            pp.motionBlurEnd01 = 1.0f;
 
             Renderer::SetPostProcessSettings(pp);
         }
 
-        //フレーム先頭で前フレームの登録を消す
         CollisionManager::Clear();
-
-        //新規オブジェクトをGameSceneのオブジェクト配列に追加する
-        SetSceneObject();
 
         //----------------- レティクルのドラッグ処理 -----------------
         if (Input::IsMouseLeftPressed())
@@ -667,22 +745,32 @@ void GameScene::Update(float deltatime)
             }
         }
 
-
-        //全オブジェクト Update を一回だけ実行（重要）
+        //----------------- 既存オブジェクト更新 -----------------
         for (auto& obj : m_GameObjects)
         {
-            if (obj) obj->Update(deltatime);
+            if (!obj){ continue; }
+
+            if (!obj->GetIsActive()){ continue; }
+
+            obj->Update(deltatime);
         }
 
-        //全オブジェクト Update を一回だけ実行（重要）
         for (auto& obj : m_TextureObjects)
         {
-            if (obj) obj->Update(deltatime);
+            if (!obj){ continue; }
+
+            if (!obj->GetIsActive()) { continue; }
+
+            obj->Update(deltatime);
         }
 
+        //----------------- コライダー登録 -----------------
         for (auto& obj : m_GameObjects)
         {
-            if (!obj) continue;
+            if (!obj) { continue; }
+
+            if (!obj->GetIsActive()) { continue; }
+
             auto collider = obj->GetComponent<ColliderComponent>();
             if (collider)
             {
@@ -690,12 +778,15 @@ void GameScene::Update(float deltatime)
             }
         }
 
-        //当たり判定チェック実行
+        //----------------- 当たり判定 -----------------
         CollisionManager::CheckCollisions();
 
+        //----------------- 押し出し -----------------
         for (auto& obj : m_GameObjects)
         {
-            if (!obj) { continue; }
+            if (!obj){ continue; }
+
+            if (!obj->GetIsActive()) { continue; }
 
             auto push = obj->GetComponent<PushOutComponent>();
             if (push)
@@ -704,6 +795,23 @@ void GameScene::Update(float deltatime)
             }
         }
 
+        //----------------- 削除処理を実行 -----------------
+        FinishFrameCleanup();
+
+        //----------------- 必要数を維持するよう補充 -----------------
+        if (m_enemySpawner)
+        {
+            if (m_enemyKillCount < m_clearKillCount)
+            {
+                m_enemySpawner->patrolCfg.spawnCount = m_keepPatrolEnemyCount;
+                m_enemySpawner->EnsurePatrolCount();
+            }
+        }
+
+        //----------------- 追加予約を実際に反映 -----------------
+        SetSceneObject();
+
+        //----------------- ミニマップ更新 -----------------
         if (m_miniMap)
         {
             std::vector<GameObject*> enemies;
@@ -711,10 +819,9 @@ void GameScene::Update(float deltatime)
 
             for (std::shared_ptr<GameObject> obj : m_GameObjects)
             {
-                if (!obj)
-                {
-                    continue;
-                }
+                if (!obj){ continue; }
+
+                if (!obj->GetIsActive()){ continue; }
 
                 if (auto enemy = std::dynamic_pointer_cast<Enemy>(obj))
                 {
@@ -729,17 +836,107 @@ void GameScene::Update(float deltatime)
             m_miniMap->SetEnemies(enemies);
             m_miniMap->SetBuildings(buildings);
         }
-
     }
-	auto hp = m_player->GetComponent<HitPointComponent>();
-	if (enemyCount <= 0)
+
+    auto hp = m_player->GetComponent<HitPointComponent>();
+
+    if (m_enemyKillCount >= m_clearKillCount)
     {
         SceneManager::SetCurrentScene("ResultScene");
     }
-	
-    if (hp->GetHP() <= 0)
+
+    if (hp && hp->GetHP() <= 0)
     {
         SceneManager::SetCurrentScene("ResultScene02");
+    }
+
+    static bool qPrev = false;
+
+    bool qNow = (GetAsyncKeyState('Q') & 0x8000) != 0;
+
+    if (qNow && !qPrev)
+    {
+        if (m_player)
+        {
+            Vector3 pos = m_player->GetPosition();
+
+            std::cout
+                << "{ "
+                << pos.x << "f, "
+                << pos.y << "f, "
+                << pos.z << "f },"
+                << std::endl;
+        }
+    }
+
+    qPrev = qNow;
+}
+
+void GameScene::UpdateBuildingOcclusionFade()
+{
+    if (!m_player){ return; }
+
+    if (!m_cameraComp){ return; }
+
+    Vector3 playerPos = m_player->GetPosition();
+    Vector3 cameraPos = m_cameraComp->GetOwner()->GetPosition();
+
+    Vector3 rayVec = playerPos - cameraPos;
+    float rayLength = rayVec.Length();
+
+    if (rayLength <= 0.001f){ return; }
+
+    Vector3 rayDir = rayVec;
+    rayDir.Normalize();
+
+    for (auto& weakBuilding : m_stageBuildings)
+    {
+        auto building = weakBuilding.lock();
+
+        if (!building){ continue; }
+
+        building->SetAlpha(1.0f);
+
+        bool isHit = false;
+
+        auto aabb = building->GetComponent<AABBColliderComponent>();
+
+        if (aabb)
+        {
+            float hitDistance = 0.0f;
+            Vector3 hitNormal = Vector3::Zero;
+
+            isHit = Collision::RayVsAABB(
+                cameraPos,
+                rayDir,
+                rayLength,
+                aabb->GetMin(),
+                aabb->GetMax(),
+                hitDistance,
+                hitNormal);
+        }
+
+        auto sphere = building->GetComponent<SphereColliderComponent>();
+
+        if (!isHit && sphere)
+        {
+            float hitDistance = 0.0f;
+            Vector3 hitNormal = Vector3::Zero;
+
+            isHit = Collision::RayVsSphere(
+                cameraPos,
+                rayDir,
+                rayLength,
+                sphere->GetCenter(),
+                sphere->GetRadius(),
+                hitDistance,
+                hitNormal);
+        }
+
+        if (isHit)
+        {
+            building->SetAlpha(0.25f);
+        }
     }
 }
 
@@ -752,8 +949,6 @@ void GameScene::Draw(float dt)
         Renderer::SetViewMatrix(cam->GetView());
         Renderer::SetProjectionMatrix(cam->GetProj());
     }
-
-   
 }
 
 void GameScene::DrawWorld(float deltatime)
@@ -767,11 +962,14 @@ void GameScene::DrawWorld(float deltatime)
 
     for (auto& obj : m_GameObjects)
     {
-        if (!obj) { continue; }
+        if (!obj){ continue; }
+
+        if (!obj->GetIsActive()){ continue; }
 
         if (obj.get() == m_player.get()){ continue; }
 
-        if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; }
+        if (std::dynamic_pointer_cast<Reticle>(obj)){ continue; }
+
         obj->Draw(deltatime);
     }
 
@@ -793,9 +991,13 @@ void GameScene::DrawWorld(float deltatime)
             // 各オブジェクトのコライダーを登録
             for (auto& obj : m_GameObjects)
             {
-                if (!obj) { continue; }
+                if (!obj){ continue; }
+
+                if (!obj->GetIsActive()){ continue; }
+
                 auto col = obj->GetComponent<ColliderComponent>();
-                if (!col) { continue; }
+                
+                if (!col){ continue; }
 
                 bool hit = col->IsHitThisFrame();
                 Vector4 color = hit ? Vector4(1, 0, 0, 1) : Vector4(0, 1, 0, 0.6f);
@@ -860,10 +1062,17 @@ void GameScene::DrawUI(float deltatime)
     {
         for (auto& obj : m_TextureObjects)
         {
-            if (!obj) { continue; }
-            if (std::dynamic_pointer_cast<Reticle>(obj)) { continue; } // HUD はあとで描く
+            if (!obj){ continue; }
+
+            if (!obj->GetIsActive()){ continue; }
+
+            if (std::dynamic_pointer_cast<Reticle>(obj)){ continue; }
+
             obj->Draw(deltatime);
         }
+
+        m_KillCountNumberUI.DrawNumber(m_enemyKillCount);
+        m_ClearCountNumberUI.DrawNumber(m_clearKillCount);
 
         // HUD(レティクル)を最後に描く
         if (m_reticle)
@@ -877,6 +1086,8 @@ void GameScene::DrawUI(float deltatime)
             Vector2 size(m_reticleW, m_reticleH);
             Renderer::DrawReticle(m_reticleTex->GetSRV(), m_lastDragPos, size);
         }
+
+
     }    
 }
 
@@ -932,10 +1143,7 @@ void GameScene::Uninit()
     // ---------------- GameObject 解放 ----------------
     for (auto& obj : m_GameObjects)
     {
-        if (!obj)
-        {
-            continue;
-        }
+        if (!obj){ continue; }
 
         obj->Uninit();
         obj->SetScene(nullptr);
@@ -943,10 +1151,7 @@ void GameScene::Uninit()
 
     for (auto& obj : m_TextureObjects)
     {
-        if (!obj)
-        {
-            continue;
-        }
+        if (!obj) { continue; }
 
         obj->Uninit();
         obj->SetScene(nullptr);
@@ -979,6 +1184,12 @@ void GameScene::Uninit()
     m_isDragging = false;
 }
 
+void GameScene::AddStageBuilding(const std::shared_ptr<Building>& building)
+{
+    if (!building){ return; }
+
+    m_stageBuildings.push_back(building);
+}
 
 void GameScene::AddObject(std::shared_ptr<GameObject> obj)
 {
@@ -1082,37 +1293,26 @@ void GameScene::RemoveObject(GameObject* obj)
 
 void GameScene::FinishFrameCleanup()
 {
-    //m_DeleteObjectsにあるアイテムを削除
     for (auto& delSp : m_DeleteObjects)
     {
         if (!delSp){ continue; }
 
-        //m_GameObjects から探す
         auto it = std::find_if(m_GameObjects.begin(), m_GameObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
 
         if (it != m_GameObjects.end())
         {
-            if (auto enemy = std::dynamic_pointer_cast<Enemy>(*it))
-            {
-                enemyCount -= 1;
-            }
-
-            //Uninit
             (*it)->Uninit();
-
-            //シーン参照を切る
             (*it)->SetScene(nullptr);
 
             m_GameObjects.erase(it);
         }
 
-        //m_AddObjectsにまだあるなら削除
         auto itPending = std::find_if(m_AddObjects.begin(), m_AddObjects.end(),
             [&](const std::shared_ptr<GameObject>& sp) { return sp.get() == delSp.get(); });
+
         if (itPending != m_AddObjects.end())
         {
-            // 追加前に削除予定だったオブジェクトなら Uninit して erase
             (*itPending)->Uninit();
             (*itPending)->SetScene(nullptr);
             m_AddObjects.erase(itPending);
@@ -1120,6 +1320,7 @@ void GameScene::FinishFrameCleanup()
     }
 
     m_DeleteObjects.clear();
+
 }
 
 void GameScene::SetSceneObject()
@@ -1131,4 +1332,25 @@ void GameScene::SetSceneObject()
         m_GameObjects.insert(m_GameObjects.end(), std::make_move_iterator(m_AddObjects.begin()), std::make_move_iterator(m_AddObjects.end())); 
         m_AddObjects.clear();
     } 
+}
+
+void GameScene::AddEnemyKillCount(int value)
+{
+    m_enemyKillCount += value;
+
+    if (m_enemyKillCount >= m_clearKillCount)
+    {
+        m_enemyKillCount = m_clearKillCount;
+    }
+}
+
+void GameScene::AddDefeatedPatrolEnemyCount()
+{
+    m_clearKillCount += 1;
+
+    char buf[128];
+    sprintf_s(buf, "PatrolEnemy Count = %d / %d\n",
+        m_clearKillCount,
+        m_clearKillCount);
+    OutputDebugStringA(buf);
 }

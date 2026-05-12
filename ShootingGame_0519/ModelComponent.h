@@ -34,8 +34,9 @@ public:
     //•`‰æ
     void Draw(float alpha) override;
 
-    //
+    //--------SetŠÖ”-------
     void SetColor(const Color& color);
+    void SetAlpha(float alpha);
 
 private:
     // “à•”ˆ—

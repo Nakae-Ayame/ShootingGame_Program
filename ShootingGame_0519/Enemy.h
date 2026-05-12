@@ -11,15 +11,20 @@ public:
     Enemy() = default;
     ~Enemy() override = default;
 
-    //初期化
     void Initialize() override;   
-
-    //更新
     void Update(float dt) override;   
     
-    //HP初期値設定用
+	//-------------------Set関数-------------------
     void SetInitialHP(int hp) { m_hp = hp; }
+    void SetBoundingRadius(float r) { m_boundingRadius = r; }
+    void SetOnReturnedToPool(const std::function<void(Enemy*)>& onReturned);
+    
+	//-------------------Get関数-------------------
+    float GetBoundingRadius() const { return m_boundingRadius; }
 
+    void ActivateEnemy(const DirectX::SimpleMath::Vector3& pos);
+    void DeactivateEnemy();
+    
     //ダメージ
     virtual void Damage(int amount);  
 
@@ -35,11 +40,8 @@ public:
     //衝突処理
     void OnCollision(GameObject* other) override; 
 
-    // 簡易バウンディング（丸当たり判定用）
-    void SetBoundingRadius(float r) { m_boundingRadius = r; }
-
-    float GetBoundingRadius() const { return m_boundingRadius; }
-
+    //-------------------Set関数-------------------
+    void SetOnDeathCallback(const std::function<void(Enemy*)>& callback);
 protected:
    
 
@@ -52,6 +54,11 @@ protected:
 private:
     int m_hp = 1;
     float m_boundingRadius = 1.0f; // デフォルト
+    std::function<void(Enemy*)> m_onReturnedToPool;
+    bool m_isDead = false;
+
+    //--------------死亡通知関連------------------
+    std::function<void(Enemy*)> m_onDeathCallback;
 };
 
 

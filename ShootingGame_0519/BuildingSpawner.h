@@ -18,10 +18,10 @@ struct BuildingConfig
 
     bool randomizeRotation = true;
     float minScale = 75.0f, maxScale = 75.0f; //大きさの最小/最大
-
-    float footprintSizeX = 6.0f;         //建物の足元サイズX
-    float footprintSizeZ = 6.0f;         //建物の足元サイズZ
-
+        
+    float scaleX = 1.0f;        //建物の足元サイズX
+    float scaleY = 1.0f;        //建物サイズY
+    float scaleZ = 1.0f;        //建物の足元サイズZ
 
     DirectX::SimpleMath::Vector3 baseColliderSize = { 3.0f, 17.0f, 3.0f };  //基本のコライダーサイズ
 

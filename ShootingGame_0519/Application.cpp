@@ -53,7 +53,7 @@ bool Application::InitApp()
 void Application::UninitApp()
 {
     Game::GameUninit(); // ゲームの後処理
-    Renderer::Uninit(); // DirectXのリソース解放
+    //Renderer::Uninit(); // DirectXのリソース解放
     UninitWnd(); // ウィンドウの後処理
 }
 

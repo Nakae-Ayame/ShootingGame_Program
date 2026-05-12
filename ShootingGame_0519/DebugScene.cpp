@@ -386,8 +386,8 @@ void DebugScene::InitializeStageObject()
     bc.randomizeRotation = true;
     bc.minScale = 5.0f;
     bc.maxScale = 10.0f;
-    bc.footprintSizeX = 6.0f;    //必要ならモデルに合わせて調整
-    bc.footprintSizeZ = 6.0f;
+    bc.scaleX = 6.0f;    //必要ならモデルに合わせて調整
+    bc.scaleZ = 6.0f;
     bc.baseColliderSize = { 3.0f, 17.0f, 3.0f };
     bc.maxAttemptsPerBuilding = 50;
 
@@ -629,7 +629,7 @@ void DebugScene::Update(float deltatime)
             pp = Renderer::GetPostProcessSettings();
 
             // ブラー強度（0～1）
-            pp.motionBlurAmount = currentBlur * 3.3;
+            pp.motionBlurAmount = currentBlur * 3.3f;
 
             //行列取得
             Matrix projMatrix = m_FollowCamera->GetCameraComponent()->GetProj();

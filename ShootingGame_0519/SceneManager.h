@@ -4,7 +4,6 @@
 #include <string>
 #include "NonCopyable.h"
 
-// 前方宣言
 class IScene;
 
 /// <summary>
@@ -13,43 +12,28 @@ class IScene;
 /// </summary>
 class SceneManager : NonCopyable
 {
-private:
-	//Gameを構成している全Sceneを保存している
-	static std::unordered_map
-		<std::string, std::unique_ptr<IScene>> m_scenes;
-	
-	//今稼働しているScene名を文字列で入れていく変数
-	static std::string m_currentSceneName;
-
-	static bool IsSceneChange;
-
-	static bool m_sceneChangedThisFrame;
-
 public:
-	//ゲームの中で使うシーンを登録する関数
+	//--------------Scene登録・切り替え関連------------------
 	static void RegisterScene(const std::string& name, std::unique_ptr<IScene> scene);
-
-	//現在のシーンを設定する関数(stringに設定したいScene名を入れる)
 	static void SetCurrentScene(const std::string& name);
-
-	//今のシーンを取得する
+	static void SetChangeScene(const std::string& name);
 	static std::string GetCurrentSceneName();
 
-	static void SetChangeScene(const std::string& name);
-
-	//現在シーンの更新処理をする関数
+	//--------------更新・描画・初期化・終了関連------------------
 	static void Update(float deltatime);
-
-	//現在シーンの描画処理をする関数
 	static void Draw(float deltatime);
-
-	//UIとワールドに置いてあるオブジェクトとを別で描画
 	static void DrawWorld(float deltatime);
 	static void DrawUI(float deltatime);
-
-	//シーンマネージャーの初期化をする関数
 	static void Init();
-
-	//全シーンを解放して終了処理をする関数
 	static void Uninit();
+
+private:
+	//--------------Scene内部処理関連------------------
+	static void ChangeSceneInternal(const std::string& name);
+	static void UpdateWindowTitle(const std::string& title);
+
+	//--------------Scene管理関連------------------
+	static std::unordered_map<std::string, std::unique_ptr<IScene>> m_scenes;
+	static std::string m_currentSceneName;
+	static bool m_sceneChangedThisFrame;
 };

@@ -26,13 +26,17 @@ public:
     //-------------ICameraViewProvider実装--------------
     DirectX::SimpleMath::Vector3 GetForward() const override { return m_forward; }
     DirectX::SimpleMath::Vector3 GetRight() const override { return m_right; }
+    DirectX::SimpleMath::Vector3 GetUp() const override { return m_up; }
+
     DirectX::SimpleMath::Vector3 GetAimPoint() const override { return m_aimPoint; }
     DirectX::SimpleMath::Vector3 GetPosition() const override { return m_position; }
 
     DirectX::SimpleMath::Vector3 GetAimDirectionFromReticle() const override;
+    DirectX::SimpleMath::Vector3 GetShootRayOrigin() const override { return m_position; }
+    DirectX::SimpleMath::Vector3 GetShootRayDir() const override { return GetAimDirectionFromReticle(); }
+
     DirectX::SimpleMath::Vector2 GetReticleScreen() const override { return m_reticleScreen; }
 
-    // ※GetView/GetProjはBaseにあるけど、念のためoverrideで明示しておく（抽象回避が確実）
     DirectX::SimpleMath::Matrix GetView() const override { return m_ViewMatrix; }
     DirectX::SimpleMath::Matrix GetProj() const override { return m_ProjectionMatrix; }
 
@@ -47,10 +51,11 @@ private:
     float m_sideOffset = 1.0f;
     float m_lookAhead = 30.0f;
 
-    //--------------Camera状態（Baseを触れないのでここで持つ）------------------
+    //--------------Camera状態------------------
     DirectX::SimpleMath::Vector3 m_position = DirectX::SimpleMath::Vector3::Zero;
     DirectX::SimpleMath::Vector3 m_forward = DirectX::SimpleMath::Vector3::Forward;
     DirectX::SimpleMath::Vector3 m_right = DirectX::SimpleMath::Vector3::Right;
+    DirectX::SimpleMath::Vector3 m_up = DirectX::SimpleMath::Vector3::Up;
     DirectX::SimpleMath::Vector3 m_aimPoint = DirectX::SimpleMath::Vector3::Zero;
     DirectX::SimpleMath::Vector2 m_reticleScreen = DirectX::SimpleMath::Vector2::Zero;
 };

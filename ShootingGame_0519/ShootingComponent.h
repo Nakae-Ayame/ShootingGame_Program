@@ -2,73 +2,67 @@
 #include "Component.h"
 #include "IScene.h"
 #include "ICameraViewProvider.h"
-#include "DebugRenderer.h"
 #include <memory>
 #include <SimpleMath.h>
 
 using namespace DirectX::SimpleMath;
 
 class GameObject;
-class Bullet;
 class BulletComponent;
 
 class ShootingComponent : public Component
 {
 public:
-    ShootingComponent() {};
+    ShootingComponent() = default;
+    ~ShootingComponent() override = default;
 
     void Update(float dt) override;
 
-    //------------Set関数--------------
+    //-------------Set関数--------------
     void SetScene(IScene* scene) { m_scene = scene; }
     void SetCamera(ICameraViewProvider* camera) { m_camera = camera; }
 
-    void SetBulletSpeed(float sp) { m_bulletSpeed = sp; }
-    void SetCooldown(float cd) { m_cooldown = cd; }
-    void SetSpawnOffset(float off) { m_spawnOffset = off; }
-    void SetAutoFire(bool v) { m_autoFire = v; }
-    void SetNormalBulletColor(const Vector4& c) { m_normalBulletColor = c; }
-    void SetHomingBulletColor(const Vector4& c) { m_homingBulletColor = c; }
+    void SetBulletSpeed(float speed) { m_bulletSpeed = speed; }
+    void SetCooldown(float cooldown) { m_cooldown = cooldown; }
+    void SetSpawnOffset(float offset) { m_spawnOffset = offset; }
+    void SetAutoFire(bool autoFire) { m_autoFire = autoFire; }
+    void SetNormalBulletColor(const Vector4& color) { m_normalBulletColor = color; }
+    void SetFollowAimTurnSpeed(float turnSpeed) { m_followAimTurnSpeed = turnSpeed; }
 
-	//------------Get関数--------------
+    //-------------Get関数--------------
+    Vector3 GetCurrentAimPoint() const { return m_currentAimPoint; }
+    Vector3 GetCurrentAimDirection() const { return m_currentAimDirection; }
 
-
-    //--------その他メンバ関数-------
+    //-------------その他関数--------------
     void Fire();
 
-protected:
-
-    std::shared_ptr<GameObject> CreateBullet(const Vector3& pos, const Vector3& dir,
-                                             const Vector4& color = Vector4(1,1,1,1));
-
+private:
+    //--------------弾生成関連------------------
+    std::shared_ptr<GameObject> CreateBullet(const Vector3& position, const Vector3& direction, const Vector4& color);
     void AddBulletToScene(const std::shared_ptr<GameObject>& bullet);
 
-    std::shared_ptr<GameObject> FindBestHomingTarget();
-
-    void FireHomingBullet(GameObject* owner, const std::shared_ptr<GameObject>& targetSp);
+    //--------------照準関連------------------
+    void UpdateAimInfo(GameObject* owner);
 
 private:
-    IScene* m_scene = nullptr;                  //生成した弾を追加するシーン
-    ICameraViewProvider* m_camera = nullptr;    //発射する向きを取得するカメラ関数
+    //--------------参照関連------------------
+    IScene* m_scene = nullptr;
+    ICameraViewProvider* m_camera = nullptr;
 
-    float m_cooldown = 0.1f;        //クールタイム
-    float m_timer = 0.0f;           //経過時間
-    float m_bulletSpeed = 300.0f;  //弾の速さ
-    float m_spawnOffset = 5.8f;     //発射位置のオフセット
-    
-    bool m_autoFire = false;   //自動発射モード
+    //--------------発射設定関連------------------
+    float m_cooldown = 0.1f;
+    float m_timer = 0.0f;
+    float m_bulletSpeed = 300.0f;
+    float m_spawnOffset = 14.0f;
+    bool m_autoFire = false;
 
-    //ホーミングの強さ
-    float m_homingStrength = 8.0f;
+    //--------------追従弾関連------------------
+    float m_followAimTurnSpeed = 14.0f;
 
-    //通常弾とホーミング弾で色を分ける
-    Vector4 m_normalBulletColor = Vector4(1, 1, 1, 1);          // 白っぽい
-    Vector4 m_homingBulletColor = Vector4(1, 0.3f, 0.1f, 1.0f); // 赤っぽい
+    //--------------照準情報関連------------------
+    Vector3 m_currentAimPoint = Vector3::Forward * 3000.0f;
+    Vector3 m_currentAimDirection = Vector3::Forward;
 
-    bool  m_prevHomingKeyDown = false;
-    float m_homingCurveAmount = 0.5f;
-
-    Vector3 m_muzzleLocalOffset = Vector3(0.0f, 0.0f, 2.0f);
+    //--------------見た目関連------------------
+    Vector4 m_normalBulletColor = Vector4(1, 1, 1, 1);
 };
-
-

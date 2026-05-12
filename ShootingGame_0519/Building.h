@@ -15,6 +15,9 @@ public:
     void Initialize() override;     //‰Šú‰»
     void Update(float dt) override; //XV
 
+    //--------SetŠÖ”-------
+    void SetAlpha(float alpha);
+
 private:
 
 };

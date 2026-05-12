@@ -10,10 +10,8 @@
 
 void Game::GameInit()
 {
-    //カーソル非表示＆固定
     //Application::HideCursorAndClip(); 
 
-    //DirectXのレンダラーを初期化
     Renderer::Init();
     
     Sound::Init();
@@ -22,49 +20,50 @@ void Game::GameInit()
 
     EffectManager::Init();
 
-    SceneManager::Init(); //シーンマネージャーの初期化
+    SceneManager::Init();
 
-    // デバッグUIの初期化
     DebugUI::Init(Renderer::GetDevice(), Renderer::GetDeviceContext());
 }
 
 void Game::GameUninit()
 {
-    // デバッグUIの終了処理
     DebugUI::DisposeUI();
 
-    SceneManager::Uninit(); //シーンマネージャーの終了処理
+    SceneManager::Uninit();
+
+    EffectManager::Uninit();
+
+    TransitionManager::Uninit();
 
     Sound::Uninit();
+
+    Renderer::Uninit();
 }
 
 void Game::GameUpdate(float deltaTime)
 {
     Sound::Update(deltaTime);
 
-    SceneManager::Update(deltaTime); //シーンマネージャーの終了処理 
+    SceneManager::Update(deltaTime);
 
 	EffectManager::Update(deltaTime);
 
     TransitionManager::Update(deltaTime);
-
 }
 
 void Game::GameDraw(float deltaTime)
 {    
-    ////フレームの開始
-    //Renderer::Begin();
-    //SceneManager::Draw(deltaTime);
-    //EffectManager::Draw3D(deltaTime);
-    //TransitionManager::Draw(deltaTime);
-    ////フレームの終了
-    //Renderer::End();
-    //フレームの開始
     Renderer::Begin();
+
     SceneManager::DrawWorld(deltaTime);
+
     EffectManager::Draw3D(deltaTime);
+
     Renderer::ApplyMotionBlur();
+
     SceneManager::DrawUI(deltaTime);
+
     TransitionManager::Draw(deltaTime);
+
     Renderer::End();
 }

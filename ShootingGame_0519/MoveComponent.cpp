@@ -89,8 +89,6 @@ float MoveComponent::GetBoostIntensity() const
 
 void MoveComponent::Update(float dt)
 {
-    std::cout << "Player Speed: " << m_baseSpeed << std::endl;
-
     //カメラ又は所持者がいなければ何もしない
     if (!m_camera || !GetOwner()) { return; }
 

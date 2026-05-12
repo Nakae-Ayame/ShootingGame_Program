@@ -13,18 +13,23 @@
 #include "IScene.h"
        
 std::unordered_map<std::string, std::unique_ptr<IScene>> SceneManager::m_scenes;
-
 std::string SceneManager::m_currentSceneName;
-
-bool SceneManager::IsSceneChange = false;
-
 bool SceneManager::m_sceneChangedThisFrame = false;
 
+/// <summary>
+/// Sceneを名前付きで登録する関数
+/// </summary>
+/// <param name="name">Sceneの名前</param>
+/// <param name="scene">Sceneの種類</param>
 void SceneManager::RegisterScene(const std::string& name, std::unique_ptr<IScene> scene)
 {
     m_scenes[name] = std::move(scene); //m_sceneに引数のScene名とスーマートポインタを使って登録
 }
 
+/// <summary>
+/// シーンを切り替える関数
+/// </summary>
+/// <param name="name"></param>
 void SceneManager::SetCurrentScene(const std::string& name)
 {
     // 変更前のシーンがあれば一度 Uninit
@@ -50,11 +55,19 @@ void SceneManager::SetCurrentScene(const std::string& name)
     SetWindowTextW(hWnd, wname.c_str());
 }
 
+/// <summary>
+/// 今のシーン名を返す関数
+/// </summary>
+/// <returns></returns>
 std::string SceneManager::GetCurrentSceneName()
 {
     return m_currentSceneName;
 }
 
+/// <summary>
+/// シーンが変わったというフラグ付きで切り替える関数
+/// </summary>
+/// <param name="name"></param>
 void SceneManager::SetChangeScene(const std::string& name)
 {
     // mark change so Update loop can skip remaining steps
@@ -76,6 +89,9 @@ void SceneManager::SetChangeScene(const std::string& name)
 
 }
 
+/// <summary>
+/// 
+/// </summary>
 void SceneManager::Init()
 {
     //-------------------------------------------------------------

@@ -21,6 +21,10 @@ public:
     DirectX::SimpleMath::Vector3 GetAimDirectionFromReticle() const override;
     DirectX::SimpleMath::Vector2 GetReticleScreen() const override;
 
+    DirectX::SimpleMath::Vector3 GetUp() const override;
+    DirectX::SimpleMath::Vector3 GetShootRayOrigin() const override;
+    DirectX::SimpleMath::Vector3 GetShootRayDir() const override;
+
     //-----------------------------------Setä÷êîä÷òA------------------------------------
     void SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
     void SetBoostSpeed(float speed) { m_BoostSpeed = speed; }

@@ -547,7 +547,7 @@ bool CollisionManager::RaycastWorld(
         anyHit = true;
 
         bestHit.distance = t;
-        bestHit.position = origin + d * t;
+        bestHit.point = origin + d * t;
         bestHit.normal = n;
         bestHit.hitObject = owner;
         bestHit.hitCollider = col;

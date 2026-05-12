@@ -158,6 +158,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AABBColliderComponent.cpp" />
+    <ClCompile Include="AimRotateComponent.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="BillboardEffectComponent.cpp" />
     <ClCompile Include="BoxComponent.cpp" />
@@ -174,6 +175,7 @@
     <ClCompile Include="CollisionResolver.cpp" />
     <ClCompile Include="CollisionResponse.cpp" />
     <ClCompile Include="ComputeAABBvsOBBMTV.cpp" />
+    <ClCompile Include="CsvGridLoader.cpp" />
     <ClCompile Include="DamageComponent.cpp" />
     <ClCompile Include="DebugGlobals.cpp" />
     <ClCompile Include="DebugMoveComponent.cpp" />
@@ -201,6 +203,7 @@
     <ClCompile Include="HomingComponent.cpp" />
     <ClCompile Include="MiniMapComponent.cpp" />
     <ClCompile Include="ModelResource.cpp" />
+    <ClCompile Include="NumberTextureUI.cpp" />
     <ClCompile Include="PlayAreaComponent.cpp" />
     <ClCompile Include="PushOutComponent.cpp" />
     <ClCompile Include="RailShooterPlayer.cpp" />
@@ -209,6 +212,7 @@
     <ClCompile Include="ScreenMoveComponent.cpp" />
     <ClCompile Include="Sound.cpp" />
     <ClCompile Include="SphereColliderComponent.cpp" />
+    <ClCompile Include="StageRouteBuilder.cpp" />
     <ClCompile Include="system\imgui\imgui.cpp" />
     <ClCompile Include="system\imgui\imgui_demo.cpp" />
     <ClCompile Include="system\imgui\imgui_draw.cpp" />
@@ -251,6 +255,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AABBColliderComponent.h" />
+    <ClInclude Include="AimRotateComponent.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="BaseCamera.h" />
     <ClInclude Include="BillboardEffectComponent.h" />
@@ -272,6 +277,7 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="commontypes.h" />
     <ClInclude Include="Component.h" />
+    <ClInclude Include="CsvGridLoader.h" />
     <ClInclude Include="DamageComponent.h" />
     <ClInclude Include="DebugGlobals.h" />
     <ClInclude Include="DebugMoveComponent.h" />
@@ -303,6 +309,7 @@
     <ClInclude Include="MiniMapComponent.h" />
     <ClInclude Include="ModelCache.h" />
     <ClInclude Include="ModelResource.h" />
+    <ClInclude Include="NumberTextureUI.h" />
     <ClInclude Include="PlayAreaComponent.h" />
     <ClInclude Include="PushOutComponent.h" />
     <ClInclude Include="RailShooterPlayer.h" />
@@ -312,6 +319,7 @@
     <ClInclude Include="ScreenMoveComponent.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="SphereColliderComponent.h" />
+    <ClInclude Include="StageRouteBuilder.h" />
     <ClInclude Include="system\imgui\imconfig.h" />
     <ClInclude Include="system\imgui\imgui.h" />
     <ClInclude Include="system\imgui\imgui_impl_dx11.h" />

@@ -1,16 +1,18 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <random>
 #include <SimpleMath.h>
+#include <functional>
 #include "GameObject.h"
 
 class EnemyAIComponent;
+class Enemy;
 
 struct BranchOptionConfig
 {
 	float weight = 1.0f;
 	std::vector<DirectX::SimpleMath::Vector3> loopWaypoints;
-
 };
 
 struct BranchPointConfig
@@ -74,6 +76,8 @@ public:
 	// 全部消す
 	void DestroyAll();
 
+	void PrewarmPatrolEnemies(int count);
+
 	void SetWaypoints(std::vector<DirectX::SimpleMath::Vector3> waypoint)
 	{
 		patrolWaypointSets.push_back(waypoint);
@@ -99,8 +103,13 @@ public:
 		patrolBranchPointSets.push_back(branchPoints);
 	}
 
+	//-------------Set関数--------------
+	void SetOnPatrolEnemyDefeated(const std::function<void(Enemy*)>& callback);
 private:
 	GameScene* m_scene;
+
+	// 乱数エンジン
+	std::mt19937 m_randomEngine;
 
 	//PatrolEnemyの移動中間地点の配列
 	std::vector<std::vector<DirectX::SimpleMath::Vector3>> patrolWaypointSets;
@@ -120,10 +129,19 @@ private:
 	std::vector<std::weak_ptr<GameObject>> m_spawnedTurrets;
 	std::vector<std::weak_ptr<GameObject>> m_spawnedFlees;
 
+	//--------------PatrolEnemyプール関連------------------
+	std::vector<std::shared_ptr<GameObject>> m_patrolEnemyPool;
+
 	//EnemyFactory関数
 	std::shared_ptr<GameObject> SpawnPatrolEnemy(const PatrolConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
 	std::shared_ptr<GameObject> SpawnCircleEnemy(const CircleConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
 	std::shared_ptr<GameObject> SpawnTurretEnemy(const TurretConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
 
 	std::vector<std::vector<BranchPointConfig>> patrolBranchPointSets;
+
+	std::shared_ptr<GameObject> AcquirePatrolEnemy(const PatrolConfig& cfg, const DirectX::SimpleMath::Vector3& pos);
+
+	//--------------敵撃破通知関連------------------
+	std::function<void(Enemy*)> m_onPatrolEnemyDefeated;
 };
+

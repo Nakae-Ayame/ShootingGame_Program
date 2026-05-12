@@ -31,5 +31,5 @@ private:
     Vector3 m_railUp = { 0.0f, 1.0f, 0.0f };    //上方向（固定）
     Vector3 m_railRight = { 1.0f, 0.0f, 0.0f }; //右方向（forward×up）
 
-	float m_speed = 30.0f;  //移動速度
+	float m_speed = 0.0f;  //移動速度
 };

@@ -2,6 +2,7 @@
 #include "Enemy.h"
 #include "Bullet.h"
 #include "HitPointCompornent.h"
+#include "PatrolComponent.h"
 #include "EffectManager.h"
 
 void Enemy::Initialize()
@@ -13,6 +14,34 @@ void Enemy::Update(float dt)
 {
     auto hp = GetComponent<HitPointComponent>();
     GameObject::Update(dt);
+}
+
+void Enemy::ActivateEnemy(const DirectX::SimpleMath::Vector3& pos)
+{
+    m_isDead = false;
+
+    SetPosition(pos);
+    SetActive(true);
+
+    if (auto hp = GetComponent<HitPointComponent>())
+    {
+        hp->SetMaxHP(1.0f);
+    }
+
+    if (auto col = GetComponent<ColliderComponent>())
+    {
+        col->SetEnabled(true);
+    }
+}
+
+void Enemy::DeactivateEnemy()
+{
+    SetActive(false);
+
+    if (auto col = GetComponent<ColliderComponent>())
+    {
+        col->SetEnabled(false);
+    }
 }
 
 //衝突時の処理
@@ -44,7 +73,6 @@ void Enemy::OnCollision(GameObject* other)
 
                 if (auto scene = GetScene())
                 {
-                    scene->RemoveObject(this); // GameScene::RemoveObject(GameObject*) があるはず
                     scene->RemoveObject(other);
                 }
             }
@@ -60,7 +88,6 @@ void Enemy::Damage(int amount)
     if (m_hp <= 0)
     {
         OnDeath();
-        HandleDeathCommon();
     }
 }
 
@@ -75,7 +102,26 @@ void Enemy::Heal(int amount)
 
 void Enemy::OnDeath()
 {
+    if (m_isDead)
+    {
+        return;
+    }
+
+    m_isDead = true;
+
     EffectManager::SpawnExplosion(GetPosition());
+
+    if (m_onDeathCallback)
+    {
+        m_onDeathCallback(this);
+    }
+
+    DeactivateEnemy();
+
+    if (m_onReturnedToPool)
+    {
+        m_onReturnedToPool(this);
+    }
 }
 
 void Enemy::HandleDeathCommon()
@@ -100,9 +146,19 @@ void Enemy::RemoveSelfFromScene()
     }
 }
 
+void Enemy::SetOnReturnedToPool(const std::function<void(Enemy*)>& onReturned)
+{
+    m_onReturnedToPool = onReturned;
+}
+
 //～dynamic_castとは～
 //基底クラスと派生クラスのポインタ/参照の変換
 //実行時に型のチェックをし、失敗したときは nullptr(ポインタの場合)になる
 //ポリモーフィズムが有効な型(virtual 必須)でしか使えない
 //上記の場合だとGameObject*をBullet*に変換しています
 //(今は使ってないです)
+
+void Enemy::SetOnDeathCallback(const std::function<void(Enemy*)>& callback)
+{
+    m_onDeathCallback = callback;
+}

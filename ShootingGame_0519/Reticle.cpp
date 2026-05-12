@@ -32,9 +32,10 @@ void Reticle::Initialize()
     // 初期位置：ウィンドウ中央
     RECT rc{};
     GetClientRect(Application::GetWindow(), &rc);
-    m_pos.x = static_cast<float>((rc.right - rc.left) / 2);
-    m_pos.y = static_cast<float>((rc.bottom - rc.top) / 2);
-    camera = m_pos;
+    float screenWidth = static_cast<float>(rc.right - rc.left);
+    float screenHeight = static_cast<float>(rc.bottom - rc.top);
+    float x = screenWidth * 0.5f;
+    float y = screenHeight * 0.5f;
 
     // TextureComponent は SetScreenPosition が左上基準なのでここで設定しておく
     float left = m_pos.x - m_size * 0.5f;

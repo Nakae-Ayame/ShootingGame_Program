@@ -29,6 +29,21 @@ Vector3 FreeCameraComponent::GetAimDirectionFromReticle() const
     return GetForward();
 }
 
+Vector3 FreeCameraComponent::GetUp() const
+{
+    return m_ViewMatrix.Invert().Up();
+}
+
+Vector3 FreeCameraComponent::GetShootRayOrigin() const
+{
+    return GetPosition();
+}
+
+Vector3 FreeCameraComponent::GetShootRayDir() const
+{
+    return GetForward();
+}
+
 Vector2 FreeCameraComponent::GetReticleScreen() const
 {
     float screenW = static_cast<float>(Application::GetWidth());

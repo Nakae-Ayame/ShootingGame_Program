@@ -19,6 +19,8 @@
 #include "PlayAreaComponent.h"
 #include "MoveComponent.h"
 #include "MiniMapComponent.h"
+#include "Building.h"
+#include "NumberTextureUI.h"
 
 //---------------------------------
 //ISceneを継承したGameScene
@@ -53,6 +55,8 @@ public:
 	void RemoveObject(std::shared_ptr<GameObject> obj) override {};
 	void RemoveObject(GameObject* obj) override;
 	void FinishFrameCleanup() override;
+
+	void AddStageBuilding(const std::shared_ptr<Building>& building);
 
 	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
 
@@ -101,10 +105,14 @@ private:
 	//GameScene内の2Dオブジェクトの配列
 	std::vector<std::shared_ptr<GameObject>> m_TextureObjects;
 
+	std::shared_ptr<GameObject> m_wingTrailObj;
 	 // --- レティクル関係 ---
 	std::shared_ptr<GameObject> m_reticleObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
 	std::shared_ptr<HPBar> m_HPObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
 	std::shared_ptr<TextureComponent> m_reticleTex;     // レティクルのテクスチャコンポーネント
+
+	//--------------建物フェード関連------------------
+	std::vector<std::weak_ptr<Building>> m_stageBuildings;
 
 	bool m_isDragging = false;      // ドラッグ中フラグ
 	POINT m_lastDragPos{ 0,0 };     // 最終置いたスクリーン座標
@@ -128,11 +136,23 @@ private:
 
 	Vector3 setRot = { 0,0,0 };
 
+	//削除予定
 	int enemyCount = 0;
+
+	//--------------敵管理関連------------------
+	int m_clearKillCount = 20;          // この数だけ倒したらクリア
+	int m_enemyKillCount = 10; // 倒した累計
+
+	int m_keepPatrolEnemyCount = 2;     // 常に出しておきたい数
 
 	std::shared_ptr<PlayAreaComponent> m_playArea;
 
 	std::shared_ptr<MoveComponent> m_playerMove;
+
+	//-------------撃破数関連--------------
+	void AddEnemyKillCount(int value);
+	int GetEnemyKillCount() const { return m_enemyKillCount; }
+	int GetClearKillCount() const { return m_clearKillCount; }
 	
 	//--------------ミニマップ関連------------------
 	std::shared_ptr<GameObject> m_miniMapUi;
@@ -142,6 +162,12 @@ private:
 	ID3D11ShaderResourceView* m_miniMapPlayerSRV = nullptr;
 	ID3D11ShaderResourceView* m_miniMapEnemySRV = nullptr;
 	ID3D11ShaderResourceView* m_miniMapBuildingSRV = nullptr;
+
+	//--------------撃破数UI関連------------------
+	NumberTextureUI m_KillCountNumberUI;
+	NumberTextureUI m_ClearCountNumberUI;
+
+	std::shared_ptr<GameObject> m_killLabelTexture;
 
 	//----------------初期化分業用関数--------------------
 	void InitializeDebug();
@@ -153,11 +179,14 @@ private:
 	void InitializeStageObject();
 	void InitializeUI();
 	void InitializeEffect();
-
+	void InitializeWingTrail();
 
 	//--------------Ini設定関連------------------
 	bool LoadPlayerConfigFromIni();
 	void SavePlayerConfigToIni();
+
+	//------------Update関連--------------------
+	void UpdateBuildingOcclusionFade();
 
 	//std::string m_imguiMessageLog;
 
@@ -167,7 +196,7 @@ private:
 	//--------------Player設定関連------------------
 	float m_playerMoveSpeed = 35.0f;
 	float m_playerBoostMultiplier = 2.0f;
-	float m_playerBulletSpeed = 300.0f;
+	float m_playerBulletSpeed = 5000.0f;
 	float m_playerHp = 20.0f;
 
 	//-------------Camera設定関連-----------------
@@ -178,13 +207,16 @@ private:
 	float m_cameraSensitivity = 1.0f;
 
 	//--------------Blur設定関連------------------
-	float m_blurStretch = 0.5;
-	float m_blurStartPoint = 0.2;
-	float m_blurEndPoint = 1.0;
-	float m_blurCenterX = 0.5;
-	float m_blurCenterY = 0.5;
+	float m_blurStretch = 0.5f;
+	float m_blurStartPoint = 0.2f;
+	float m_blurEndPoint = 1.0f;
+	float m_blurCenterX = 0.5f;
+	float m_blurCenterY = 0.5f;
 
 	PostProcessSettings pp;
 
 	void DebugGameDateSet();
+
+	//--------------敵撃破数関連------------------
+	void AddDefeatedPatrolEnemyCount();
 };
