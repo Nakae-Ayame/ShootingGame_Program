@@ -7,6 +7,7 @@
 #include "Sound.h"
 #include "RaycastHit.h"
 #include <SimpleMath.h>
+#include <iostream>
 
 using namespace DirectX::SimpleMath;
 
@@ -21,7 +22,7 @@ void ShootingComponent::Update(float dt)
         return;
     }
 
-    UpdateAimInfo(owner);
+    //UpdateAimInfo(owner);
 
     bool wantFire = m_autoFire || Input::IsKeyDown(VK_SPACE);
 
@@ -118,8 +119,8 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(
     const Vector4& color)
 {
     auto bullet = std::make_shared<Bullet>();
-    bullet->Initialize();
     bullet->SetPosition(position);
+    bullet->Initialize();
 
     auto bulletComp = bullet->GetComponent<BulletComponent>();
 
@@ -139,7 +140,7 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(
         bulletComp->SetBulletType(BulletComponent::PLAYER);
         bulletComp->SetColor(color);
 
-        bulletComp->SetFollowAim(true);
+        bulletComp->SetFollowAim(false);
         bulletComp->SetTurnSpeed(m_followAimTurnSpeed);
 
         bulletComp->SetAimTargetProvider([this]()
@@ -153,10 +154,7 @@ std::shared_ptr<GameObject> ShootingComponent::CreateBullet(
 
 void ShootingComponent::AddBulletToScene(const std::shared_ptr<GameObject>& bullet)
 {
-    if (!bullet)
-    {
-        return;
-    }
+    if (!bullet){ return; }
 
     if (m_scene)
     {
@@ -166,17 +164,11 @@ void ShootingComponent::AddBulletToScene(const std::shared_ptr<GameObject>& bull
 
     GameObject* owner = GetOwner();
 
-    if (!owner)
-    {
-        return;
-    }
+    if (!owner){ return; }
 
     IScene* scene = owner->GetScene();
 
-    if (!scene)
-    {
-        return;
-    }
+    if (!scene){ return; }
 
     scene->AddObject(bullet);
 }
@@ -187,31 +179,37 @@ void ShootingComponent::Fire()
     if (!owner) { return; }
     if (m_timer < m_cooldown) { return; }
 
+    // カメラ／レティクルの最新情報を使って照準点を更新する。
     UpdateAimInfo(owner);
 
-    // ★ ポイント1: Player の現在の前方ベクトルを正しく取得
-    Vector3 forward = owner->GetForward();
-    if (forward.LengthSquared() <= 1e-6f)
-    {
-        forward = Vector3::Forward;
-    }
-    forward.Normalize();
-
-    // ★ ポイント2: Player の回転を考慮した生成位置
     Vector3 ownerPos = owner->GetPosition();
-    Vector3 spawnPos = ownerPos + forward * m_spawnOffset;
+    Vector3 ownerForward = owner->GetForward();
+    if (ownerForward.LengthSquared() <= 1e-6f)
+    {
+        ownerForward = Vector3::Forward;
+    }
+    ownerForward.Normalize();
 
-    // ★ ポイント3: カメラ側の照準点から弾へのベクトルを計算
+    // 銃口は機体の前方に置き、弾の向きは銃口から照準点へ向ける。
+    Vector3 spawnPos = ownerPos + ownerForward * m_spawnOffset;
     Vector3 bulletDir = m_currentAimPoint - spawnPos;
+
 
     if (bulletDir.LengthSquared() <= 1e-6f)
     {
         bulletDir = m_currentAimDirection;
     }
+    
     if (bulletDir.LengthSquared() <= 1e-6f)
     {
-        return;
+        bulletDir = ownerForward;
     }
+
+    if (bulletDir.LengthSquared() <= 1e-6f)
+    {
+        bulletDir = Vector3::Forward;
+    }
+
     bulletDir.Normalize();
 
     auto bullet = CreateBullet(spawnPos, bulletDir, m_normalBulletColor);

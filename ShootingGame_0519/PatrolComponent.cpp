@@ -23,9 +23,11 @@ void PatrolComponent::Update(float dt)
     
     if (!m_useSpline){ return; }
 
+
+
     GameObject* owner = GetOwner();
 
-    //--- êßå‰ì_éÊìæ ---
+    //
     auto calcPoints = [&](Vector3& p0, Vector3& p1, Vector3& p2, Vector3& p3)
         {
             int i1 = static_cast<int>(m_currentIndex);
@@ -42,7 +44,6 @@ void PatrolComponent::Update(float dt)
     Vector3 p0, p1, p2, p3;
     calcPoints(p0, p1, p2, p3);
 
-    //--- spine è„ÇÃêiçs ---
     Vector3 tangent = EvalCatmullRomTangent(p0, p1, p2, p3, m_segmentT);
     float tanLen = tangent.Length();
     if (tanLen < 1e-6f)
@@ -235,6 +236,20 @@ void PatrolComponent::SetWaypoints(std::vector<Vector3>&& pts)
 {
 	m_waypoints = std::move(pts);
 	Reset();
+}
+
+void PatrolComponent::SetVelocity(const DirectX::SimpleMath::Vector3& velocity)
+{
+    float lenSq = velocity.LengthSquared();
+    if (lenSq <= 1e-6f)
+    {
+        m_speed = 0.0f;
+        return;
+    }
+
+    m_speed = std::sqrt(lenSq);
+    m_currentDir = velocity;
+    m_currentDir.Normalize();
 }
 
 void PatrolComponent::Reset()
