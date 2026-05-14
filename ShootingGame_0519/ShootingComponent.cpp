@@ -179,10 +179,9 @@ void ShootingComponent::Fire()
     if (!owner) { return; }
     if (m_timer < m_cooldown) { return; }
 
-    // カメラ／レティクルの最新情報を使って照準点を更新する。
     UpdateAimInfo(owner);
 
-    Vector3 ownerPos = owner->GetPosition();
+    //Playerの前方ベクトルを取得
     Vector3 ownerForward = owner->GetForward();
     if (ownerForward.LengthSquared() <= 1e-6f)
     {
@@ -190,26 +189,18 @@ void ShootingComponent::Fire()
     }
     ownerForward.Normalize();
 
-    // 銃口は機体の前方に置き、弾の向きは銃口から照準点へ向ける。
+
+    // Player の位置から前方に少し離れた場所で生成
+    Vector3 ownerPos = owner->GetPosition();
     Vector3 spawnPos = ownerPos + ownerForward * m_spawnOffset;
+
+    //マウス位置に向かう方向を計算
     Vector3 bulletDir = m_currentAimPoint - spawnPos;
 
-
     if (bulletDir.LengthSquared() <= 1e-6f)
     {
-        bulletDir = m_currentAimDirection;
+        bulletDir = ownerForward;  // フォールバック：Player の前方
     }
-    
-    if (bulletDir.LengthSquared() <= 1e-6f)
-    {
-        bulletDir = ownerForward;
-    }
-
-    if (bulletDir.LengthSquared() <= 1e-6f)
-    {
-        bulletDir = Vector3::Forward;
-    }
-
     bulletDir.Normalize();
 
     auto bullet = CreateBullet(spawnPos, bulletDir, m_normalBulletColor);
