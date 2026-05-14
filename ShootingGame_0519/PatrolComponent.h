@@ -8,9 +8,18 @@
 using namespace DirectX::SimpleMath;
 
 /// <summary>
-/// 指定している位置まで移動する敵のコンポーネント
-/// 今は補完などはないですが、補完スプラインで動かそうと
-/// 考えています。
+/// Waypointを基準に spline 補間された経路を移動する巡回コンポーネント。
+/// 
+/// 現在地点から spline 上の目標地点を求め、
+/// SteeringBehavior を用いて自然な旋回移動を行う。
+///
+/// ・Waypoint巡回
+/// ・Catmull-Rom spline 補間
+/// 
+/// ・未来位置予測による経路追従
+/// ・Steering による滑らかな旋回
+/// ・進行方向へ自動回転
+/// 
 /// </summary>
 class PatrolComponent : public Component , public IMovable
 {
@@ -32,19 +41,7 @@ public:
 	void SetLoop(bool loop) { m_loop = loop; }                    //ループするか（pingpongとの組合せに注意）
 	void SetPingPong(bool p) { m_pingPong = p; }
 
-	void SetVelocity(const DirectX::SimpleMath::Vector3& velocity) override
-	{
-		float lenSq = velocity.LengthSquared();
-		if (lenSq <= 1e-6f)
-		{
-			m_speed = 0.0f;
-			return;
-		}
-
-		m_speed = std::sqrt(lenSq);
-		m_currentDir = velocity;
-		m_currentDir.Normalize();
-	}
+	void SetVelocity(const DirectX::SimpleMath::Vector3& velocity) override;
 
 	//-------------Get関数--------------
 	size_t GetCurrentIndex() const { return m_currentIndex; }				  //今向かっている地点のポイントのインデックスを取得

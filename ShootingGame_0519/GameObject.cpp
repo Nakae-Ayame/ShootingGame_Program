@@ -82,7 +82,7 @@ DirectX::SimpleMath::Vector3 GameObject::GetForward() const
 #ifdef DIRECTX_SIMPLEMATH_HAS_FORWARDFUNC
     f = world.Forward();
 #else
-    f = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), world);
+    f = Vector3::TransformNormal(Vector3(0.0f, 0.0f, 1.0f), world);
 #endif
 
     if (f.LengthSquared() > 1e-6f)
@@ -105,7 +105,7 @@ DirectX::SimpleMath::Vector3 GameObject::GetRight() const
 #ifdef DIRECTX_SIMPLEMATH_HAS_RIGHTFUNC
     r = world.Right();
 #else
-    r = Vector3::Transform(Vector3(1.0f, 0.0f, 0.0f), world);
+    r = Vector3::TransformNormal(Vector3(1.0f, 0.0f, 0.0f), world);
 #endif
     if (r.LengthSquared() > 1e-6f)
     {
@@ -126,7 +126,7 @@ DirectX::SimpleMath::Vector3 GameObject::GetUp() const
 #ifdef DIRECTX_SIMPLEMATH_HAS_UPFUNC
     u = world.Up();
 #else
-    u = Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), world);
+    u = Vector3::TransformNormal(Vector3(0.0f, 1.0f, 0.0f), world);
 #endif
     if (u.LengthSquared() > 1e-6f)
     {
