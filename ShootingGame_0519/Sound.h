@@ -48,25 +48,25 @@ private:
     static bool LoadWavPcm(const std::wstring& filepath, WavData& outData);
     static const WavData* GetOrLoadSeWav(const std::wstring& filepath);
 
-    static Microsoft::WRL::ComPtr<IXAudio2> m_XAudio2;
-    static IXAudio2MasteringVoice* m_MasterVoice;
+    static Microsoft::WRL::ComPtr<IXAudio2> m_xAudio2;
+    static IXAudio2MasteringVoice* m_masterVoice;
 
     //--------------BGM関連------------------
-    static IXAudio2SourceVoice* m_BgmVoice;
-    static float m_BgmVolume;
-    static WavData m_BgmData;
+    static IXAudio2SourceVoice* m_bgmVoice;
+    static float m_bgmVolume;
+    static WavData m_bgmData;
 
     //--------------BGMフェード関連------------------
-    static bool m_IsFading;
-    static bool m_FadeIn;
-    static float m_FadeTimer;
-    static float m_FadeDuration;
-    static float m_FadeStartVolume;
-    static float m_FadeTargetVolume;
+    static bool m_isFading;
+    static bool m_fadeIn;
+    static float m_fadeTimer;
+    static float m_fadeDuration;
+    static float m_fadeStartVolume;
+    static float m_fadeTargetVolume;
 
     //--------------SE関連------------------
-    static float m_SeVolume;
-    static std::unordered_map<std::wstring, WavData> m_SeCache;
-    static std::vector<SeVoiceEntry> m_SeVoices;
+    static float m_seVolume;
+    static std::unordered_map<std::wstring, WavData> m_seCache;
+    static std::vector<SeVoiceEntry> m_seVoices;
 };
 

@@ -6,7 +6,7 @@
 #include "OBBColliderComponent.h"
 #include "HitPointCompornent.h"
 #include "BulletComponent.h"
-#include "Collision.h" 
+#include "Collision.h"
 #include "Enemy.h"
 #include "Sound.h"
 #include "TextureManager.h"
@@ -26,28 +26,28 @@ void Player::Initialize()
     //弾発射コンポーネントの生成
     auto shootComp = std::make_shared<ShootingComponent>();
     //HPコンポーネントの生成
-    auto HPComp = std::make_shared<HitPointComponent>(20);
-    HPComp->SetInvincibilityOnHit(1.5f);
+    auto hpComp = std::make_shared<HitPointComponent>(20);
+    hpComp->SetInvincibilityOnHit(1.5f);
 
     auto push = std::make_shared<PushOutComponent>();
     push->SetMass(2.0f);
 
     //コライダーコンポーネントの生成
-    m_Collider = std::make_shared<OBBColliderComponent>();
-    m_Collider -> SetSize({ 6.0f, 1.5f, 8.0f }); // モデルに合わせて調整
-    m_Collider ->isStatic = false;
+    m_collider = std::make_shared<OBBColliderComponent>();
+    m_collider -> SetSize({ 6.0f, 1.5f, 8.0f }); // モデルに合わせて調整
+    m_collider ->isStatic = false;
 
   //---------------GameObjectに追加---------------
     AddComponent(modelComp);
-    
+
     AddComponent(shootComp);
     AddComponent(moveComp);
-    
-    AddComponent(HPComp);
-    AddComponent(m_Collider);
+
+    AddComponent(hpComp);
+    AddComponent(m_collider);
     AddComponent(push);
   //----------------------------------------------
-    
+
     SetPosition({ 0.0f, 0.0f, -350.0f });
     SetRotation({ 0.0,60.0,0.0 });
     SetScale({ 1.0f, 1.0f, 1.0f });

@@ -25,10 +25,10 @@ public:
     static void UnregisterCollider(ColliderComponent* collider);
 
     //前フレームまでに登録されていた
-    //コライダーのリスト(m_Colliders)を空にする
+    //コライダーのリスト(m_colliders)を空にする
     static void Clear();
 
-    //m_Colliders に登録されたコライダーの全組み合わせを判定する関数
+    //m_colliders に登録されたコライダーの全組み合わせを判定する関数
     //判定が成功したらOnCollisionを呼び出す
     static void CheckCollisions();
 
@@ -48,7 +48,7 @@ private:
                             const DirectX::SimpleMath::Vector3& normal);
 
     //当たり判定を行いたいオブジェクトのリスト
-    static std::vector<ColliderComponent*> m_Colliders;
+    static std::vector<ColliderComponent*> m_colliders;
     static bool m_hitThisFrame;
 };
 

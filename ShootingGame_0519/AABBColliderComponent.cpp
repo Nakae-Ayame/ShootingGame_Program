@@ -15,9 +15,9 @@ Vector3 AABBColliderComponent::GetCenter() const
 
     //ローカルオフセット * オブジェクトのサイズ
     Vector3 scaledOffset = Vector3(
-        m_LocalOffset.x * owner->GetScale().x,
-        m_LocalOffset.y * owner->GetScale().y,
-        m_LocalOffset.z * owner->GetScale().z
+        m_localOffset.x * owner->GetScale().x,
+        m_localOffset.y * owner->GetScale().y,
+        m_localOffset.z * owner->GetScale().z
     );
 
 	//オブジェクトの位置にオフセットを足して返す
@@ -31,7 +31,7 @@ Vector3 AABBColliderComponent::GetCenter() const
 Vector3 AABBColliderComponent::GetSize() const
 {
     GameObject* owner = GetOwner();
-    if (!owner) 
+    if (!owner)
     {
         //フォールバックはローカルサイズ
         return Vector3::Zero;
@@ -41,9 +41,9 @@ Vector3 AABBColliderComponent::GetSize() const
 
 	//オブジェクトの大きさを反映したサイズを返す
     return Vector3(
-        m_Size.x * s.x,
-        m_Size.y * s.y,
-        m_Size.z * s.z);
+        m_size.x * s.x,
+        m_size.y * s.y,
+        m_size.z * s.z);
 }
 
 //------------------------------------------------
@@ -63,8 +63,8 @@ DirectX::SimpleMath::Matrix AABBColliderComponent::GetRotationMatrix() const
 // 計算して返す
 //------------------------------------------------
 Vector3 AABBColliderComponent::GetMin() const
-{   
-    
+{
+
     //コライダーのワールド空間での中心位置を取得
     Vector3 center = GetCenter();
 

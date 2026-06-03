@@ -2,22 +2,22 @@
 #include <fstream>
 #include <algorithm>
 
-Microsoft::WRL::ComPtr<IXAudio2> Sound::m_XAudio2;
-IXAudio2MasteringVoice* Sound::m_MasterVoice = nullptr;
-IXAudio2SourceVoice* Sound::m_BgmVoice = nullptr;
-float Sound::m_BgmVolume = 0.7f;
-Sound::WavData Sound::m_BgmData;
+Microsoft::WRL::ComPtr<IXAudio2> Sound::m_xAudio2;
+IXAudio2MasteringVoice* Sound::m_masterVoice = nullptr;
+IXAudio2SourceVoice* Sound::m_bgmVoice = nullptr;
+float Sound::m_bgmVolume = 0.7f;
+Sound::WavData Sound::m_bgmData;
 
-bool  Sound::m_IsFading = false;
-bool  Sound::m_FadeIn = true;
-float Sound::m_FadeTimer = 0.0f;
-float Sound::m_FadeDuration = 0.0f;
-float Sound::m_FadeStartVolume = 0.0f;
-float Sound::m_FadeTargetVolume = 0.0f;
+bool  Sound::m_isFading = false;
+bool  Sound::m_fadeIn = true;
+float Sound::m_fadeTimer = 0.0f;
+float Sound::m_fadeDuration = 0.0f;
+float Sound::m_fadeStartVolume = 0.0f;
+float Sound::m_fadeTargetVolume = 0.0f;
 
-float Sound::m_SeVolume = 1.0f;
-std::unordered_map<std::wstring, Sound::WavData> Sound::m_SeCache;
-std::vector<Sound::SeVoiceEntry> Sound::m_SeVoices;
+float Sound::m_seVolume = 1.0f;
+std::unordered_map<std::wstring, Sound::WavData> Sound::m_seCache;
+std::vector<Sound::SeVoiceEntry> Sound::m_seVoices;
 
 static uint32_t ReadU32(std::ifstream& ifs)
 {
@@ -35,13 +35,13 @@ static uint16_t ReadU16(std::ifstream& ifs)
 
 bool Sound::Init()
 {
-    HRESULT hr = XAudio2Create(m_XAudio2.ReleaseAndGetAddressOf(), 0, XAUDIO2_DEFAULT_PROCESSOR);
+    HRESULT hr = XAudio2Create(m_xAudio2.ReleaseAndGetAddressOf(), 0, XAUDIO2_DEFAULT_PROCESSOR);
     if (FAILED(hr))
     {
         return false;
     }
 
-    hr = m_XAudio2->CreateMasteringVoice(&m_MasterVoice);
+    hr = m_xAudio2->CreateMasteringVoice(&m_masterVoice);
     if (FAILED(hr))
     {
         return false;
@@ -53,25 +53,25 @@ bool Sound::Init()
 void Sound::Update(float dt)
 {
     // ---- BGMフェード（前に作ったやつ）----
-    if (m_IsFading)
+    if (m_isFading)
     {
-        if (dt > 0.0f && m_BgmVoice)
+        if (dt > 0.0f && m_bgmVoice)
         {
-            m_FadeTimer += dt;
+            m_fadeTimer += dt;
 
             float t = 1.0f;
-            if (m_FadeDuration > 0.0f)
+            if (m_fadeDuration > 0.0f)
             {
-                t = std::clamp(m_FadeTimer / m_FadeDuration, 0.0f, 1.0f);
+                t = std::clamp(m_fadeTimer / m_fadeDuration, 0.0f, 1.0f);
             }
 
-            float volume = m_FadeStartVolume + (m_FadeTargetVolume - m_FadeStartVolume) * t;
+            float volume = m_fadeStartVolume + (m_fadeTargetVolume - m_fadeStartVolume) * t;
             SetBgmVolume(volume);
 
             if (t >= 1.0f)
             {
-                m_IsFading = false;
-                if (!m_FadeIn)
+                m_isFading = false;
+                if (!m_fadeIn)
                 {
                     StopBgm();
                 }
@@ -79,17 +79,17 @@ void Sound::Update(float dt)
         }
         else
         {
-            m_IsFading = false;
+            m_isFading = false;
         }
     }
 
     // ---- SEの後始末（再生完了Voiceを破棄）----
-    for (size_t i = 0; i < m_SeVoices.size();)
+    for (size_t i = 0; i < m_seVoices.size();)
     {
-        IXAudio2SourceVoice* v = m_SeVoices[i].voice;
+        IXAudio2SourceVoice* v = m_seVoices[i].voice;
         if (!v)
         {
-            m_SeVoices.erase(m_SeVoices.begin() + i);
+            m_seVoices.erase(m_seVoices.begin() + i);
             continue;
         }
 
@@ -101,7 +101,7 @@ void Sound::Update(float dt)
             v->Stop();
             v->FlushSourceBuffers();
             v->DestroyVoice();
-            m_SeVoices.erase(m_SeVoices.begin() + i);
+            m_seVoices.erase(m_seVoices.begin() + i);
             continue;
         }
 
@@ -114,13 +114,13 @@ void Sound::Uninit()
     StopAllSe();
     StopBgm();
 
-    if (m_MasterVoice)
+    if (m_masterVoice)
     {
-        m_MasterVoice->DestroyVoice();
-        m_MasterVoice = nullptr;
+        m_masterVoice->DestroyVoice();
+        m_masterVoice = nullptr;
     }
 
-    m_XAudio2.Reset();
+    m_xAudio2.Reset();
 }
 
 
@@ -129,18 +129,18 @@ void Sound::FadeInBgm(float targetVolume, float durationSec)
     targetVolume = std::clamp(targetVolume, 0.0f, 1.0f);
     durationSec = max(durationSec, 0.0f);
 
-    if (!m_BgmVoice)
+    if (!m_bgmVoice)
     {
         return;
     }
 
-    m_IsFading = true;
-    m_FadeIn = true;
-    m_FadeTimer = 0.0f;
-    m_FadeDuration = durationSec;
+    m_isFading = true;
+    m_fadeIn = true;
+    m_fadeTimer = 0.0f;
+    m_fadeDuration = durationSec;
 
-    m_FadeStartVolume = 0.0f;
-    m_FadeTargetVolume = targetVolume;
+    m_fadeStartVolume = 0.0f;
+    m_fadeTargetVolume = targetVolume;
 
     SetBgmVolume(0.0f);
 }
@@ -149,24 +149,24 @@ void Sound::FadeOutBgm(float durationSec)
 {
     durationSec = max(durationSec, 0.0f);
 
-    if (!m_BgmVoice)
+    if (!m_bgmVoice)
     {
         return;
     }
 
-    m_IsFading = true;
-    m_FadeIn = false;
-    m_FadeTimer = 0.0f;
-    m_FadeDuration = durationSec;
+    m_isFading = true;
+    m_fadeIn = false;
+    m_fadeTimer = 0.0f;
+    m_fadeDuration = durationSec;
 
-    m_FadeStartVolume = m_BgmVolume;
-    m_FadeTargetVolume = 0.0f;
+    m_fadeStartVolume = m_bgmVolume;
+    m_fadeTargetVolume = 0.0f;
 }
 
 const Sound::WavData* Sound::GetOrLoadSeWav(const std::wstring& filepath)
 {
-    auto it = m_SeCache.find(filepath);
-    if (it != m_SeCache.end())
+    auto it = m_seCache.find(filepath);
+    if (it != m_seCache.end())
     {
         return &it->second;
     }
@@ -177,7 +177,7 @@ const Sound::WavData* Sound::GetOrLoadSeWav(const std::wstring& filepath)
         return nullptr;
     }
 
-    auto res = m_SeCache.emplace(filepath, std::move(wav));
+    auto res = m_seCache.emplace(filepath, std::move(wav));
     return &res.first->second;
 }
 
@@ -277,7 +277,7 @@ bool Sound::LoadWavPcm(const std::wstring& filepath, WavData& outData)
 
 bool Sound::PlayBgmWav(const std::wstring& filepath, float volume)
 {
-    if (!m_XAudio2)
+    if (!m_xAudio2)
     {
         return false;
     }
@@ -290,32 +290,32 @@ bool Sound::PlayBgmWav(const std::wstring& filepath, float volume)
         return false;
     }
 
-    m_BgmData = std::move(wav);
+    m_bgmData = std::move(wav);
 
-    HRESULT hr = m_XAudio2->CreateSourceVoice(&m_BgmVoice, &m_BgmData.format);
+    HRESULT hr = m_xAudio2->CreateSourceVoice(&m_bgmVoice, &m_bgmData.format);
     if (FAILED(hr))
     {
-        m_BgmVoice = nullptr;
+        m_bgmVoice = nullptr;
         return false;
     }
 
     XAUDIO2_BUFFER buf{};
-    buf.AudioBytes = static_cast<UINT32>(m_BgmData.buffer.size());
-    buf.pAudioData = m_BgmData.buffer.data();
+    buf.AudioBytes = static_cast<UINT32>(m_bgmData.buffer.size());
+    buf.pAudioData = m_bgmData.buffer.data();
     buf.Flags = XAUDIO2_END_OF_STREAM;
     buf.LoopCount = XAUDIO2_LOOP_INFINITE;
 
-    hr = m_BgmVoice->SubmitSourceBuffer(&buf);
+    hr = m_bgmVoice->SubmitSourceBuffer(&buf);
     if (FAILED(hr))
     {
         StopBgm();
         return false;
     }
 
-    m_BgmVolume = std::clamp(volume, 0.0f, 1.0f);
-    m_BgmVoice->SetVolume(m_BgmVolume);
+    m_bgmVolume = std::clamp(volume, 0.0f, 1.0f);
+    m_bgmVoice->SetVolume(m_bgmVolume);
 
-    hr = m_BgmVoice->Start();
+    hr = m_bgmVoice->Start();
     if (FAILED(hr))
     {
         StopBgm();
@@ -327,7 +327,7 @@ bool Sound::PlayBgmWav(const std::wstring& filepath, float volume)
 
 bool Sound::PlaySeWav(const std::wstring& filepath, float volume)
 {
-    if (!m_XAudio2)
+    if (!m_xAudio2)
     {
         return false;
     }
@@ -339,7 +339,7 @@ bool Sound::PlaySeWav(const std::wstring& filepath, float volume)
     }
 
     IXAudio2SourceVoice* seVoice = nullptr;
-    HRESULT hr = m_XAudio2->CreateSourceVoice(&seVoice, &wav->format);
+    HRESULT hr = m_xAudio2->CreateSourceVoice(&seVoice, &wav->format);
     if (FAILED(hr) || !seVoice)
     {
         return false;
@@ -357,7 +357,7 @@ bool Sound::PlaySeWav(const std::wstring& filepath, float volume)
         return false;
     }
 
-    float finalVol = std::clamp(volume, 0.0f, 1.0f) * std::clamp(m_SeVolume, 0.0f, 1.0f);
+    float finalVol = std::clamp(volume, 0.0f, 1.0f) * std::clamp(m_seVolume, 0.0f, 1.0f);
     seVoice->SetVolume(finalVol);
 
     hr = seVoice->Start();
@@ -370,7 +370,7 @@ bool Sound::PlaySeWav(const std::wstring& filepath, float volume)
     SeVoiceEntry entry{};
     entry.voice = seVoice;
     entry.wav = wav;
-    m_SeVoices.push_back(entry);
+    m_seVoices.push_back(entry);
 
     return true;
 }
@@ -378,44 +378,44 @@ bool Sound::PlaySeWav(const std::wstring& filepath, float volume)
 
 void Sound::StopBgm()
 {
-    if (m_BgmVoice)
+    if (m_bgmVoice)
     {
-        m_BgmVoice->Stop();
-        m_BgmVoice->FlushSourceBuffers();
-        m_BgmVoice->DestroyVoice();
-        m_BgmVoice = nullptr;
+        m_bgmVoice->Stop();
+        m_bgmVoice->FlushSourceBuffers();
+        m_bgmVoice->DestroyVoice();
+        m_bgmVoice = nullptr;
     }
 
-    m_BgmData.buffer.clear();
+    m_bgmData.buffer.clear();
 }
 
 void Sound::SetBgmVolume(float volume)
 {
-    m_BgmVolume = std::clamp(volume, 0.0f, 1.0f);
-    if (m_BgmVoice)
+    m_bgmVolume = std::clamp(volume, 0.0f, 1.0f);
+    if (m_bgmVoice)
     {
-        m_BgmVoice->SetVolume(m_BgmVolume);
+        m_bgmVoice->SetVolume(m_bgmVolume);
     }
 }
 
 float Sound::GetBgmVolume()
 {
-    return m_BgmVolume;
+    return m_bgmVolume;
 }
 
 void Sound::SetSeVolume(float volume)
 {
-    m_SeVolume = std::clamp(volume, 0.0f, 1.0f);
+    m_seVolume = std::clamp(volume, 0.0f, 1.0f);
 }
 
 float Sound::GetSeVolume()
 {
-    return m_SeVolume;
+    return m_seVolume;
 }
 
 void Sound::StopAllSe()
 {
-    for (auto& e : m_SeVoices)
+    for (auto& e : m_seVoices)
     {
         if (e.voice)
         {
@@ -425,12 +425,12 @@ void Sound::StopAllSe()
             e.voice = nullptr;
         }
     }
-    m_SeVoices.clear();
+    m_seVoices.clear();
 }
 
 void Sound::ClearSeCache()
 {
     // 再生中のSEがあると参照が残るので止めてから消す
     StopAllSe();
-    m_SeCache.clear();
+    m_seCache.clear();
 }

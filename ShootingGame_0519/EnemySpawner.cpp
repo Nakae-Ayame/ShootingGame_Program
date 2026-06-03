@@ -37,7 +37,7 @@ static int GetRandomIndex(std::mt19937& engine, int maxValue)
 /// <param name="pos">敵のスポーン位置</param>
 /// <returns></returns>
 std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(
-    const PatrolConfig& cfg, 
+    const PatrolConfig& cfg,
     const DirectX::SimpleMath::Vector3& pos)
 {
     //Enemyを生成し、初期設定を行う
@@ -140,12 +140,12 @@ std::shared_ptr<GameObject> EnemySpawner::SpawnPatrolEnemy(
     auto push = std::make_shared<PushOutComponent>();
     push->SetMass(5.0f);
     enemy->AddComponent(push);
-   
+
     //初期化
     enemy->Initialize();
 
     //シーンに登録
-    m_scene->AddObject(enemy); 
+    m_scene->AddObject(enemy);
 
     return enemy;
 }
@@ -324,7 +324,7 @@ void EnemySpawner::EnsureTurretCount()
     for (auto& w : m_spawnedTurrets)
     {
         //このptrが生きているかどうか
-        if (auto sp = w.lock()) 
+        if (auto sp = w.lock())
         {
             live.push_back(sp);
         }
@@ -343,7 +343,7 @@ void EnemySpawner::EnsureTurretCount()
     int want = turretCfg.spawnCount;
 
     //今の生成数が指定数より少ないなら
-    if (current < want) 
+    if (current < want)
     {
         int baseIndex = current;
 
@@ -351,7 +351,7 @@ void EnemySpawner::EnsureTurretCount()
         {
             int slot = baseIndex + i;
 
-            const auto& selectedPos = TurretPosSets[slot % TurretPosSets.size()];
+            const auto& selectedPos = turretPosSets[slot % turretPosSets.size()];
 
             TurretConfig localCfg = turretCfg;  //コピーして編集
             localCfg.pos = selectedPos;         //この敵用にウェイポイントをセット
@@ -367,7 +367,7 @@ void EnemySpawner::EnsureTurretCount()
         {
             if (auto sp = m_spawnedTurrets.back().lock())
             {
-                m_scene->m_DeleteObjects.push_back(sp);
+                m_scene->m_deleteObjects.push_back(sp);
             }
             m_spawnedTurrets.pop_back();
         }
@@ -386,7 +386,7 @@ void EnemySpawner::EnsureCircleCount()
             live.push_back(sp);
         }
     }
-    
+
     //空にする
     m_spawnedCircles.clear();
 
@@ -434,9 +434,9 @@ void EnemySpawner::EnsureCircleCount()
         int removeCount = current - want;
         for (int i = 0; i < removeCount; ++i)
         {
-            if (auto sp = m_spawnedCircles.back().lock()) 
+            if (auto sp = m_spawnedCircles.back().lock())
             {
-                m_scene->m_DeleteObjects.push_back(sp);
+                m_scene->m_deleteObjects.push_back(sp);
             }
             m_spawnedCircles.pop_back();
         }
@@ -469,11 +469,11 @@ void EnemySpawner::ApplyCircleSettingsToAll()
     for (auto& w : m_spawnedCircles)
     {
         //今このptrが生きていたら
-        if (auto sp = w.lock()) 
+        if (auto sp = w.lock())
         {
             //そのptrからComponentを取ってきて
             auto circ = sp->GetComponent<CirculPatrolComponent>();
-            if (circ) 
+            if (circ)
             {
                 //あったら現段階での設定をする
                 circ->SetCenter(circleCfg.center);
@@ -490,7 +490,7 @@ void EnemySpawner::ApplyTurretSettingsToAll()
     for (auto& w : m_spawnedTurrets)
     {
         //今このptrが生きていたら
-        if (auto sp = w.lock()) 
+        if (auto sp = w.lock())
         {
             //そのptrからComponentを取ってきて
             auto turt = sp->GetComponent<FixedTurretComponent>();
@@ -511,17 +511,17 @@ void EnemySpawner::DestroyAll()
         if (auto sp = w.lock())
         {
             //消す
-            m_scene->m_DeleteObjects.push_back(sp);
+            m_scene->m_deleteObjects.push_back(sp);
         }
     }
-        
+
     for (auto& w : m_spawnedCircles)
     {
         //今このptrが生きていたら
         if (auto sp = w.lock())
         {
             //消す
-            m_scene->m_DeleteObjects.push_back(sp);
+            m_scene->m_deleteObjects.push_back(sp);
         }
     }
 

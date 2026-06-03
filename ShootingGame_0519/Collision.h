@@ -4,7 +4,7 @@
 #include "AABBColliderComponent.h"
 #include "OBBColliderComponent.h"
 #include "SphereColliderComponent.h"
-#include "CollisionHelpers.h" 
+#include "CollisionHelpers.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -45,7 +45,7 @@ namespace Collision
     // AABB vs AABB （コンポーネント版）
     // ---------------------------------------
     inline bool IsAABBHit(
-        const AABBColliderComponent* a, 
+        const AABBColliderComponent* a,
         const AABBColliderComponent* b)
     {
         const Vector3 aMin = a->GetMin();
@@ -75,13 +75,13 @@ namespace Collision
         Vector3 tWorld = centerB - centerA;
 
         // R 行列 = Ai dot Bj
-        float R[3][3], AbsR[3][3];
+        float R[3][3], absR[3][3];
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
             {
                 R[i][j] = axesA[i].Dot(axesB[j]);
-                AbsR[i][j] = std::fabs(R[i][j]) + EPSILON;
+                absR[i][j] = std::fabs(R[i][j]) + EPSILON;
             }
         }
 
@@ -97,14 +97,14 @@ namespace Collision
         for (int i = 0; i < 3; ++i)
         {
             ra = aHalf[i];
-            rb = bHalf[0] * AbsR[i][0] + bHalf[1] * AbsR[i][1] + bHalf[2] * AbsR[i][2];
+            rb = bHalf[0] * absR[i][0] + bHalf[1] * absR[i][1] + bHalf[2] * absR[i][2];
             if (std::fabs(tA[i]) > ra + rb) return false;
         }
 
         // --- B の軸チェック ---
         for (int i = 0; i < 3; ++i)
         {
-            ra = aHalf[0] * AbsR[0][i] + aHalf[1] * AbsR[1][i] + aHalf[2] * AbsR[2][i];
+            ra = aHalf[0] * absR[0][i] + aHalf[1] * absR[1][i] + aHalf[2] * absR[2][i];
             rb = bHalf[i];
             float tProj = std::fabs(tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i]);
             if (tProj > ra + rb) return false;
@@ -120,8 +120,8 @@ namespace Collision
                 int j1 = (j + 1) % 3;
                 int j2 = (j + 2) % 3;
 
-                ra = aHalf[i1] * AbsR[i2][j] + aHalf[i2] * AbsR[i1][j];
-                rb = bHalf[j1] * AbsR[i][j2] + bHalf[j2] * AbsR[i][j1];
+                ra = aHalf[i1] * absR[i2][j] + aHalf[i2] * absR[i1][j];
+                rb = bHalf[j1] * absR[i][j2] + bHalf[j2] * absR[i][j1];
 
                 float tProj = std::fabs(tA[i2] * R[i1][j] - tA[i1] * R[i2][j]);
                 if (tProj > ra + rb) return false;
@@ -159,7 +159,7 @@ namespace Collision
     // AABB を「回転なしの OBB」として流用
     // ---------------------------------------------
     inline bool IsAABBvsOBBHit(
-        const AABBColliderComponent* aabb, 
+        const AABBColliderComponent* aabb,
         const OBBColliderComponent* obb)
     {
         const Vector3 aMin = aabb->GetMin();
@@ -167,7 +167,7 @@ namespace Collision
         const Vector3 centerA = (aMin + aMax) * 0.5f;
         const Vector3 halfA   = (aMax - aMin) * 0.5f;
 
-        Vector3 axesA[3] = 
+        Vector3 axesA[3] =
         {
             Vector3(1,0,0), //world X
             Vector3(0,1,0), //world Y

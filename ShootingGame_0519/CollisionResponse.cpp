@@ -42,14 +42,14 @@
 //
 //        Vector3 tWorld = centerB - centerA;
 //
-//        float R[3][3], AbsR[3][3];
+//        float R[3][3], absR[3][3];
 //        const float EPS = 1e-6f;
 //        for (int i = 0; i < 3; ++i)
 //        {
 //            for (int j = 0; j < 3; ++j)
 //            {
 //                R[i][j] = axesA[i].Dot(axesB[j]);
-//                AbsR[i][j] = std::fabs(R[i][j]) + EPS;
+//                absR[i][j] = std::fabs(R[i][j]) + EPS;
 //            }
 //        }
 //
@@ -81,7 +81,7 @@
 //        for (int i = 0; i < 3; ++i)
 //        {
 //            float ra = aHalf[i];
-//            float rb = bHalf[0] * AbsR[i][0] + bHalf[1] * AbsR[i][1] + bHalf[2] * AbsR[i][2];
+//            float rb = bHalf[0] * absR[i][0] + bHalf[1] * absR[i][1] + bHalf[2] * absR[i][2];
 //            float overlap = ra + rb - std::fabs(tA[i]);
 //            Vector3 dir = axesA[i] * (tA[i] >= 0.0f ? 1.0f : -1.0f);
 //            if (!consider(axesA[i], overlap, dir)) return false;
@@ -90,7 +90,7 @@
 //        // B の軸
 //        for (int i = 0; i < 3; ++i)
 //        {
-//            float ra = aHalf[0] * AbsR[0][i] + aHalf[1] * AbsR[1][i] + aHalf[2] * AbsR[2][i];
+//            float ra = aHalf[0] * absR[0][i] + aHalf[1] * absR[1][i] + aHalf[2] * absR[2][i];
 //            float proj = std::fabs(tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i]);
 //            float overlap = ra + bHalf[i] - proj;
 //            float projVal = (tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i]);
@@ -111,8 +111,8 @@
 //                int i1 = (i + 1) % 3, i2 = (i + 2) % 3;
 //                int j1 = (j + 1) % 3, j2 = (j + 2) % 3;
 //
-//                float ra = aHalf[i1] * AbsR[i2][j] + aHalf[i2] * AbsR[i1][j];
-//                float rb = bHalf[j1] * AbsR[i][j2] + bHalf[j2] * AbsR[i][j1];
+//                float ra = aHalf[i1] * absR[i2][j] + aHalf[i2] * absR[i1][j];
+//                float rb = bHalf[j1] * absR[i][j2] + bHalf[j2] * absR[i][j1];
 //
 //                float tProj = std::fabs(tA[i2] * R[i1][j] - tA[i1] * R[i2][j]);
 //                float overlap = ra + rb - tProj;
@@ -210,7 +210,7 @@
 //        auto mvB = objB->GetComponent<MoveComponent>();
 //
 //        // 配分ルール:
-//        // - A が動的で B が静的なら A に全押し出しを与える（pushA） 
+//        // - A が動的で B が静的なら A に全押し出しを与える（pushA）
 //        // - 両方動的なら半分ずつ（pushA/2 と pushB/2）
 //        // - 両方静的なら A を全押し出し（後で必要なら改変）
 //        if (mvA && !mvB)

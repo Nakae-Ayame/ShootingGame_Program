@@ -11,17 +11,17 @@ using namespace DirectX::SimpleMath;
 
 Vector3 FreeCameraComponent::GetForward() const
 {
-    return m_ViewMatrix.Invert().Forward();
+    return m_viewMatrix.Invert().Forward();
 }
 
 Vector3 FreeCameraComponent::GetRight() const
 {
-    return m_ViewMatrix.Invert().Right();
+    return m_viewMatrix.Invert().Right();
 }
 
 Vector3 FreeCameraComponent::GetAimPoint() const
 {
-    return m_Position + GetForward() * m_AimDistance;
+    return m_position + GetForward() * m_aimDistance;
 }
 
 Vector3 FreeCameraComponent::GetAimDirectionFromReticle() const
@@ -31,7 +31,7 @@ Vector3 FreeCameraComponent::GetAimDirectionFromReticle() const
 
 Vector3 FreeCameraComponent::GetUp() const
 {
-    return m_ViewMatrix.Invert().Up();
+    return m_viewMatrix.Invert().Up();
 }
 
 Vector3 FreeCameraComponent::GetShootRayOrigin() const
@@ -54,10 +54,10 @@ Vector2 FreeCameraComponent::GetReticleScreen() const
 void FreeCameraComponent::Initialize()
 {
     UpdateProjectionIfNeeded();
-    m_Position = Vector3(0.0f, 0.0f, 0.0f);
-    m_ViewMatrix = Matrix::CreateLookAt(
-        m_Position,
-        m_Position + Vector3::Forward,
+    m_position = Vector3(0.0f, 0.0f, 0.0f);
+    m_viewMatrix = Matrix::CreateLookAt(
+        m_position,
+        m_position + Vector3::Forward,
         Vector3::Up
     );
 }
@@ -74,10 +74,10 @@ void FreeCameraComponent::Update(float dt)
     Vector3 forward = Vector3::Forward;
     Vector3 right = Vector3::Right;
 
-    float speed = m_MoveSpeed;
+    float speed = m_moveSpeed;
     if (Input::IsKeyDown(VK_SHIFT))
     {
-        speed = m_BoostSpeed;
+        speed = m_boostSpeed;
     }
 
     Vector3 move = Vector3::Zero;
@@ -85,29 +85,29 @@ void FreeCameraComponent::Update(float dt)
     if (move.LengthSquared() > 1e-6f)
     {
         move.Normalize();
-        m_Position += move * speed * dt;
+        m_position += move * speed * dt;
     }
 
-    m_ViewMatrix = Matrix::CreateLookAt(
-        m_Position,
-        m_Position + Vector3::Forward,
+    m_viewMatrix = Matrix::CreateLookAt(
+        m_position,
+        m_position + Vector3::Forward,
         Vector3::Up
     );
 
 
-    Renderer::SetViewMatrix(m_ViewMatrix);
-    Renderer::SetProjectionMatrix(m_ProjectionMatrix);
+    Renderer::SetViewMatrix(m_viewMatrix);
+    Renderer::SetProjectionMatrix(m_projectionMatrix);
 }
 
 void FreeCameraComponent::UpdateViewMatrix()
 {
-    Matrix rot = Matrix::CreateFromYawPitchRoll(m_Yaw, m_Pitch, 0.0f);
+    Matrix rot = Matrix::CreateFromYawPitchRoll(m_yaw, m_pitch, 0.0f);
     Vector3 forward = Vector3::TransformNormal(Vector3::Forward, rot);
     if (forward.LengthSquared() > 1e-6f)
     {
-        forward.Normalize(); 
+        forward.Normalize();
     }
 
-    Vector3 lookAt = m_Position + forward;
-    m_ViewMatrix = Matrix::CreateLookAt(m_Position, lookAt, Vector3::Up);
+    Vector3 lookAt = m_position + forward;
+    m_viewMatrix = Matrix::CreateLookAt(m_position, lookAt, Vector3::Up);
 }

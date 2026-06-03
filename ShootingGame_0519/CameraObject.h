@@ -21,14 +21,14 @@ public:
 	{
 		auto comp = std::make_shared<T>();
 		AddComponent(comp);
-		m_CameraComponent = comp;
+		m_cameraComponent = comp;
 		return comp;
 	}
 
 	//---------------------Getä÷êîä÷òA-------------------------
-	std::shared_ptr<CameraComponentBase> GetCameraComponent() const { return m_CameraComponent; }
-	std::shared_ptr<FollowCameraComponent> GetFollowCameraComponent() const { return std::dynamic_pointer_cast<FollowCameraComponent>(m_CameraComponent);};
+	std::shared_ptr<CameraComponentBase> GetCameraComponent() const { return m_cameraComponent; }
+	std::shared_ptr<FollowCameraComponent> GetFollowCameraComponent() const { return std::dynamic_pointer_cast<FollowCameraComponent>(m_cameraComponent);};
 
 private:
-	std::shared_ptr<CameraComponentBase> m_CameraComponent;
+	std::shared_ptr<CameraComponentBase> m_cameraComponent;
 };

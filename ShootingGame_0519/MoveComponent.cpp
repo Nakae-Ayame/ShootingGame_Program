@@ -1,4 +1,4 @@
-ï»¿#include "MoveComponent.h"
+#include "MoveComponent.h"
 #include "PlayAreaComponent.h"
 #include "GameObject.h"
 #include "Application.h"
@@ -53,7 +53,7 @@ void MoveComponent::Initialize()
 {
     if (GetOwner())
     {
-        //å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã®yawã‚’ä¿å­˜
+        //‘OƒtƒŒ[ƒ€‚Ìyaw‚ğ•Û‘¶
         m_prevYaw = GetOwner()->GetRotation().y;
     }
     else
@@ -89,66 +89,66 @@ float MoveComponent::GetBoostIntensity() const
 
 void MoveComponent::Update(float dt)
 {
-    //ã‚«ãƒ¡ãƒ©åˆã¯æ‰€æŒè€…ãŒã„ãªã‘ã‚Œã°ä½•ã‚‚ã—ãªã„
+    //ƒJƒƒ‰–”‚ÍŠÒ‚ª‚¢‚È‚¯‚ê‚Î‰½‚à‚µ‚È‚¢
     if (!m_camera || !GetOwner()) { return; }
 
     GameObject* owner = GetOwner();
 
-    //ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®æŠ¼ã—å‡ºã—é‡ã¨ãƒ•ãƒ©ã‚°ãƒªã‚»ãƒƒãƒˆ
-    m_totalPushThisFrame = Vector3::Zero;       
+    //ƒIƒuƒWƒFƒNƒg‚Ì‰Ÿ‚µo‚µ—Ê‚Æƒtƒ‰ƒOƒŠƒZƒbƒg
+    m_totalPushThisFrame = Vector3::Zero;
 	m_hasPushThisFrame = false;
 
-    //ç¾åœ¨ä½ç½®ãƒ»å›è»¢å–å¾—
+    //Œ»İˆÊ’uE‰ñ“]æ“¾
     Vector3 pos = owner->GetPosition();
     Vector3 rot = owner->GetRotation();
 
-	//ç¾åœ¨ã®yawãƒ»pitchå–å¾—
+	//Œ»İ‚ÌyawEpitchæ“¾
     float currentYaw = rot.y;
     float currentPitch = m_currentPitch;
 
-    //------------ãƒ–ãƒ¼ã‚¹ãƒˆå…¥åŠ›å‡¦ç†------------
+    //------------ƒu[ƒXƒg“ü—Íˆ—------------
     bool keyDown = Input::IsKeyPressed(m_boostKey);
     bool startBoost = false;
 
-    //ã‚­ãƒ¼ãŒæŠ¼ã•ã‚Œã¦ã„ã‚‹&ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³ãŒçµ‚ã‚ã£ã¦ã„ã‚‹&å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã§ã‚­ãƒ¼ãŒæŠ¼ã•ã‚Œã¦ã„ãªã„ã‹
+    //ƒL[‚ª‰Ÿ‚³‚ê‚Ä‚¢‚é&ƒN[ƒ‹ƒ_ƒEƒ“‚ªI‚í‚Á‚Ä‚¢‚é&‘OƒtƒŒ[ƒ€‚ÅƒL[‚ª‰Ÿ‚³‚ê‚Ä‚¢‚È‚¢‚©
     if (keyDown && !m_prevBoostKeyDown && m_cooldownTimer <= 0.0f && !m_isBoosting)
     {
         startBoost = true;
     }
-    //ãƒ–ãƒ¼ã‚¹ãƒˆæƒ…å ±ã‚’è¨˜éŒ²
+    //ƒu[ƒXƒgî•ñ‚ğ‹L˜^
     m_prevBoostKeyDown = keyDown;
 
-    //---------ãƒ–ãƒ¼ã‚¹ãƒˆãŒã‚¹ã‚¿ãƒ¼ãƒˆã—ãŸãªã‚‰---------
+    //---------ƒu[ƒXƒg‚ªƒXƒ^[ƒg‚µ‚½‚È‚ç---------
     if (startBoost)
     {
-        m_isBoosting = true;    //ãƒ–ãƒ¼ã‚¹ãƒˆé–‹å§‹
-        m_boostTimer = 0.0f;    //çµŒéæ™‚é–“ãƒªã‚»ãƒƒãƒˆ
-		m_recoverTimer = -1.0f; //å›å¾©æ™‚é–“ãƒªã‚»ãƒƒãƒˆ
+        m_isBoosting = true;    //ƒu[ƒXƒgŠJn
+        m_boostTimer = 0.0f;    //Œo‰ßŠÔƒŠƒZƒbƒg
+		m_recoverTimer = -1.0f; //‰ñ•œŠÔƒŠƒZƒbƒg
 
 		m_cooldownTimer = m_boostCooldown;
 
-        //ã‚«ãƒ¡ãƒ©ã®å‹•ãã«ã‚‚é–¢ä¿‚ãŒã‚ã‚‹ã®ã§é€ã‚‹
+        //ƒJƒƒ‰‚Ì“®‚«‚É‚àŠÖŒW‚ª‚ ‚é‚Ì‚Å‘—‚é
         if (m_camera)
         {
             m_camera->SetBoostState(true);
         }
     }
 
-    //---------------ãƒ–ãƒ¼ã‚¹ãƒˆä¸­ãªã‚‰---------------
+    //---------------ƒu[ƒXƒg’†‚È‚ç---------------
     if (m_isBoosting)
     {
-        //ã‚¿ã‚¤ãƒ åŠ ç®—
+        //ƒ^ƒCƒ€‰ÁZ
         m_boostTimer += dt;
 
-        //ãƒ–ãƒ¼ã‚¹ãƒˆãŒçµ‚ã‚ã£ãŸã‚‰
+        //ƒu[ƒXƒg‚ªI‚í‚Á‚½‚ç
         if (m_boostTimer >= m_boostSeconds)
         {
             m_isBoosting = false;
 
-			//å›å¾©æ™‚é–“é–‹å§‹
+			//‰ñ•œŠÔŠJn
             m_recoverTimer = 0.0f;
 
-            //ã‚«ãƒ¡ãƒ©ã®å‹•ãã«ã‚‚é–¢ä¿‚ãŒã‚ã‚‹ã®ã§é€ã‚‹
+            //ƒJƒƒ‰‚Ì“®‚«‚É‚àŠÖŒW‚ª‚ ‚é‚Ì‚Å‘—‚é
             if (m_camera)
             {
                 m_camera->SetBoostState(false);
@@ -156,7 +156,7 @@ void MoveComponent::Update(float dt)
         }
     }
 
-    //ã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ãŒ0ç§’ã‚ˆã‚Šå¤§ãã„ãªã‚‰
+    //ƒN[ƒ‹ƒ^ƒCƒ€‚ª0•b‚æ‚è‘å‚«‚¢‚È‚ç
     if (m_cooldownTimer > 0.0f)
     {
         m_cooldownTimer -= dt;
@@ -166,63 +166,63 @@ void MoveComponent::Update(float dt)
         }
     }
 
-    //--------------ã‚¹ãƒ”ãƒ¼ãƒ‰è¨­å®šè·é›¢--------------
+    //--------------ƒXƒs[ƒhİ’è‹——£--------------
 
     float currentSpeed = m_baseSpeed;
 
-    //ãƒ–ãƒ¼ã‚¹ãƒˆä¸­ãªã‚‰
+    //ƒu[ƒXƒg’†‚È‚ç
     if (m_isBoosting)
     {
-        //å…ƒã®é€Ÿåº¦Ã—ãƒ–ãƒ¼ã‚¹ãƒˆã®é€Ÿåº¦å€ç‡
+        //Œ³‚Ì‘¬“x~ƒu[ƒXƒg‚Ì‘¬“x”{—¦
         currentSpeed = m_baseSpeed * m_boostMultiplier;
     }
-    //å›å¾©æ™‚é–“ãŒ0ç§’ä»¥ä¸Š&å›å¾©æ™‚é–“ã«ã¾ã é”ã—ã¦ã„ãªã„
+    //‰ñ•œŠÔ‚ª0•bˆÈã&‰ñ•œŠÔ‚É‚Ü‚¾’B‚µ‚Ä‚¢‚È‚¢
     else if (m_recoverTimer >= 0.0f && m_recoverTimer < m_boostRecover)
     {
-		//å›å¾©æ™‚é–“åŠ ç®—ã€€
+		//‰ñ•œŠÔ‰ÁZ@
         m_recoverTimer += dt;
 
-        //å›å¾©ã¾ã§ã®çµŒéé‡ã‚’æŒ‡å®šç¯„å›²ã«åã‚ã‚‹
+        //‰ñ•œ‚Ü‚Å‚ÌŒo‰ß—Ê‚ğw’è”ÍˆÍ‚Éû‚ß‚é
         float t = std::clamp(m_recoverTimer / m_boostRecover, 0.0f, 1.0f);
 
-		//é•å’Œæ„ŸãŒãªã„ã‚ˆã†ã«ã‚¤ãƒ¼ã‚ºã‚¤ãƒ³ã§è£œé–“
+		//ˆá˜aŠ´‚ª‚È‚¢‚æ‚¤‚ÉƒC[ƒYƒCƒ“‚Å•âŠÔ
         float ease = 1.0f - (1.0f - t) * (1.0f - t);
         float currentMultiplier = 1.0f + (m_boostMultiplier - 1.0f) * (1.0f - ease);
         currentSpeed = m_baseSpeed * currentMultiplier;
     }
 
-    //--------------ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«æ–¹å‘ã®è¨ˆç®—--------------
+    //--------------ƒŒƒeƒBƒNƒ‹•ûŒü‚ÌŒvZ--------------
 
-    //ã‚«ãƒ¡ãƒ©å´ã§ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ã‚’è¿”ã™
+    //ƒJƒƒ‰‘¤‚ÅƒŒƒeƒBƒNƒ‹‚Ìƒ[ƒ‹ƒhÀ•W‚ğ•Ô‚·
     Vector3 aimTarget = m_camera->GetAimPoint();
 
-    //ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ä½ç½®ã‹ã‚‰ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ã¸ã®ãƒ™ã‚¯ãƒˆãƒ«
+    //ƒvƒŒƒCƒ„[ˆÊ’u‚©‚çƒŒƒeƒBƒNƒ‹‚Ìƒ[ƒ‹ƒhÀ•W‚Ö‚ÌƒxƒNƒgƒ‹
     Vector3 toTarget = aimTarget - pos;
 
-    //ãƒ™ã‚¯ãƒˆãƒ«ãŒã™ã”ãçŸ­ã„å ´åˆ
+    //ƒxƒNƒgƒ‹‚ª‚·‚²‚­’Z‚¢ê‡
     if (toTarget.LengthSquared() < 1e-6f)
     {
-        //ç›®æ¨™ç‚¹ãŒã»ã¼ç¾åœ¨ä½ç½®ãªã‚‰ã€ä»Šã®å‘ãã§é€²ã‚€ã ã‘
+        //–Ú•W“_‚ª‚Ù‚ÚŒ»İˆÊ’u‚È‚çA¡‚ÌŒü‚«‚Åi‚Ş‚¾‚¯
         Vector3 forward(std::sin(currentYaw) * std::cos(currentPitch),
             std::sin(currentPitch),
             std::cos(currentYaw) * std::cos(currentPitch));
         forward.Normalize();
 
-        //ç§»å‹•é€Ÿåº¦ãƒ™ã‚¯ãƒˆãƒ« = å‰æ–¹å‘ãƒ™ã‚¯ãƒˆãƒ« * ä»Šã®ç§»å‹•ã‚¹ãƒ”ãƒ¼ãƒ‰ + å¤–éƒ¨ã‹ã‚‰ã‹ã‹ã‚‹åŠ› 
+        //ˆÚ“®‘¬“xƒxƒNƒgƒ‹ = ‘O•ûŒüƒxƒNƒgƒ‹ * ¡‚ÌˆÚ“®ƒXƒs[ƒh + ŠO•”‚©‚ç‚©‚©‚é—Í
         m_velocity = forward * currentSpeed + m_externalVelocity;
 
-        //ä½ç½® = ç§»å‹•é€Ÿåº¦ãƒ™ã‚¯ãƒˆãƒ« * ãƒ‡ãƒ«ã‚¿ã‚¿ã‚¤ãƒ 
+        //ˆÊ’u = ˆÚ“®‘¬“xƒxƒNƒgƒ‹ * ƒfƒ‹ƒ^ƒ^ƒCƒ€
         pos += m_velocity * dt;
 
-        //ãƒ—ãƒ¬ã‚¤ã‚¨ãƒªã‚¢ã§ã®ç¯„å›²åˆ¶é™
+        //ƒvƒŒƒCƒGƒŠƒA‚Å‚Ì”ÍˆÍ§ŒÀ
         if (m_playArea)
         {
-            //ã‚¨ãƒªã‚¢ã®ç¯„å›²ã«åã‚ã‚‹å‡¦ç†
+            //ƒGƒŠƒA‚Ì”ÍˆÍ‚Éû‚ß‚éˆ—
             pos = m_playArea->ResolvePosition(owner->GetPosition(), pos);
         }
         else
         {
-            //æœ€ä½é™ä¸‹ã«ã¯ã„ã‹ãªã„ã‚ˆã†ã«ã™ã‚‹
+            //Å’áŒÀ‰º‚É‚Í‚¢‚©‚È‚¢‚æ‚¤‚É‚·‚é
             if (pos.y < -1.0f)
             {
                 pos.y = -1.0f;
@@ -243,7 +243,7 @@ void MoveComponent::Update(float dt)
 
     if (forwardYaw.LengthSquared() < 1e-6f)
     {
-		//ä¸€æ—¦Zæ–¹å‘ã‚’å‰æ–¹ã«ã™ã‚‹
+		//ˆê’UZ•ûŒü‚ğ‘O•û‚É‚·‚é
         forwardYaw = Vector3(0, 0, 1);
     }
     else
@@ -258,15 +258,15 @@ void MoveComponent::Update(float dt)
         rightYaw.Normalize();
     }
 
-    // desired ã‚’ã€Œå‰æ–¹å‘ãƒ»å³æ–¹å‘ãƒ»ä¸Šä¸‹ã€ã«åˆ†è§£
-    float f = desired.Dot(forwardYaw); // å‰å¾Œæˆåˆ†
-    float r = desired.Dot(rightYaw);   // å·¦å³æˆåˆ†
-    float u = desired.y;               // ä¸Šä¸‹æˆåˆ†
+    // desired ‚ğu‘O•ûŒüE‰E•ûŒüEã‰ºv‚É•ª‰ğ
+    float f = desired.Dot(forwardYaw); // ‘OŒã¬•ª
+    float r = desired.Dot(rightYaw);   // ¶‰E¬•ª
+    float u = desired.y;               // ã‰º¬•ª
 
-    float lateralScale = 0.7f;   //å°ã•ã„ã»ã©å·¦å³ã¸ã®æ›²ãŒã‚ŠãŒå¼±ããªã‚‹
+    float lateralScale = 0.7f;   //¬‚³‚¢‚Ù‚Ç¶‰E‚Ö‚Ì‹È‚ª‚è‚ªã‚­‚È‚é
     r *= lateralScale;
 
-    //å¼±ã‚ãŸå·¦å³æˆåˆ†ã§æ–¹å‘ãƒ™ã‚¯ãƒˆãƒ«ã‚’å†æ§‹æˆ
+    //ã‚ß‚½¶‰E¬•ª‚Å•ûŒüƒxƒNƒgƒ‹‚ğÄ\¬
     Vector3 blended = forwardYaw * f + rightYaw * r + Vector3(0.0f, u, 0.0f);
     if (blended.LengthSquared() > 1e-6f)
     {
@@ -276,11 +276,11 @@ void MoveComponent::Update(float dt)
 
     if (desired.LengthSquared() < 1e-6f)
     {
-        //ä¿é™º
+        //•ÛŒ¯
         desired = Vector3(0, 0, 1);
     }
 
-    //--------------ç›®æ¨™ãƒ¨ãƒ¼/ãƒ”ãƒƒãƒã‚’è¨ˆç®—--------------
+    //--------------–Ú•Wƒˆ[/ƒsƒbƒ`‚ğŒvZ--------------
     float targetYaw = std::atan2(desired.x, desired.z);
     float horiz = std::sqrt(desired.x * desired.x + desired.z * desired.z);
     float targetPitch = std::atan2(desired.y, horiz);
@@ -296,24 +296,24 @@ void MoveComponent::Update(float dt)
     deltaYaw   = ApplyDeadZoneAndCurve(deltaYaw, yawDeadZone, yawSoftZone);
     deltaPitch = ApplyDeadZoneAndCurve(deltaPitch, pitchDeadZone, pitchSoftZone);
 
-    //------------------ãƒ¨ãƒ¼/ãƒ”ãƒƒãƒã‚’ã‚¹ãƒ ãƒ¼ã‚ºã«è¿½å¾“ã•ã›ã‚‹------------------
-    //ãƒ¨ãƒ¼ã®æŒ‡æ•°è£œé–“ä¿‚æ•°ã§ã©ã‚“ãªæ„Ÿã˜ã§å‹•ãã‹æ±ºã‚ã‚‹
+    //------------------ƒˆ[/ƒsƒbƒ`‚ğƒXƒ€[ƒY‚É’Ç]‚³‚¹‚é------------------
+    //ƒˆ[‚Ìw”•âŠÔŒW”‚Å‚Ç‚ñ‚ÈŠ´‚¶‚Å“®‚­‚©Œˆ‚ß‚é
     float yawAlpha = LerpExpFactor(m_rotSmoothK, dt);
 
-    //ãƒ”ãƒƒãƒã¯å°‘ã—ã ã‘é‡ã‚ã«ã—ã¦ãƒŒãƒ«ã£ã¨ã•ã›ã‚‹(ä¸Šä¸‹ãŒã‚­ãƒ“ã‚­ãƒ“å‹•ãã¨ é…”ã„ã‚„ã™ã„kara)
+    //ƒsƒbƒ`‚Í­‚µ‚¾‚¯d‚ß‚É‚µ‚Äƒkƒ‹‚Á‚Æ‚³‚¹‚é(ã‰º‚ªƒLƒrƒLƒr“®‚­‚Æ Œ‚¢‚â‚·‚¢kara)
     const float pitchSmoothK = m_rotSmoothK * 0.6f;
 
-    //ãƒ”ãƒƒãƒã®æŒ‡æ•°è£œé–“ä¿‚æ•°ã§ã©ã‚“ãªæ„Ÿã˜ã§å‹•ãã‹æ±ºã‚ã‚‹
+    //ƒsƒbƒ`‚Ìw”•âŠÔŒW”‚Å‚Ç‚ñ‚ÈŠ´‚¶‚Å“®‚­‚©Œˆ‚ß‚é
     float pitchAlpha = LerpExpFactor(pitchSmoothK, dt);
 
-    //å›è»¢ã®ãƒãƒƒã‚¯ã‚¹é‡è¨­å®š
+    //‰ñ“]‚Ìƒ}ƒbƒNƒX—Êİ’è
     float maxYawChange = m_rotateSpeed * dt;
     float maxPitchChange = m_pitchSpeed * dt;
 
-    //ãƒ–ãƒ¼ã‚¹ãƒˆä¸­ãªã‚‰
+    //ƒu[ƒXƒg’†‚È‚ç
     if (m_isBoosting)
     {
-        //ã‚ã‚“ã¾ã‚Šå‹¢ã„ã‚ˆãå›è»¢ã—ãªã„ã‚ˆã†ã«ã™ã‚‹
+        //‚ ‚ñ‚Ü‚è¨‚¢‚æ‚­‰ñ“]‚µ‚È‚¢‚æ‚¤‚É‚·‚é
         float boostTurnFactor = 0.5f;
         maxYawChange *= boostTurnFactor;
         maxPitchChange *= boostTurnFactor;
@@ -325,45 +325,45 @@ void MoveComponent::Update(float dt)
     float appliedPitch = std::clamp(deltaPitch * pitchAlpha, -maxPitchChange, maxPitchChange);
     currentPitch += appliedPitch;
 
-    //----------------------æ–°ã—ã„å‰æ–¹ãƒ™ã‚¯ãƒˆãƒ«----------------------
+    //----------------------V‚µ‚¢‘O•ûƒxƒNƒgƒ‹----------------------
     Vector3 newForward(std::sin(currentYaw) * std::cos(currentPitch),
         std::sin(currentPitch),
         std::cos(currentYaw) * std::cos(currentPitch));
 
     if (newForward.LengthSquared() > 1e-6f)
     {
-        //æ­£è¦åŒ–
+        //³‹K‰»
         newForward.Normalize();
     }
     else
     {
-        //ä¿é™º
+        //•ÛŒ¯
         newForward = Vector3(0, 0, 1);
     }
 
-    //--------------------------ãƒ­ãƒ¼ãƒ«æ¼”å‡º--------------------------
-    // ç›®æ¨™å‘ã(desired)ã¨ç¾åœ¨ã®å‰æ–¹(newForward)ã®ã‚¯ãƒ­ã‚¹ã§ã€Œæ¨ªæ–¹å‘ã®ãšã‚Œã€ã‚’å–ã‚‹
+    //--------------------------ƒ[ƒ‹‰‰o--------------------------
+    // –Ú•WŒü‚«(desired)‚ÆŒ»İ‚Ì‘O•û(newForward)‚ÌƒNƒƒX‚Åu‰¡•ûŒü‚Ì‚¸‚êv‚ğæ‚é
     Vector3 cross = newForward.Cross(desired);
     float   lateral = cross.y;
 
     float safeDt = max(1e-6f, dt);
     float yawDeltaForRoll = NormalizeAngleDelta(currentYaw - m_prevYaw);
-    float yawSpeed = yawDeltaForRoll / safeDt; // ãƒ¨ãƒ¼å›è»¢ã®é€Ÿã•(ãƒ©ã‚¸ã‚¢ãƒ³/ç§’)
+    float yawSpeed = yawDeltaForRoll / safeDt; // ƒˆ[‰ñ“]‚Ì‘¬‚³(ƒ‰ƒWƒAƒ“/•b)
 
-    // ã€Œã»ã¼ã¾ã£ã™ãã€ã®åˆ¤å®šç”¨ã—ãã„å€¤ï¼ˆå¿…è¦ã«å¿œã˜ã¦èª¿æ•´ï¼‰
-    const float lateralDeadZone = 0.05f; // æ¨ªæ–¹å‘ã®ãšã‚ŒãŒã“ã®ç¯„å›²å†…ãªã‚‰ç„¡è¦–
-    const float yawDeadZoneRoll = 0.25f; // ãƒ¨ãƒ¼å›è»¢é€Ÿåº¦ãŒã“ã®ç¯„å›²å†…ãªã‚‰ç„¡è¦–
+    // u‚Ù‚Ú‚Ü‚Á‚·‚®v‚Ì”»’è—p‚µ‚«‚¢’li•K—v‚É‰‚¶‚Ä’²®j
+    const float lateralDeadZone = 0.05f; // ‰¡•ûŒü‚Ì‚¸‚ê‚ª‚±‚Ì”ÍˆÍ“à‚È‚ç–³‹
+    const float yawDeadZoneRoll = 0.25f; // ƒˆ[‰ñ“]‘¬“x‚ª‚±‚Ì”ÍˆÍ“à‚È‚ç–³‹
 
-    // ã‚«ãƒ¼ã‚½ãƒ«ã‚’å‹•ã‹ã—ã¦ã„ãªã„ï¼ã»ã¼ç›´é€² â†’ ãƒ­ãƒ¼ãƒ«ã‚’0ã«æˆ»ã™ã ã‘â˜…
+    // ƒJ[ƒ\ƒ‹‚ğ“®‚©‚µ‚Ä‚¢‚È‚¢‚Ù‚Ú’¼i ¨ ƒ[ƒ‹‚ğ0‚É–ß‚·‚¾‚¯š
     if (std::fabs(lateral) < lateralDeadZone && std::fabs(yawSpeed) < yawDeadZoneRoll)
     {
-        // ç›®æ¨™ãƒ­ãƒ¼ãƒ« 0 ã«å‘ã‹ã£ã¦æŒ‡æ•°çš„ã«æˆ»ã™
+        // –Ú•Wƒ[ƒ‹ 0 ‚ÉŒü‚©‚Á‚Äw”“I‚É–ß‚·
         float rollAlpha = LerpExpFactor(m_rollLerpK, dt);
         m_currentRoll = m_currentRoll + (0.0f - m_currentRoll) * rollAlpha;
     }
     else
     {
-        // ã“ã“ã¯ã€Œæ›²ãŒã£ã¦ã„ã‚‹æœ€ä¸­ã€ã®ãƒ­ãƒ¼ãƒ«æ¼”å‡º
+        // ‚±‚±‚Íu‹È‚ª‚Á‚Ä‚¢‚éÅ’†v‚Ìƒ[ƒ‹‰‰o
         float speedRatio = (m_baseSpeed > 1e-6f) ? (currentSpeed / m_baseSpeed) : 1.0f;
         float fromYaw = yawSpeed * m_rollYawFactor;
         float fromLateral = -lateral * m_rollLateralFactor;
@@ -371,7 +371,7 @@ void MoveComponent::Update(float dt)
 
         float rawRoll = (fromYaw + fromLateral) * speedScale;
 
-        // å…¨ä½“ã®ãƒ­ãƒ¼ãƒ«ã®æŒ¯ã‚Œå¹…ã‚’åˆ¶é™
+        // ‘S‘Ì‚Ìƒ[ƒ‹‚ÌU‚ê•‚ğ§ŒÀ
         rawRoll = std::clamp(rawRoll, -m_maxVisualRoll, m_maxVisualRoll);
 
         float rollAlpha = LerpExpFactor(m_rollLerpK, dt);
@@ -393,7 +393,7 @@ void MoveComponent::Update(float dt)
     if (delta < -maxDeltaRad) delta = -maxDeltaRad;
     m_visualPitchTilt += delta;
 
-    rot.x = -currentPitch + m_visualPitchTilt; // ä¸Šä¸‹ = ãƒ”ãƒƒãƒ + æ¼”å‡º
+    rot.x = -currentPitch + m_visualPitchTilt; // ã‰º = ƒsƒbƒ` + ‰‰o
     rot.y = currentYaw;
     rot.z = -m_currentRoll;
     owner->SetRotation(rot);
@@ -420,7 +420,7 @@ void MoveComponent::Update(float dt)
         float decay = std::exp(-m_externalDamping * dt);
         m_externalVelocity *= decay;
 
-        // å¾®å°ãªå€¤ã¯ã‚¯ãƒªã‚¢ã—ã¦ãŠã
+        // ”÷¬‚È’l‚ÍƒNƒŠƒA‚µ‚Ä‚¨‚­
         if (m_externalVelocity.LengthSquared() < 1e-6f)
         {
             m_externalVelocity = DirectX::SimpleMath::Vector3::Zero;
@@ -455,7 +455,7 @@ void MoveComponent::HandleCollisionCorrection(const DirectX::SimpleMath::Vector3
         n = Vector3(0, 1, 0);
     }
 
-    auto KillInwardComponent = [&](Vector3& v)
+    auto killInwardComponent = [&](Vector3& v)
         {
             float vn = v.Dot(n);
             if (vn < 0.0f)
@@ -464,8 +464,8 @@ void MoveComponent::HandleCollisionCorrection(const DirectX::SimpleMath::Vector3
             }
         };
 
-    KillInwardComponent(m_velocity);
-    KillInwardComponent(m_externalVelocity);
+    killInwardComponent(m_velocity);
+    killInwardComponent(m_externalVelocity);
 }
 
 void MoveComponent::ApplyCollisionPush()
@@ -476,7 +476,7 @@ void MoveComponent::ApplyCollisionPush()
     pos += m_totalPushThisFrame;
     GetOwner()->SetPosition(pos);
 
-    // æ¬¡ãƒ•ãƒ¬ãƒ¼ãƒ ã«æŒã¡è¶Šã•ãªã„
+    // ŸƒtƒŒ[ƒ€‚É‚¿‰z‚³‚È‚¢
     m_totalPushThisFrame = Vector3::Zero;
     m_hasPushThisFrame = false;
 }
@@ -493,7 +493,7 @@ void MoveComponent::RequestBoost()
     m_recoverTimer = -1.0f;
     m_cooldownTimer = m_boostCooldown;
 
-    if (m_camera) 
+    if (m_camera)
     {
         m_camera->SetBoostState(true);
     }

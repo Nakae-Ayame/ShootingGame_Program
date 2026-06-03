@@ -15,11 +15,11 @@ enum class TransitionType
 class TransitionManager
 {
 public:
-    static void Init(); 
+    static void Init();
     static void Update(float deltaTime);
     static void Draw(float deltaTime);
     static void Uninit();
-    
+
     //--------Setä÷êî-------
     static void Start(float duration, std::function<void()> onComplete = nullptr);
     static void SetFadeSpeed(float speed) { m_fadeSpeed = speed; }
@@ -31,9 +31,9 @@ public:
 private:
     ///static void FinishTransitionPhase();
 
-    static ID3D11ShaderResourceView* m_TextureSRV;
-    static bool m_isTransitioning; 
-    static float m_duration; 
+    static ID3D11ShaderResourceView* m_textureSrv;
+    static bool m_isTransitioning;
+    static float m_duration;
     static float m_elapsed;
     static float m_fadeSpeed;
     static float m_alpha;

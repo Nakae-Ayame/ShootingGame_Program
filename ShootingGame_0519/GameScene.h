@@ -35,7 +35,7 @@ class GameScene : public IScene
 {
 public:
 	 GameScene() {};
-	
+
 	void Update(float deltatime) override;
 	void Draw(float deltatime) override;
 	void DrawWorld(float deltatime) override;
@@ -48,7 +48,7 @@ public:
 	/*void DebugSetPlayerSpeed();
 	void DebugSetAimDistance();
 	void DebugMotionBlur();*/
-	
+
 	//-------------オブジェクト関連の関数-------------
 	void AddObject(std::shared_ptr<GameObject> obj) override;
 	void AddTextureObject(std::shared_ptr<GameObject> obj);
@@ -58,7 +58,7 @@ public:
 
 	void AddStageBuilding(const std::shared_ptr<Building>& building);
 
-	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
+	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_gameObjects; }
 
 	PlayAreaComponent* GetPlayArea() const { return m_playArea.get(); }
 
@@ -70,8 +70,8 @@ public:
 		GameObject* ignore = nullptr) override;
 
 	//---------フレーム終了時に削除・追加予定のオブジェクト配列---------
-	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
-	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
+	std::vector<std::shared_ptr<GameObject>> m_deleteObjects;
+	std::vector<std::shared_ptr<GameObject>> m_addObjects;
 
 private:
 	GameState m_gameState = GameState::Countdown;
@@ -90,25 +90,25 @@ private:
 	std::unique_ptr<DebugRenderer> m_debugRenderer;
 
 	std::shared_ptr<Player> m_player;
-	std::shared_ptr<CameraObject> m_FollowCamera;
-	std::shared_ptr<SkyDome> m_SkyDome;
+	std::shared_ptr<CameraObject> m_followCamera;
+	std::shared_ptr<SkyDome> m_skyDome;
 
-	std::shared_ptr<GameObject> m_CountDown01;
-	std::shared_ptr<GameObject> m_CountDown02;
-	std::shared_ptr<GameObject> m_CountDown03;
-	std::shared_ptr<GameObject> m_CountDownGo;
-	std::shared_ptr<GameObject> m_CountDownNow;
-	
+	std::shared_ptr<GameObject> m_countDown01;
+	std::shared_ptr<GameObject> m_countDown02;
+	std::shared_ptr<GameObject> m_countDown03;
+	std::shared_ptr<GameObject> m_countDownGo;
+	std::shared_ptr<GameObject> m_countDownNow;
+
 	//GameScene内の3Dオブジェクトの配列
-	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
+	std::vector<std::shared_ptr<GameObject>> m_gameObjects;
 
 	//GameScene内の2Dオブジェクトの配列
-	std::vector<std::shared_ptr<GameObject>> m_TextureObjects;
+	std::vector<std::shared_ptr<GameObject>> m_textureObjects;
 
 	std::shared_ptr<GameObject> m_wingTrailObj;
 	 // --- レティクル関係 ---
 	std::shared_ptr<GameObject> m_reticleObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
-	std::shared_ptr<HPBar> m_HPObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
+	std::shared_ptr<HPBar> m_hpObj;           // レティクル用 GameObject（描画のみでコンポーネント持つ）
 	std::shared_ptr<TextureComponent> m_reticleTex;     // レティクルのテクスチャコンポーネント
 
 	//--------------建物フェード関連------------------
@@ -125,19 +125,19 @@ private:
 
 	std::shared_ptr<Reticle> m_reticle;
 
-	bool isCollisionDebugMode = false;
+	bool m_isCollisionDebugMode = false;
 
-	float setSpeed = 10.0f;
+	float m_setSpeed = 10.0f;
 
-	float setAimDistance = 2000.0f;
+	float m_setAimDistance = 2000.0f;
 
-	float motionX = 0.5f;
-	float motionY = 0.5f;
+	float m_motionX = 0.5f;
+	float m_motionY = 0.5f;
 
-	Vector3 setRot = { 0,0,0 };
+	Vector3 m_setRot = { 0,0,0 };
 
 	//削除予定
-	int enemyCount = 0;
+	int m_enemyCount = 0;
 
 	//--------------敵管理関連------------------
 	int m_clearKillCount = 20;          // この数だけ倒したらクリア
@@ -153,7 +153,7 @@ private:
 	void AddEnemyKillCount(int value);
 	int GetEnemyKillCount() const { return m_enemyKillCount; }
 	int GetClearKillCount() const { return m_clearKillCount; }
-	
+
 	//--------------ミニマップ関連------------------
 	std::shared_ptr<GameObject> m_miniMapUi;
 	MiniMapComponent* m_miniMap = nullptr;
@@ -164,8 +164,8 @@ private:
 	ID3D11ShaderResourceView* m_miniMapBuildingSRV = nullptr;
 
 	//--------------撃破数UI関連------------------
-	NumberTextureUI m_KillCountNumberUI;
-	NumberTextureUI m_ClearCountNumberUI;
+	NumberTextureUI m_killCountNumberUi;
+	NumberTextureUI m_clearCountNumberUi;
 
 	std::shared_ptr<GameObject> m_killLabelTexture;
 

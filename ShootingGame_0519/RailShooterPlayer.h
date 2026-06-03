@@ -15,5 +15,5 @@ public:
     void OnCollision(GameObject* other) override;
 
 private:
-    std::shared_ptr<OBBColliderComponent> m_Collider;
+    std::shared_ptr<OBBColliderComponent> m_collider;
 };

@@ -25,7 +25,7 @@ public:
     static bool IsMouseLeftDown();
 
     static bool IsMouseLeftPressed();
-    
+
     static void Reset();
 
     //------------------------コントローラー系処理-----------------------
@@ -36,14 +36,14 @@ public:
     //static bool  IsGamepadButtonPressed(WORD button);
 
 private:
-    static BYTE m_CurrentKeys[256];
-    static BYTE m_PreviousKeys[256];
+    static BYTE m_currentKeys[256];
+    static BYTE m_previousKeys[256];
 
-    static POINT m_CurrentMousePos;   //現在のフレームのマウスの座標
-    static POINT m_PreviousMousePos;  //前のフレームのマウスの座標
+    static POINT m_currentMousePos;   //現在のフレームのマウスの座標
+    static POINT m_previousMousePos;  //前のフレームのマウスの座標
 
-    static BYTE m_CurrentMouseButtons[3];  //現在のフレームのマウスのクリック状況
-    static BYTE m_PreviousMouseButtons[3]; //前のフレームのマウスのクリック状況
+    static BYTE m_currentMouseButtons[3];  //現在のフレームのマウスのクリック状況
+    static BYTE m_previousMouseButtons[3]; //前のフレームのマウスのクリック状況
 
-    static float m_MouseSensitivity;//マウス感度
+    static float m_mouseSensitivity;//マウス感度
 };

@@ -21,20 +21,20 @@ public:
     //GameObjectの位置のゲット関数
     Vector3 GetCenter() const override;
 
-    //当たり判定用のサイズのゲット関数(m_Size)
+    //当たり判定用のサイズのゲット関数(m_size)
     Vector3 GetSize() const override;
 
     //ゲームオブジェクトの回転値から、回転行列を生成。
     DirectX::SimpleMath::Matrix GetRotationMatrix() const override;
 
-    void SetLocalOffset(const Vector3& offset) { m_LocalOffset = offset; }
-    const Vector3& GetLocalOffset() const { return m_LocalOffset; }
+    void SetLocalOffset(const Vector3& offset) { m_localOffset = offset; }
+    const Vector3& GetLocalOffset() const { return m_localOffset; }
 
 private:
 
     //幅、高さ、奥行の大きさをそれぞれ設定できる変数
-    Vector3 m_Size = Vector3(1, 1, 1);
+    Vector3 m_size = Vector3(1, 1, 1);
 
-    DirectX::SimpleMath::Vector3 m_LocalOffset = DirectX::SimpleMath::Vector3::Zero;
+    DirectX::SimpleMath::Vector3 m_localOffset = DirectX::SimpleMath::Vector3::Zero;
 };
 

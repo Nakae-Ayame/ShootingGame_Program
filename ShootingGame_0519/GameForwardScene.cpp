@@ -55,7 +55,7 @@ void GameForwardScene::Init()
 
     AddObject(camera);
 
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj)
         {
@@ -112,7 +112,7 @@ void GameForwardScene::Init()
 
 void GameForwardScene::Update(float deltatime)
 {
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj)
         {
@@ -134,7 +134,7 @@ void GameForwardScene::DrawWorld(float deltatime)
         Renderer::SetProjectionMatrix(m_cameraComp->GetProj());
     }
 
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj)
         {
@@ -150,7 +150,7 @@ void GameForwardScene::DrawUI(float deltatime)
 
 void GameForwardScene::Uninit()
 {
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj)
         {
@@ -163,25 +163,25 @@ void GameForwardScene::Uninit()
 void GameForwardScene::AddObject(std::shared_ptr<GameObject> obj)
 {
     if (!obj) { return; }
-    m_AddObjects.push_back(obj);
+    m_addObjects.push_back(obj);
 }
 
 void GameForwardScene::RemoveObject(std::shared_ptr<GameObject> obj)
 {
     if (!obj) { return; }
-    m_DeleteObjects.push_back(obj);
+    m_deleteObjects.push_back(obj);
 }
 
 void GameForwardScene::RemoveObject(GameObject* obj)
 {
     if (!obj) { return; }
 
-    for (const auto& sp : m_GameObjects)
+    for (const auto& sp : m_gameObjects)
     {
         if (sp.get() == obj)
         {
             sp->Initialize();
-            m_DeleteObjects.push_back(sp);
+            m_deleteObjects.push_back(sp);
             return;
         }
     }
@@ -192,7 +192,7 @@ void GameForwardScene::FinishFrameCleanup()
     //----------------------------
     // Add”½‰f
     //----------------------------
-    for (auto& obj : m_AddObjects)
+    for (auto& obj : m_addObjects)
     {
         if (!obj)
         {
@@ -200,38 +200,38 @@ void GameForwardScene::FinishFrameCleanup()
         }
 
         obj->Initialize();
-        m_GameObjects.push_back(obj);
+        m_gameObjects.push_back(obj);
     }
-    m_AddObjects.clear();
+    m_addObjects.clear();
 
     //----------------------------
     // Delete”½‰f
     //----------------------------
-    if (!m_DeleteObjects.empty())
+    if (!m_deleteObjects.empty())
     {
-        for (auto& del : m_DeleteObjects)
+        for (auto& del : m_deleteObjects)
         {
             if (!del)
             {
                 continue;
             }
 
-            for (auto it = m_GameObjects.begin(); it != m_GameObjects.end(); ++it)
+            for (auto it = m_gameObjects.begin(); it != m_gameObjects.end(); ++it)
             {
                 if (*it == del)
                 {
                     (*it)->Uninit();
-                    m_GameObjects.erase(it);
+                    m_gameObjects.erase(it);
                     break;
                 }
             }
         }
 
-        m_DeleteObjects.clear();
+        m_deleteObjects.clear();
     }
 }
 
 const std::vector<std::shared_ptr<GameObject>>& GameForwardScene::GetObjects() const
 {
-    return m_GameObjects;
+    return m_gameObjects;
 }

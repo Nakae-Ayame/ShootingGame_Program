@@ -48,7 +48,7 @@ void ForwardFollowCameraComponent::Update(float dt)
 
     m_aimPoint = railCenter + forward * m_lookAhead;
 
-    m_ViewMatrix = Matrix::CreateLookAt(m_position, m_aimPoint, up);
+    m_viewMatrix = Matrix::CreateLookAt(m_position, m_aimPoint, up);
 
     UpdateProjectionIfNeeded();
 
