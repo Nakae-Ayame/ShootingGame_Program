@@ -1,5 +1,5 @@
-ï»¿#define NOMINMAX
-#include <cmath> 
+#define NOMINMAX
+#include <cmath>
 #include "FollowCameraComponent.h"
 #include "Renderer.h"
 #include "Application.h"
@@ -14,7 +14,7 @@ using namespace DirectX::SimpleMath;
 
 Vector3 FollowCameraComponent::GetUp() const
 {
-    Matrix invView = m_ViewMatrix.Invert();
+    Matrix invView = m_viewMatrix.Invert();
     Vector3 up = invView.Up();
 
     if (up.LengthSquared() > 1e-6f)
@@ -32,19 +32,19 @@ Vector3 FollowCameraComponent::GetAimPoint() const
     float screenH = static_cast<float>(Application::GetHeight());
     if (screenW <= 1.0f || screenH <= 1.0f)
     {
-        // ç”»é¢ã‚µã‚¤ã‚ºãŒãŠã‹ã—ã„ã¨ãã¯ã‚«ãƒ¡ãƒ©æ­£é¢
+        // ‰æ–ÊƒTƒCƒY‚ª‚¨‚©‚µ‚¢‚Æ‚«‚ÍƒJƒƒ‰³–Ê
         return GetPosition() + GetForward() * m_aimPlaneDistance;
     }
 
     float sx = m_reticleScreen.x;
     float sy = m_reticleScreen.y;
 
-    // å®Ÿéš›ã«æç”»ã«ä½¿ã£ã¦ã„ã‚‹ View / Proj ã‚’ãã®ã¾ã¾ä½¿ã†
-    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
-    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ViewMatrix));
+    // ÀÛ‚É•`‰æ‚Ég‚Á‚Ä‚¢‚é View / Proj ‚ğ‚»‚Ì‚Ü‚Üg‚¤
+    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_projectionMatrix));
+    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_viewMatrix));
     XMMATRIX worldXM = XMMatrixIdentity();
 
-    // ç”»é¢ä¸Šã® (sx,sy) ã‹ã‚‰ã€near/far ã®ï¼’ç‚¹ã‚’ãƒ¯ãƒ¼ãƒ«ãƒ‰ã«é€†å¤‰æ›
+    // ‰æ–Êã‚Ì (sx,sy) ‚©‚çAnear/far ‚Ì‚Q“_‚ğƒ[ƒ‹ƒh‚É‹t•ÏŠ·
     XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
     XMVECTOR farScreen = XMVectorSet(sx, sy, 1.0f, 1.0f);
 
@@ -62,17 +62,17 @@ Vector3 FollowCameraComponent::GetAimPoint() const
         projXM, viewXM, worldXM
     );
 
-    // nearâ†’far æ–¹å‘ãƒ™ã‚¯ãƒˆãƒ«ï¼ˆï¼ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ã‚’é€šã‚‹ã‚«ãƒ¡ãƒ©ãƒ¬ã‚¤ã®æ–¹å‘ï¼‰
+    // near¨far •ûŒüƒxƒNƒgƒ‹iƒŒƒeƒBƒNƒ‹‚ğ’Ê‚éƒJƒƒ‰ƒŒƒC‚Ì•ûŒüj
     XMVECTOR dirW = XMVector3Normalize(farWorld - nearWorld);
 
     Vector3 dir;
     XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&dir), dirW);
 
-    // ã‚«ãƒ¡ãƒ©ä½ç½®ã‚’å–å¾—
+    // ƒJƒƒ‰ˆÊ’u‚ğæ“¾
     Vector3 camPos = m_spring.GetPosition();
 
-    // ã‚«ãƒ¡ãƒ©ã‹ã‚‰ä¸€å®šè·é›¢ã ã‘å…ˆã®ç‚¹ã‚’ AimPoint ã¨ã™ã‚‹ï¼ˆè·é›¢ã¯é©å½“ã«èª¿æ•´å¯ï¼‰
-    float dist = m_aimPlaneDistance; 
+    // ƒJƒƒ‰‚©‚çˆê’è‹——£‚¾‚¯æ‚Ì“_‚ğ AimPoint ‚Æ‚·‚éi‹——£‚Í“K“–‚É’²®‰Âj
+    float dist = m_aimPlaneDistance;
     return camPos + dir * dist;
 }
 
@@ -84,7 +84,7 @@ FollowCameraComponent::FollowCameraComponent()
     m_spring.SetDamping(m_normalDamping);
     m_spring.SetMass(1.0f);
 
-    m_Fov = m_normalFov;
+    m_fov = m_normalFov;
     UpdateProjectionMatrix();
 }
 
@@ -106,15 +106,15 @@ Vector3 FollowCameraComponent::GetAimDirectionFromReticle() const
     float screenH = static_cast<float>(Application::GetHeight());
     if (screenW <= 1.0f || screenH <= 1.0f)
     {
-        return GetForward(); // ãƒ•ã‚©ãƒ¼ãƒ«ãƒãƒƒã‚¯
+        return GetForward(); // ƒtƒH[ƒ‹ƒoƒbƒN
     }
 
     float sx = m_reticleScreen.x;
     float sy = m_reticleScreen.y;
 
-    // æç”»ã«å®Ÿéš›ã«ä½¿ã£ã¦ã„ã‚‹ View / Proj è¡Œåˆ—
-    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
-    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ViewMatrix));
+    // •`‰æ‚ÉÀÛ‚Ég‚Á‚Ä‚¢‚é View / Proj s—ñ
+    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_projectionMatrix));
+    XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_viewMatrix));
     XMMATRIX worldXM = XMMatrixIdentity();
 
     XMVECTOR nearScreen = XMVectorSet(sx, sy, 0.0f, 1.0f);
@@ -160,7 +160,7 @@ void FollowCameraComponent::ComputeReticleRay(const Matrix& view, Vector3* outOr
     float sx = m_reticleScreen.x;
     float sy = m_reticleScreen.y;
 
-    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_ProjectionMatrix));
+    XMMATRIX projXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&m_projectionMatrix));
     XMMATRIX viewXM = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&view));
     XMMATRIX worldXM = XMMatrixIdentity();
 
@@ -214,15 +214,15 @@ Vector3 FollowCameraComponent::ComputeRayPlaneIntersection(const Vector3& rayOri
 }
 
 /// <summary>
-/// ã‚«ãƒ¡ãƒ©ã®FOVã‚’ãƒ–ãƒ¼ã‚¹ãƒˆçŠ¶æ…‹ã«ã‚ˆã£ã¦æ›´æ–°ã™ã‚‹Updateé–¢æ•°
+/// ƒJƒƒ‰‚ÌFOV‚ğƒu[ƒXƒgó‘Ô‚É‚æ‚Á‚ÄXV‚·‚éUpdateŠÖ”
 /// </summary>
-/// <param name="dt">ãƒ‡ãƒ«ã‚¿ã‚¿ã‚¤ãƒ </param>
+/// <param name="dt">ƒfƒ‹ƒ^ƒ^ƒCƒ€</param>
 void FollowCameraComponent::UpdateFov(float dt)
 {
-    float currentFov = m_Fov;
-  
-	//ãƒ–ãƒ¼ã‚¹ãƒˆä¸­ã‹ã©ã†ã‹ã§FOVã‚’å¤‰åŒ–ã•ã›ã‚‹
-	//ä¸€ç¬ã§åˆ‡ã‚Šæ›¿ã‚ã‚‹ã®ã§ã¯ãªãã€å¾ã€…ã«å¤‰åŒ–ã•ã›ã‚‹å‡¦ç†ã«ã™ã‚‹
+    float currentFov = m_fov;
+
+	//ƒu[ƒXƒg’†‚©‚Ç‚¤‚©‚ÅFOV‚ğ•Ï‰»‚³‚¹‚é
+	//ˆêu‚ÅØ‚è‘Ö‚í‚é‚Ì‚Å‚Í‚È‚­A™X‚É•Ï‰»‚³‚¹‚éˆ—‚É‚·‚é
     if (m_boostRequested)
     {
         float t = m_fovInSpeed * dt;
@@ -236,14 +236,14 @@ void FollowCameraComponent::UpdateFov(float dt)
         currentFov -= (currentFov - m_normalFov) * m_fovOutSpeed * dt;
     }
 
-	m_Fov = currentFov;
+	m_fov = currentFov;
 
-	//FOVãŒå¤‰åŒ–ã—ãŸã®ã§ProjectionMatrixã‚’æ›´æ–°ã™ã‚‹
-    UpdateProjectionMatrix(); 
+	//FOV‚ª•Ï‰»‚µ‚½‚Ì‚ÅProjectionMatrix‚ğXV‚·‚é
+    UpdateProjectionMatrix();
 }
 
 /// <summary>
-/// 
+///
 /// </summary>
 void FollowCameraComponent::UpdateProjectionMatrix()
 {
@@ -251,12 +251,12 @@ void FollowCameraComponent::UpdateProjectionMatrix()
     float height = static_cast<float>(Application::GetHeight());
     if (width <= 1.0f || height <= 1.0f){ return; }
 
-    m_ProjectionMatrix = Matrix::CreatePerspectiveFieldOfView(
-        m_Fov, width / height, 0.1f, 1000.0f);
+    m_projectionMatrix = Matrix::CreatePerspectiveFieldOfView(
+        m_fov, width / height, 0.1f, 1000.0f);
 }
 
 /// <summary>
-/// 
+///
 /// </summary>
 /// <param name="dt"></param>
 /// <param name="cameraPos"></param>
@@ -264,10 +264,10 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
 {
     if (!m_target){ return; }
 
-    //ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®ä½ç½®å–å¾—
+    //ƒ^[ƒQƒbƒg‚ÌˆÊ’uæ“¾
     Vector3 targetPos = m_target->GetPosition();
 
-    //åŸºæœ¬ã®æ³¨è¦–ç‚¹æ±ºã‚(æ–¹å‘ãƒ™ã‚¯ãƒˆãƒ«ã ã‚ˆ)
+    //Šî–{‚Ì’‹“_Œˆ‚ß(•ûŒüƒxƒNƒgƒ‹‚¾‚æ)
     Vector3 aimDir = m_aimPoint - targetPos;
 
     if (aimDir.LengthSquared() > 1e-6f)
@@ -288,17 +288,17 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
         aimDir = fallback;
     }
 
-	//ä¸Šä¸‹æ–¹å‘ã®ã‚¹ã‚±ãƒ¼ãƒ«ã‚’èª¿æ•´
-    //å·¦å³æ–¹å‘ã‚ˆã‚Šæ§ãˆã‚ã«
+	//ã‰º•ûŒü‚ÌƒXƒP[ƒ‹‚ğ’²®
+    //¶‰E•ûŒü‚æ‚èT‚¦‚ß‚É
     aimDir.y *= m_verticalAimScale;
     if (aimDir.LengthSquared() > 1e-6f)
     {
         aimDir.Normalize();
     }
-    
+
     Vector3 rawLookTarget;
 
-	//æ³¨è¦–ç‚¹ã‚’Playerã®é€²ã‚€æ–¹å‘ã‚’è€ƒæ…®ã—ã¦å°‘ã—å…ˆã‚’ã¿ã‚‹
+	//’‹“_‚ğPlayer‚Ìi‚Ş•ûŒü‚ğl—¶‚µ‚Ä­‚µæ‚ğ‚İ‚é
     if (m_boostRequested)
     {
         rawLookTarget = targetPos + aimDir * m_normalLookAheadDistance +
@@ -309,7 +309,7 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
         rawLookTarget = targetPos + aimDir * m_normalLookAheadDistance +
                         Vector3(0.0f, (m_defaultHeight + m_aimHeight) * 0.5f, 0.0f);
     }
-    
+
 
     float screenH = static_cast<float>(Application::GetHeight());
     float normY = 0.0f;
@@ -318,21 +318,21 @@ void FollowCameraComponent::UpdateLookTarget(float dt, const Vector3& cameraPos)
         normY = (m_reticleScreen.y - (screenH * 0.5f)) / (screenH * 0.5f);
     }
 
-    float verticalOffset = -normY * m_LookVerticalScale;
+    float verticalOffset = -normY * m_lookVerticalScale;
     rawLookTarget += Vector3(0.0f, verticalOffset, 0.0f);
 
     Vector3 targetRot = m_target->GetRotation();
     Matrix playerRot = Matrix::CreateRotationY(targetRot.y);
     Vector3 localRight = Vector3::Transform(Vector3::Right, playerRot);
 
-    //ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒæ—‹å›ã™ã‚‹éš›ã«è‹¥å¹²æ³¨è¦–ç‚¹ã‚’ãã®æ–¹å‘ã«å‘ã‘ã‚‹
+    //ƒvƒŒƒCƒ„[‚ªù‰ñ‚·‚éÛ‚ÉáŠ±’‹“_‚ğ‚»‚Ì•ûŒü‚ÉŒü‚¯‚é
     float lookOffsetMul = 0.6f;
     rawLookTarget += localRight * (m_currentTurnOffset * lookOffsetMul);
 
     float t = std::min(1.0f, m_lookAheadLerp * dt);
 
-	//æ»‘ã‚‰ã‹ã«æ³¨è¦–ç‚¹ã‚’è¿½å¾“
-    m_LookTarget = m_LookTarget + (rawLookTarget - m_LookTarget) * t;
+	//ŠŠ‚ç‚©‚É’‹“_‚ğ’Ç]
+    m_lookTarget = m_lookTarget + (rawLookTarget - m_lookTarget) * t;
 }
 
 void FollowCameraComponent::UpdateAimPoint(float dt, const Vector3& cameraPos)
@@ -344,7 +344,7 @@ void FollowCameraComponent::UpdateAimPoint(float dt, const Vector3& cameraPos)
     if (screenW <= 1.0f || screenH <= 1.0f){ return; }
 
     Vector3 targetPos = m_target->GetPosition();
-    
+
     Matrix provisionalView = Matrix::CreateLookAt(cameraPos, targetPos, Vector3::Up);
 
     Vector3 rayOrigin = Vector3::Zero;
@@ -367,13 +367,13 @@ void FollowCameraComponent::UpdateAimPoint(float dt, const Vector3& cameraPos)
 
     Vector3 worldTarget = ComputeRayPlaneIntersection(rayOrigin, rayDir, planePoint, planeNormal);
 
-    // AimPointã‚’ã‚¹ãƒ ãƒ¼ã‚ºã«è¿½å¾“
+    // AimPoint‚ğƒXƒ€[ƒY‚É’Ç]
     const float aimLerp = 12.0f;
     float t = std::min(1.0f, aimLerp * dt);
     m_aimPoint = m_aimPoint + (worldTarget - m_aimPoint) * t;
 }
 
-//â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…
+//šššššššššššššššššššššššššššššššššš
 void FollowCameraComponent::UpdateShake(float dt, const Vector3& cameraPos)
 {
     m_shakeOffset = Vector3::Zero;
@@ -460,7 +460,7 @@ void FollowCameraComponent::UpdateShake(float dt, const Vector3& cameraPos)
         }
     }
 
-	//ãƒ–ãƒ¼ã‚¹ãƒˆæ™‚ã®å¾®æŒ¯å‹•
+	//ƒu[ƒXƒg‚Ì”÷U“®
     float targetBlend = 0.0f;
     if (m_boostRequested)
     {
@@ -485,14 +485,14 @@ void FollowCameraComponent::UpdateShake(float dt, const Vector3& cameraPos)
 
         float amp = m_boostShakeMagnitude * m_boostShakeBlend;
 
-        // ã¨ã‚Šã‚ãˆãšç¢ºèªç”¨ã«ä¸Šä¸‹ã‚‚å¼·ã‚ã«ï¼ˆå¾Œã§0.2ï½0.4ã«æˆ»ã™ï¼‰
+        // ‚Æ‚è‚ ‚¦‚¸Šm”F—p‚Éã‰º‚à‹­‚ß‚ÉiŒã‚Å0.2`0.4‚É–ß‚·j
         m_shakeOffset +=
             camRight * (amp/* * sx*/) +
             camUp * (amp * 1.0f * sy);
     }
 }
 
-//â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…
+//šššššššššššššššššššššššššššššššššš
 void FollowCameraComponent::Update(float dt)
 {
     if (!m_target){ return; }
@@ -520,10 +520,10 @@ void FollowCameraComponent::Update(float dt)
 
     UpdateFov(dt);
 
-    m_ViewMatrix = Matrix::CreateLookAt(cameraPos, m_LookTarget, Vector3::Up);
+    m_viewMatrix = Matrix::CreateLookAt(cameraPos, m_lookTarget, Vector3::Up);
 
-    Renderer::SetViewMatrix(m_ViewMatrix);
-    Renderer::SetProjectionMatrix(m_ProjectionMatrix);
+    Renderer::SetViewMatrix(m_viewMatrix);
+    Renderer::SetProjectionMatrix(m_projectionMatrix);
 
     UpdateShootCache();
 }
@@ -546,10 +546,10 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     }
     if (m_boostRequested)
     {
-        //desiredDist += m_boostAimDistanceAdd; // ãƒ–ãƒ¼ã‚¹ãƒˆæ™‚ã®ã¿è·é›¢ã‚’ä¼¸ã°ã™
+        //desiredDist += m_boostAimDistanceAdd; // ƒu[ƒXƒg‚Ì‚İ‹——£‚ğL‚Î‚·
     }
 
-    // 2) ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼æƒ…å ±å–å¾—
+    // 2) ƒvƒŒƒCƒ„[î•ñæ“¾
     Vector3 targetPos = m_target->GetPosition();
     Vector3 targetRot = m_target->GetRotation();
     float playerYaw = targetRot.y;
@@ -559,7 +559,7 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     Vector3 rotatedOffset = Vector3::Transform(baseOffset, playerRot);
     Vector3 baseDesired   = targetPos + rotatedOffset + Vector3(0.0f, height, 0.0f);
 
-    // 4) lateral (reticle) ãŠã‚ˆã³ turn offset ã‚’è¨ˆç®—ã—ã¦ baseDesired ã«åŠ ãˆã‚‹
+    // 4) lateral (reticle) ‚¨‚æ‚Ñ turn offset ‚ğŒvZ‚µ‚Ä baseDesired ‚É‰Á‚¦‚é
     float screenW = static_cast<float>(Application::GetWidth());
     float normX = 0.0f;
     if (screenW > 1.0f) normX = (m_reticleScreen.x - (screenW * 0.5f)) / (screenW * 0.5f);
@@ -584,38 +584,38 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     totalDesired += localRight * m_currentTurnOffset;
 
     // ============================================================
-    // â˜… ã“ã“ã«ä¸Šä¸‹åè»¢ã‚ªãƒ•ã‚»ãƒƒãƒˆã‚’è¿½åŠ  â˜…
+    // š ‚±‚±‚Éã‰º”½“]ƒIƒtƒZƒbƒg‚ğ’Ç‰Á š
     // ============================================================
 
-     // Player ã®ç§»å‹•é€Ÿåº¦ï¼ˆä¸–ç•Œåº§æ¨™ï¼‰
+     // Player ‚ÌˆÚ“®‘¬“xi¢ŠEÀ•Wj
     Vector3 vel = m_target->GetComponent<MoveComponent>()->GetCurrentVelocity();
 
-    // é€²è¡Œæ–¹å‘ã®ä¸Šä¸‹æˆåˆ†ã ã‘å–ã‚Šå‡ºã™
+    // is•ûŒü‚Ìã‰º¬•ª‚¾‚¯æ‚èo‚·
     float vy = vel.y;
 
-    // â–¼ã‚ãªãŸã®ç†æƒ³è£œæ­£ï¼š
-    // ä¸Šã«ç§»å‹•ã—ã¦ã„ã‚‹ã¨ã (vy > 0) â†’ ã‚«ãƒ¡ãƒ©ã®é«˜ã•ã‚’ä¸‹ã’ã‚‹ï¼ˆPlayer ãŒç”»é¢ã®ä¸‹ã¸ï¼‰
-    // ä¸‹ã«ç§»å‹•ã—ã¦ã„ã‚‹ã¨ã (vy < 0) â†’ ã‚«ãƒ¡ãƒ©ã‚’ä¸Šã’ã‚‹ï¼ˆPlayer ãŒç”»é¢ã®ä¸Šã¸ï¼‰
+    // ¥‚ ‚È‚½‚Ì—‘z•â³F
+    // ã‚ÉˆÚ“®‚µ‚Ä‚¢‚é‚Æ‚« (vy > 0) ¨ ƒJƒƒ‰‚Ì‚‚³‚ğ‰º‚°‚éiPlayer ‚ª‰æ–Ê‚Ì‰º‚Öj
+    // ‰º‚ÉˆÚ“®‚µ‚Ä‚¢‚é‚Æ‚« (vy < 0) ¨ ƒJƒƒ‰‚ğã‚°‚éiPlayer ‚ª‰æ–Ê‚Ìã‚Öj
     float cameraYOffset = -vy * 0.15f;
-    //                 â–²ã“ã“ãŒä¸€ç•ªå¤§äº‹ãªç¬¦å·ï¼
+    //                 £‚±‚±‚ªˆê”Ô‘å–‚È•„†I
 
-    // å¼·ã™ããªã„ã‚ˆã†ã«åˆ¶é™
+    // ‹­‚·‚¬‚È‚¢‚æ‚¤‚É§ŒÀ
     cameraYOffset = std::clamp(cameraYOffset, -3.0f, 3.0f);
 
-    // ç›®çš„ã®ã‚«ãƒ¡ãƒ©ä½ç½®ã¸åæ˜ 
+    // –Ú“I‚ÌƒJƒƒ‰ˆÊ’u‚Ö”½‰f
     totalDesired.y += cameraYOffset;
 
 
     // ============================================================
 
 
-    // 5) PlayArea ã«ã‚ˆã‚‹ Y ã‚¯ãƒ©ãƒ³ãƒ—ï¼ˆé«˜ã•ã¯ã“ã“ã§æ±ºå®šï¼‰
-    // ã¾ãšè·é›¢ã«åŸºã¥ãåŠé«˜ã•ã‚’è¨ˆç®—ï¼ˆä»Šå›ã®ã‚«ãƒ¡ãƒ©ã‹ã‚‰ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã¾ã§ã®è·é›¢ã¯ desiredDistï¼‰
-    // ã ãŒã‚¹ãƒ—ãƒªãƒ³ã‚°ã‚„ laterals ã«ã‚ˆã‚Šå¤šå°‘ãšã‚Œã‚‹å¯èƒ½æ€§ãŒã‚ã‚‹ãŸã‚ã€ã“ã“ã¯ conservative ãªè¨ˆç®—
+    // 5) PlayArea ‚É‚æ‚é Y ƒNƒ‰ƒ“ƒvi‚‚³‚Í‚±‚±‚ÅŒˆ’èj
+    // ‚Ü‚¸‹——£‚ÉŠî‚Ã‚­”¼‚‚³‚ğŒvZi¡‰ñ‚ÌƒJƒƒ‰‚©‚çƒ^[ƒQƒbƒg‚Ü‚Å‚Ì‹——£‚Í desiredDistj
+    // ‚¾‚ªƒXƒvƒŠƒ“ƒO‚â laterals ‚É‚æ‚è‘½­‚¸‚ê‚é‰Â”\«‚ª‚ ‚é‚½‚ßA‚±‚±‚Í conservative ‚ÈŒvZ
     Vector3 camToTargetForHalfHeight = targetPos - totalDesired;
     float distAlongForward = camToTargetForHalfHeight.Length();
     if (distAlongForward < 1e-6f) distAlongForward = 1e-6f;
-    float halfHeight = std::tan(m_Fov * 0.5f) * distAlongForward;
+    float halfHeight = std::tan(m_fov * 0.5f) * distAlongForward;
 
     if (m_playArea)
     {
@@ -630,8 +630,8 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
         totalDesired.y = std::clamp(totalDesired.y, minCameraY, maxCameraY);
     }
 
-    // 6) éãƒ–ãƒ¼ã‚¹ãƒˆæ™‚ã¯ã€Œé«˜ã•ã‚’ä¿æŒã—ãŸã¾ã¾ã€XZï¼ˆæ°´å¹³ï¼‰ã‚’å†ã‚¹ã‚±ãƒ¼ãƒ«ã—ã¦
-    //    3D è·é›¢ãŒ desiredDist ã«ãªã‚‹ã‚ˆã†ã«å¼·åˆ¶ã™ã‚‹ï¼ˆæ¨ªã‚ªãƒ•ã‚»ãƒƒãƒˆã‚’è¦‹ã›ã¤ã¤è·é›¢ã¯å›ºå®šï¼‰
+    // 6) ”ñƒu[ƒXƒg‚Íu‚‚³‚ğ•Û‚µ‚½‚Ü‚ÜvXZi…•½j‚ğÄƒXƒP[ƒ‹‚µ‚Ä
+    //    3D ‹——£‚ª desiredDist ‚É‚È‚é‚æ‚¤‚É‹­§‚·‚éi‰¡ƒIƒtƒZƒbƒg‚ğŒ©‚¹‚Â‚Â‹——£‚ÍŒÅ’èj
     /*if (!m_boostRequested)
     {*/
         Vector3 toCam = totalDesired - targetPos;
@@ -649,7 +649,7 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
             float scale = desiredHoriz / horizLen;
             totalDesired.x = targetPos.x + horizVec.x * scale;
             totalDesired.z = targetPos.z + horizVec.z * scale;
-            // totalDesired.y ã¯æ—¢ã« PlayArea ã§ã‚¯ãƒ©ãƒ³ãƒ—æ¸ˆã¿
+            // totalDesired.y ‚ÍŠù‚É PlayArea ‚ÅƒNƒ‰ƒ“ƒvÏ‚İ
         }
         else
         {
@@ -660,33 +660,33 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
         }
     /*}*/
 
-    // 7) safety: ã‚¹ãƒ—ãƒªãƒ³ã‚°ä½ç½®ãŒæ¥µç«¯ã«é ã‘ã‚Œã°ãƒªã‚»ãƒƒãƒˆï¼ˆåˆæœŸåŒ–ä¸è¶³ã‚„éå»ã®ãƒã‚°ã§å·¨å¤§å€¤ãŒå‡ºã‚‹ã‚±ãƒ¼ã‚¹å¯¾ç­–ï¼‰
+    // 7) safety: ƒXƒvƒŠƒ“ƒOˆÊ’u‚ª‹É’[‚É‰“‚¯‚ê‚ÎƒŠƒZƒbƒgi‰Šú‰»•s‘«‚â‰ß‹‚ÌƒoƒO‚Å‹‘å’l‚ªo‚éƒP[ƒX‘Îôj
     Vector3 springPos = m_spring.GetPosition();
-    const float ABSOLUTE_POS_LIMIT = 10000.0f; // å¿…è¦ãªã‚‰èª¿æ•´
+    const float ABSOLUTE_POS_LIMIT = 10000.0f; // •K—v‚È‚ç’²®
     if (std::isnan(springPos.x) || std::isnan(springPos.y) || std::isnan(springPos.z) ||
         springPos.Length() > ABSOLUTE_POS_LIMIT)
     {
-        // åˆæœŸåŒ–ï¼ˆç¬é–“çš„ã«ã‚«ãƒ¡ãƒ©ã‚’ desired ã«åˆã‚ã›ã‚‹ï¼‰
+        // ‰Šú‰»iuŠÔ“I‚ÉƒJƒƒ‰‚ğ desired ‚É‡‚í‚¹‚éj
         m_spring.Reset(totalDesired);
         springPos = m_spring.GetPosition();
     }
 
-    // 8) optional: ã‚¹ãƒ—ãƒªãƒ³ã‚°å·®ãŒå¤§ãã‘ã‚Œã°ä¸€æ™‚çš„ã« stiffness ã‚’ä¸Šã’ã¦è¿½å¾“ã‚’é€Ÿã‚ã‚‹
+    // 8) optional: ƒXƒvƒŠƒ“ƒO·‚ª‘å‚«‚¯‚ê‚Îˆê“I‚É stiffness ‚ğã‚°‚Ä’Ç]‚ğ‘¬‚ß‚é
     Vector3 desiredPos = totalDesired;
     float springDiff = (desiredPos - springPos).Length();
-    const float DIFF_SNAP_THRESHOLD = desiredDist * 0.5f; // èª¿æ•´å¯
+    const float DIFF_SNAP_THRESHOLD = desiredDist * 0.5f; // ’²®‰Â
 
     float stiffness = m_normalStiffness;
     float damping = m_normalDamping;
 
-    // â˜…ãƒ–ãƒ¼ã‚¹ãƒˆä¸­ã¯è¿½å¾“ã‚’å¼·ã‚ã‚‹ï¼ˆç½®ã„ã¦ã„ã‹ã‚Œé˜²æ­¢ï¼‰
+    // šƒu[ƒXƒg’†‚Í’Ç]‚ğ‹­‚ß‚éi’u‚¢‚Ä‚¢‚©‚ê–h~j
     if (m_boostRequested)
     {
         stiffness *= 1.6f;
         damping *= 1.2f;
     }
 
-    // â˜…å·®ãŒå¤§ãã„æ™‚ã‚‚è¿½å¾“ã‚’å¼·ã‚ã‚‹ï¼ˆãƒ–ãƒ¼ã‚¹ãƒˆä¸­ã‚‚å«ã‚€ï¼‰
+    // š·‚ª‘å‚«‚¢‚à’Ç]‚ğ‹­‚ß‚éiƒu[ƒXƒg’†‚àŠÜ‚Şj
     if (springDiff > DIFF_SNAP_THRESHOLD)
     {
         stiffness *= 1.8f;
@@ -696,15 +696,15 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     m_spring.SetStiffness(stiffness);
     m_spring.SetDamping(damping);
 
-    // 9) æœ€å¾Œã«ã‚¹ãƒ—ãƒªãƒ³ã‚°æ›´æ–°
+    // 9) ÅŒã‚ÉƒXƒvƒŠƒ“ƒOXV
     m_spring.Update(desiredPos, dt);
 
-    
 
-    // 10) prev yaw æ›´æ–°
+
+    // 10) prev yaw XV
     m_prevPlayerYaw = playerYaw;
 
-    // 11) æŒ¯å‹•å‡¦ç†ï¼ˆæ—¢å­˜ãƒ­ã‚¸ãƒƒã‚¯ã‚’ä¿æŒï¼‰
+    // 11) U“®ˆ—iŠù‘¶ƒƒWƒbƒN‚ğ•Ûj
     m_shakeOffset = Vector3::Zero;
     if (m_shakeTimeRemaining > 0.0f && m_target)
     {
@@ -773,11 +773,11 @@ void FollowCameraComponent::UpdateCameraPosition(float dt)
     Vector3 desiredPos = targetPos + back + Vector3(0.0f, m_defaultHeight, 0.0f);
 
     //m_spring.Reset(desiredPos);
-    //ã‚¹ãƒ—ãƒªãƒ³ã‚°ã§è‡ªç„¶è¿½å¾“
+    //ƒXƒvƒŠƒ“ƒO‚Å©‘R’Ç]
     m_spring.Update(desiredPos, dt);
 }*/
 
-//â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…
+//šššššššššššššššššššššššššššššššššš
 void FollowCameraComponent::Shake(float magnitude, float duration , ShakeMode mode)
 {
     if (magnitude <= 0.0f || duration <= 0.0f) { return; }
@@ -790,27 +790,27 @@ void FollowCameraComponent::Shake(float magnitude, float duration , ShakeMode mo
 
     m_shakePhase = 0.0f;
 }
-//â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…â˜…
+//šššššššššššššššššššššššššššššššššš
 
 void FollowCameraComponent::UpdateShootCache()
 {
 	float w = static_cast<float>(Application::GetWidth());
     float h = static_cast<float>(Application::GetHeight());
 
-    // ã‚«ãƒ¡ãƒ©ã®æœ€çµ‚ä½ç½®ï¼ˆshakeè¾¼ã¿ï¼‰ã‚’ä½¿ã†ã“ã¨
+    // ƒJƒƒ‰‚ÌÅIˆÊ’uishake‚İj‚ğg‚¤‚±‚Æ
     Vector3 camPos = GetPosition();
 
     XMVECTOR nearP = XMVector3Unproject(
         XMVectorSet(m_reticleScreen.x, m_reticleScreen.y, 0.0f, 1.0f),
         0.0f, 0.0f, w, h,
         0.0f, 1.0f,
-        m_ProjectionMatrix, m_ViewMatrix, XMMatrixIdentity());
+        m_projectionMatrix, m_viewMatrix, XMMatrixIdentity());
 
     XMVECTOR farP = XMVector3Unproject(
         XMVectorSet(m_reticleScreen.x, m_reticleScreen.y, 1.0f, 1.0f),
         0.0f, 0.0f, w, h,
         0.0f, 1.0f,
-        m_ProjectionMatrix, m_ViewMatrix, XMMatrixIdentity());
+        m_projectionMatrix, m_viewMatrix, XMMatrixIdentity());
 
     Vector3 nearWorld;
     Vector3 farWorld;

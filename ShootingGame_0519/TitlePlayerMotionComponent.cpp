@@ -14,16 +14,16 @@ void TitlePlayerMotionComponent::Update(float dt)
     GameObject* owner = GetOwner();
     if (!owner) { return; }
 
-    m_Time += dt;
+    m_time += dt;
 
-    float time = m_Time / max(0.01f, m_Duration);
+    float time = m_time / max(0.01f, m_duration);
     float t = std::clamp(time, 0.0f, 1.0f);
 
     DirectX::SimpleMath::Vector3 pos = EvaluateBezier(t);
     owner->SetPosition(pos);
 
     // 進行方向
-    float tNext = std::clamp(t + (1.0f / max(1.0f, m_Duration * 60.0f)), 0.0f, 1.0f);
+    float tNext = std::clamp(t + (1.0f / max(1.0f, m_duration * 60.0f)), 0.0f, 1.0f);
     DirectX::SimpleMath::Vector3 posNext = EvaluateBezier(tNext);
     DirectX::SimpleMath::Vector3 dir = posNext - pos;
 
@@ -37,9 +37,9 @@ void TitlePlayerMotionComponent::Update(float dt)
     float pitch = -std::atan2(dir.y, std::sqrt(dir.x * dir.x + dir.z * dir.z));
 
     // まずこれを試す（前後反転）
-    yaw += m_ModelYawOffset;
-    pitch += m_ModelPitchOffset;
-    float roll = m_ModelRollOffset;
+    yaw += m_modelYawOffset;
+    pitch += m_modelPitchOffset;
+    float roll = m_modelRollOffset;
 
     // スムーズ回転
     float lerpRate = 8.0f;
@@ -51,12 +51,12 @@ void TitlePlayerMotionComponent::Update(float dt)
 
     owner->SetRotation(newRot);
 
-    if (!m_HasTriggered && t >= m_TriggerT)
+    if (!m_hasTriggered && t >= m_triggerT)
     {
-        m_HasTriggered = true;
-        if (m_OnLogoTrigger)
+        m_hasTriggered = true;
+        if (m_onLogoTrigger)
         {
-            m_OnLogoTrigger();
+            m_onLogoTrigger();
         }
     }
 }

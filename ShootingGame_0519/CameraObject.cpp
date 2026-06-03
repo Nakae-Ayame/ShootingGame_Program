@@ -9,6 +9,6 @@ void CameraObject::SetCameraComponent(const std::shared_ptr<CameraComponentBase>
 {
     if (!cameraComponent) { return; }
 
-    m_CameraComponent = cameraComponent;
-    AddComponent(m_CameraComponent);
+    m_cameraComponent = cameraComponent;
+    AddComponent(m_cameraComponent);
 }

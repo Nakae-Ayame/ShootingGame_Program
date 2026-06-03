@@ -27,33 +27,33 @@ public:
 	void RemoveObject(std::shared_ptr<GameObject>) override;
 	void RemoveObject(GameObject* obj);
 	void FinishFrameCleanup() override;
-	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_GameObjects; }
+	const std::vector<std::shared_ptr<GameObject>>& GetObjects() const override { return m_gameObjects; }
 private:
 
 	void SetSceneObject();
-	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
-	std::vector<std::shared_ptr<GameObject>> m_TextureObjects;
-	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;
-	std::vector<std::shared_ptr<GameObject>> m_AddObjects;
-	
-	std::shared_ptr<SkyDome> m_SkyDome;
-	std::shared_ptr<GameObject> m_Player;
+	std::vector<std::shared_ptr<GameObject>> m_gameObjects;
+	std::vector<std::shared_ptr<GameObject>> m_textureObjects;
+	std::vector<std::shared_ptr<GameObject>> m_deleteObjects;
+	std::vector<std::shared_ptr<GameObject>> m_addObjects;
+
+	std::shared_ptr<SkyDome> m_skyDome;
+	std::shared_ptr<GameObject> m_player;
 	std::shared_ptr<CameraObject> m_camera;
 
-	std::shared_ptr<GameObject> m_TitleLogo;	//タイトルロゴオブジェクト
-	std::shared_ptr<GameObject> m_TitleText;	//タイトルテキストオブジェクト
+	std::shared_ptr<GameObject> m_titleLogo;	//タイトルロゴオブジェクト
+	std::shared_ptr<GameObject> m_titleText;	//タイトルテキストオブジェクト
 
-	std::shared_ptr<TitlePlayerMotionComponent> m_TitleMotion;
-	bool m_IsLogoShown = false;				//2Dロゴが表示されたかどうか
+	std::shared_ptr<TitlePlayerMotionComponent> m_titleMotion;
+	bool m_isLogoShown = false;				//2Dロゴが表示されたかどうか
 
 	//--------------ロゴ点滅関連------------------
-	float m_BlinkTimer = 0.0f;
-	float m_BlinkInterval = 0.5f;
-	bool m_BlinkVisible = true;
+	float m_blinkTimer = 0.0f;
+	float m_blinkInterval = 0.5f;
+	bool m_blinkVisible = true;
 
-	std::vector<BezierPath> m_PlayerPaths;
-	int m_CurrentPathIndex = 0;
-	bool m_LoopPaths = true;
+	std::vector<BezierPath> m_playerPaths;
+	int m_currentPathIndex = 0;
+	bool m_loopPaths = true;
 
 	void SetupPlayerPaths();
 	void ApplyCurrentPlayerPath();

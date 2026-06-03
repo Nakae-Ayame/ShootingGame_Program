@@ -9,8 +9,8 @@ using namespace DirectX::SimpleMath;
 
 TextureComponent::TextureComponent()
 {
-    m_Position = { 0.0f, 0.0f };
-    m_Size = { 100.0f, 100.0f }; // 初期サイズ
+    m_position = { 0.0f, 0.0f };
+    m_size = { 100.0f, 100.0f }; // 初期サイズ
 }
 
 bool TextureComponent::LoadTexture(const std::wstring& filepath)
@@ -18,11 +18,11 @@ bool TextureComponent::LoadTexture(const std::wstring& filepath)
     ID3D11Device* device = Renderer::GetDevice();
     if (!device) { return false; }
 
-    HRESULT hr = CreateWICTextureFromFile(device, filepath.c_str(), nullptr, m_TextureSRV.GetAddressOf());
+    HRESULT hr = CreateWICTextureFromFile(device, filepath.c_str(), nullptr, m_textureSrv.GetAddressOf());
     return SUCCEEDED(hr);
 }
 
-void TextureComponent::Initialize() 
+void TextureComponent::Initialize()
 {
 
 }
@@ -30,17 +30,17 @@ void TextureComponent::Initialize()
 void TextureComponent::Draw(float deltaTime)
 {
 
-    if (!m_IsVisible)  { return; }
-    if (!m_TextureSRV) { return; }
+    if (!m_isVisible)  { return; }
+    if (!m_textureSrv) { return; }
 
     Renderer::SetBlendState(BS_ALPHABLEND);
     Renderer::SetDepthEnable(false);
 
     // アルファ定数バッファを更新してバインド
-    Renderer::SetTextureAlpha(m_Alpha);
+    Renderer::SetTextureAlpha(m_alpha);
 
     // 既存のテクスチャ描画（DrawTexture は SRV を使う）
-    Renderer::DrawTexture(m_TextureSRV.Get(), m_Position, m_Size);
+    Renderer::DrawTexture(m_textureSrv.Get(), m_position, m_size);
 
     // （DrawTexture 側で SRV のアンバインドやシェーダ復帰を行っているなら不要）
 }

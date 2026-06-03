@@ -18,9 +18,9 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 //-----------------------------------------------------------------------------
 HINSTANCE  Application::m_hInst;        //インスタンスハンドルです.
 HWND       Application::m_hWnd;         //ウィンドウハンドルです.
-uint32_t   Application::m_Width;        //ウィンドウの横幅です.
-uint32_t   Application::m_Height;       //ウィンドウの縦幅です.
-float      Application::m_DeltaTime;
+uint32_t   Application::m_width;        //ウィンドウの横幅です.
+uint32_t   Application::m_height;       //ウィンドウの縦幅です.
+float      Application::m_deltaTime;
 
 //ImGuiのWin32プロシージャハンドラ(マウス対応)
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -83,15 +83,15 @@ void Application::MainLoop()
             //Time 計算
             auto currentTime = std::chrono::steady_clock::now();
             std::chrono::duration<float> delta = currentTime - previousTime;
-            m_DeltaTime = delta.count(); //秒単位で保持
+            m_deltaTime = delta.count(); //秒単位で保持
             previousTime = currentTime;
 
-            //std::cout << "デルタタイム : " << m_DeltaTime << std::endl;
+            //std::cout << "デルタタイム : " << m_deltaTime << std::endl;
 
             //更新・描画
-            Game::GameUpdate(m_DeltaTime);
-            //TransitionManager::Update(m_DeltaTime);
-            Game::GameDraw(m_DeltaTime);
+            Game::GameUpdate(m_deltaTime);
+            //TransitionManager::Update(m_deltaTime);
+            Game::GameDraw(m_deltaTime);
         }
     }
 
@@ -116,7 +116,7 @@ bool Application::InitWnd()
     wc.hIcon = LoadIcon(hInst, IDI_APPLICATION);  //エグゼのアイコンの見た目を変えられる
     wc.hCursor = LoadCursor(hInst, IDC_ARROW);    //カーソルの見た目を変えられる
     //wcex.hCursor =		   //NULL,カーソルの画像パス,
-    //	(HCURSOR)LoadImage(NULL, "path_to_cursor_file.cur", 
+    //	(HCURSOR)LoadImage(NULL, "path_to_cursor_file.cur",
     //					   //ロードする画像の種類,幅の設定(0はデフォ),ロード方法
     //					   IMAGE_CURSOR, 0, 0, LR_LOADFROMFILE);
     wc.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND);  //ウィンドウの初期背景カラー
@@ -135,8 +135,8 @@ bool Application::InitWnd()
 
     // ウィンドウのサイズを設定.
     RECT rc = {};
-    rc.right = static_cast<LONG>(m_Width);
-    rc.bottom = static_cast<LONG>(m_Height);
+    rc.right = static_cast<LONG>(m_width);
+    rc.bottom = static_cast<LONG>(m_height);
 
     // ウィンドウサイズを調整.
     auto style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;

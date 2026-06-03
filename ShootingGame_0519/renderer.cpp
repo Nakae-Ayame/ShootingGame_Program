@@ -176,7 +176,7 @@ void Renderer::Init()
     if (SUCCEEDED(hr) && renderTarget) {
         m_device->CreateRenderTargetView(renderTarget.Get(), nullptr, m_renderTargetView.GetAddressOf());
     }
-    else 
+    else
     {
         throw std::runtime_error("Failed to retrieve render target buffer.");
     }
@@ -205,7 +205,7 @@ void Renderer::Init()
     hr = m_device->CreateDepthStencilView(depthStencil.Get(),                   //元となる深度テクスチャ
                                           &depthStencilViewDesc,                //上で作ったビュー設定
                                           m_depthStencilView.GetAddressOf());   //生成したビューを格納する場所
-    if (FAILED(hr)) 
+    if (FAILED(hr))
     {
         throw std::runtime_error("Failed to create depthStencilView.");
     }
@@ -411,7 +411,7 @@ void Renderer::Init()
 
     m_device->CreateBuffer(&bufferDesc, nullptr, m_projectionBuffer.GetAddressOf());
     m_deviceContext->VSSetConstantBuffers(2, 1, m_projectionBuffer.GetAddressOf());
-    
+
     bufferDesc.ByteWidth = sizeof(MATERIAL);
     m_device->CreateBuffer(&bufferDesc, nullptr, m_materialBuffer.GetAddressOf());
     m_deviceContext->VSSetConstantBuffers(3, 1, m_materialBuffer.GetAddressOf());
@@ -437,9 +437,9 @@ void Renderer::Init()
     }
 
     //-----------------------シェーダーのコンパイル-----------------------
-  
+
     auto vsBlob = CompileShader(L"BasicVertexShader.hlsl",
-		                            "VSMain", "vs_5_0"); 
+		                            "VSMain", "vs_5_0");
 
      hr = m_device->CreateVertexShader(
         vsBlob->GetBufferPointer(),
@@ -547,7 +547,7 @@ void Renderer::Init()
         throw std::runtime_error("Failed to create Texture vertex shader");
     }
 
-    
+
     auto texPsBlob = CompileShader(
         L"TexturePixelShader.hlsl",
         "PSMain",
@@ -793,7 +793,7 @@ void Renderer::SetLight(LIGHT Light)
  */
 void Renderer::SetBlendState(int nBlendState)
 {
-    if (nBlendState >= 0 && nBlendState < MAX_BLENDSTATE) 
+    if (nBlendState >= 0 && nBlendState < MAX_BLENDSTATE)
     {
         float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
         m_deviceContext->OMSetBlendState(m_blendState[nBlendState].Get(), blendFactor, 0xffffffff);
@@ -886,7 +886,7 @@ const PostProcessSettings& Renderer::GetPostProcessSettings()
 void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& position, const Vector2& size)
 {
     //std::cout << "[Renderer] DrawTexture start texture=" << texture << " pos=(" << position.x << "," << position.y << ") size=(" << size.x << "," << size.y << ")\n";
-       
+
     if (!texture) { OutputDebugStringA("DBG: DrawTexture - texture null\n"); return; }
 
     // -------- Save GPU state we'll change --------
@@ -979,7 +979,7 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
 
     // Bind texture + optional sampler (sampler slot 0)
     m_deviceContext->PSSetShaderResources(0, 1, &texture);
-    // if you have a sampler object: m_DeviceContext->PSSetSamplers(0,1,m_Sampler.GetAddressOf());
+    // if you have a sampler object: m_deviceContext->PSSetSamplers(0,1,m_sampler.GetAddressOf());
 
     // Draw
     m_deviceContext->Draw(6, 0);
@@ -1037,7 +1037,7 @@ void Renderer::DrawTexture(ID3D11ShaderResourceView* texture, const Vector2& pos
 void Renderer::ApplyMotionBlur()
 {
     float blur = std::clamp(s_postProcess.motionBlurAmount, 0.0f, 1.0f);
-   
+
     if (!m_sceneColorTex || !m_sceneColorSRV || !m_prevSceneColorSRV){ return; }
 
     if (!m_playerColorTex || !m_playerColorSRV || !m_prevPlayerColorSRV){ return; }
@@ -1182,7 +1182,7 @@ void Renderer::ApplyMotionBlur()
     m_deviceContext->PSSetShaderResources(0, 2, srvs);
 
     PostProcessSettings cb{};
-    cb.motionBlurAmount = blur * 1.5f; 
+    cb.motionBlurAmount = blur * 1.5f;
     cb.motionBlurStart01 = s_postProcess.motionBlurStart01;
     cb.motionBlurEnd01 = s_postProcess.motionBlurEnd01;
     cb.motionBlurCenter.x = s_postProcess.motionBlurCenter.x;
@@ -1763,4 +1763,4 @@ void Renderer::DrawTrailBillboard(ID3D11ShaderResourceView* texture,
 }
 
 
-//m_DeviceContext->Map(m_pVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+//m_deviceContext->Map(m_pVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);

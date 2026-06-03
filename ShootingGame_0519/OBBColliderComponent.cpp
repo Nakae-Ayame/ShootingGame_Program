@@ -1,12 +1,12 @@
 #include "GameObject.h"
 #include "OBBColliderComponent.h"
-#include <SimpleMath.h> 
+#include <SimpleMath.h>
 
 using namespace DirectX::SimpleMath;
 
 void OBBColliderComponent::SetSize(const Vector3& size)
 {
-    m_Size = size;
+    m_size = size;
 }
 
 //GameObjectの位置のゲット関数
@@ -19,9 +19,9 @@ Vector3 OBBColliderComponent::GetCenter() const
     }
 
     // オフセットをスケール（ローカル->ワールドでの大きさの差を反映）
-    Vector3 scaledOffset = Vector3(m_LocalOffset.x * owner->GetScale().x,
-        m_LocalOffset.y * owner->GetScale().y,
-        m_LocalOffset.z * owner->GetScale().z);
+    Vector3 scaledOffset = Vector3(m_localOffset.x * owner->GetScale().x,
+        m_localOffset.y * owner->GetScale().y,
+        m_localOffset.z * owner->GetScale().z);
 
     // 回転（オブジェクトの向き）によりローカルオフセットをワールドに回す
     Vector3 rot = owner->GetRotation();
@@ -33,16 +33,16 @@ Vector3 OBBColliderComponent::GetCenter() const
     return owner->GetPosition() + worldOffset;
 };
 
-//当たり判定用のサイズのゲット関数(m_Size)
+//当たり判定用のサイズのゲット関数(m_size)
 Vector3 OBBColliderComponent::GetSize() const
 {
     GameObject* owner = GetOwner();
     if (!owner)
     {
-        return m_Size; // フォールバック
+        return m_size; // フォールバック
     }
     Vector3 s = owner->GetScale();
-    return Vector3(m_Size.x * s.x, m_Size.y * s.y, m_Size.z * s.z);
+    return Vector3(m_size.x * s.x, m_size.y * s.y, m_size.z * s.z);
 }
 
 //ゲームオブジェクトの回転値から、回転行列を生成。

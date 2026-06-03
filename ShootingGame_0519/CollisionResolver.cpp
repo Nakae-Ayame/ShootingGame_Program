@@ -197,7 +197,7 @@ namespace Collision
         //-----------ABB の中心と半幅(ワールド)-----------
         Vector3 aMin = aabb->GetMin();  //箱の小さい部分
         Vector3 aMax = aabb->GetMax();  //箱の大きい部分
-        
+
         Vector3 aCenterV = (aMin + aMax) * 0.5f;  //箱の中心
         Vector3 aHalfV   = (aMax - aMin) * 0.5f;  //箱の半幅
 
@@ -220,21 +220,21 @@ namespace Collision
         //軸同士がどれくらい傾いているかを
         //内積等を利用して実施しています
         float R[3][3];
-        float AbsR[3][3];
+        float absR[3][3];
 
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
             {
                 R[i][j] = axesA[i].Dot(axesB[j]);
-                AbsR[i][j] = std::fabs(R[i][j]) + 1e-6f; // small epsilon
+                absR[i][j] = std::fabs(R[i][j]) + 1e-6f; // small epsilon
             }
         }
 
         //中心の距離で
         //Aの軸方向からどれぐらい離れているかを計算
-        float tA[3] = { tWorld.Dot(axesA[0]), 
-                        tWorld.Dot(axesA[1]), 
+        float tA[3] = { tWorld.Dot(axesA[0]),
+                        tWorld.Dot(axesA[1]),
                         tWorld.Dot(axesA[2]) };
 
         //箱半分の位置を分けて保存？
@@ -250,8 +250,8 @@ namespace Collision
         bool found = false;
 
         //各軸の重なり量(overlap)を調べて最も小さいものを記録する関数
-        auto testAxis = [&](const Vector3& axis, 
-                            float overlap, 
+        auto testAxis = [&](const Vector3& axis,
+                            float overlap,
                             const Vector3& axisDirCandidate)
         {
             if (overlap <= 0.0f)
@@ -270,13 +270,13 @@ namespace Collision
 
         //----------------------Aの軸(AABBの方)をチェック----------------------
         for (int i = 0; i < 3; ++i)
-        { 
+        {
             //半分の各軸の半径を入れておく
-            float ra = aHalf[i];   
+            float ra = aHalf[i];
 
             //OBBをAの軸に投影した際の投影幅を計算する
             //各軸のAABBの半径 * 内積の絶対値を計算して足す
-            float rb = bHalf[0] * AbsR[i][0] + bHalf[1] * AbsR[i][1] + bHalf[2] * AbsR[i][2];
+            float rb = bHalf[0] * absR[i][0] + bHalf[1] * absR[i][1] + bHalf[2] * absR[i][2];
 
             //半径と投影幅を足して軸からの距離の絶対値を引く
             float overlap = ra + rb - std::fabs(tA[i]);
@@ -287,7 +287,7 @@ namespace Collision
 
             float sign;
             //軸が0以上
-            if (tA[i] >= 0.0f) 
+            if (tA[i] >= 0.0f)
             {
                 sign = 1.0f;
             }
@@ -314,8 +314,8 @@ namespace Collision
         {
             //OBBをAの軸に投影した際の投影幅を計算する
             //各軸のAABBの半径 * 内積の絶対値を計算して足す
-            float ra = aHalf[0] * AbsR[0][i] + aHalf[1] * AbsR[1][i] + aHalf[2] * AbsR[2][i];
-            
+            float ra = aHalf[0] * absR[0][i] + aHalf[1] * absR[1][i] + aHalf[2] * absR[2][i];
+
             //半分の各軸の半径を入れておく
             float rb = bHalf[i];
 
@@ -329,11 +329,11 @@ namespace Collision
             float projVal = (tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i]);
 
             float projSign;
-            if (projVal >= 0.0f) 
+            if (projVal >= 0.0f)
             {
                 projSign = 1.0f;
             }
-            else 
+            else
             {
                 projSign = -1.0f;
             }
@@ -367,8 +367,8 @@ namespace Collision
                 int j1 = (j + 1) % 3;
                 int j2 = (j + 2) % 3;
 
-                float ra = aHalf[i1] * AbsR[i2][j] + aHalf[i2] * AbsR[i1][j];
-                float rb = bHalf[j1] * AbsR[i][j2] + bHalf[j2] * AbsR[i][j1];
+                float ra = aHalf[i1] * absR[i2][j] + aHalf[i2] * absR[i1][j];
+                float rb = bHalf[j1] * absR[i][j2] + bHalf[j2] * absR[i][j1];
 
                 float tProj = std::fabs(tA[i2] * R[i1][j] - tA[i1] * R[i2][j]);
                 float overlap = ra + rb - tProj;
@@ -447,7 +447,7 @@ namespace Collision
             outPushForB);
     }
 
-   
+
     bool ComputeAABBMTV(const AABBColliderComponent* a, const AABBColliderComponent* b,
         Vector3& outPushA, Vector3& outPushB)
     {
@@ -484,16 +484,16 @@ namespace Collision
         //小さいなら
         if (overlapY < minOverlap)
         {
-            minOverlap = overlapY; 
+            minOverlap = overlapY;
             axis = 1;
         }
 
         //Zの押し出し量の方が今の一番小さい押し出し量よりも
         //小さいなら
-        if (overlapZ < minOverlap) 
+        if (overlapZ < minOverlap)
         {
             minOverlap = overlapZ;
-            axis = 2; 
+            axis = 2;
         }
 
         //箱の真ん中を計算する
@@ -552,12 +552,12 @@ namespace Collision
         }
 
         //各AとBの箱に押し出す量を入れる
-        outPushA =  push;   
-        outPushB = -push;   
+        outPushA =  push;
+        outPushB = -push;
         return true;
     }
 
-    bool ComputeOBBMTV(const OBBColliderComponent* a, 
+    bool ComputeOBBMTV(const OBBColliderComponent* a,
                        const OBBColliderComponent* b,
                        Vector3& outPushForA, Vector3& outPushForB)
     {
@@ -577,14 +577,14 @@ namespace Collision
         Vector3 halfB = b->GetSize() * 0.5f;
 
         // 軸抽出（Right, Up, Forward）
-        Vector3 axesA[3] = 
+        Vector3 axesA[3] =
         {
             Vector3(rotA._11, rotA._12, rotA._13),
             Vector3(rotA._21, rotA._22, rotA._23),
             Vector3(rotA._31, rotA._32, rotA._33)
         };
 
-        Vector3 axesB[3] = 
+        Vector3 axesB[3] =
         {
             Vector3(rotB._11, rotB._12, rotB._13),
             Vector3(rotB._21, rotB._22, rotB._23),
@@ -607,13 +607,13 @@ namespace Collision
 
         const float EPS = 1e-6f;
         float R[3][3];
-        float AbsR[3][3];
+        float absR[3][3];
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
             {
                 R[i][j] = axesA[i].Dot(axesB[j]);
-                AbsR[i][j] = std::fabs(R[i][j]) + EPS;
+                absR[i][j] = std::fabs(R[i][j]) + EPS;
             }
         }
 
@@ -647,7 +647,7 @@ namespace Collision
         for (int i = 0; i < 3; ++i)
         {
             float ra = aHalf[i];
-            float rb = bHalf[0] * AbsR[i][0] + bHalf[1] * AbsR[i][1] + bHalf[2] * AbsR[i][2];
+            float rb = bHalf[0] * absR[i][0] + bHalf[1] * absR[i][1] + bHalf[2] * absR[i][2];
             float overlap = ra + rb - std::fabs(tA[i]);
 
             // 符号方向を決める（tA[i] の符号に依存）
@@ -666,7 +666,7 @@ namespace Collision
 
         for (int i = 0; i < 3; ++i)
         {
-            float ra = aHalf[0] * AbsR[0][i] + aHalf[1] * AbsR[1][i] + aHalf[2] * AbsR[2][i];
+            float ra = aHalf[0] * absR[0][i] + aHalf[1] * absR[1][i] + aHalf[2] * absR[2][i];
             float rb = bHalf[i];
 
             float proj = tA[0] * R[0][i] + tA[1] * R[1][i] + tA[2] * R[2][i];
@@ -706,8 +706,8 @@ namespace Collision
                 int j1 = (j + 1) % 3;
                 int j2 = (j + 2) % 3;
 
-                float ra = aHalf[i1] * AbsR[i2][j] + aHalf[i2] * AbsR[i1][j];
-                float rb = bHalf[j1] * AbsR[i][j2] + bHalf[j2] * AbsR[i][j1];
+                float ra = aHalf[i1] * absR[i2][j] + aHalf[i2] * absR[i1][j];
+                float rb = bHalf[j1] * absR[i][j2] + bHalf[j2] * absR[i][j1];
 
                 float tProj = std::fabs(tA[i2] * R[i1][j] - tA[i1] * R[i2][j]);
                 float overlap = ra + rb - tProj;

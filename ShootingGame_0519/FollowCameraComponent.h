@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 #include "SpringVector3.h"
 #include "CameraComponentBase.h"
 #include <DirectXMath.h>
@@ -21,7 +21,7 @@ public:
     void Initialize() override {};
     void Update(float dt) override;
 
-    //--------Seté–¢æ•°-------
+    //--------SetŠÖ”-------
     void SetTarget(GameObject* target);
     void SetPlayArea(PlayAreaComponent* p) { m_playArea = p; }
     void SetVerticalAimScale(float s) { m_verticalAimScale = std::clamp(s, 0.0f, 1.0f); }
@@ -33,19 +33,19 @@ public:
     void SetFov(float fovRad) override { m_normalFov = DirectX::XMConvertToRadians(fovRad);};
     void SetBoostFov(float fovRad) { m_boostFov = DirectX::XMConvertToRadians(fovRad); };
 
-    //--------Geté–¢æ•°-------
+    //--------GetŠÖ”-------
     float GetVerticalAimScale() const { return m_verticalAimScale; }
     float GetSensitivity() const { return m_sensitivity; }
-    Matrix GetView() const { return m_ViewMatrix; }
-    Matrix GetProj() const { return m_ProjectionMatrix; }
-    Vector3 GetForward() const override{ return m_ViewMatrix.Invert().Forward(); }
-    Vector3 GetRight() const override{ return m_ViewMatrix.Invert().Right(); }
+    Matrix GetView() const { return m_viewMatrix; }
+    Matrix GetProj() const { return m_projectionMatrix; }
+    Vector3 GetForward() const override{ return m_viewMatrix.Invert().Forward(); }
+    Vector3 GetRight() const override{ return m_viewMatrix.Invert().Right(); }
     //Vector3 GetPosition() const override { return m_spring.GetPosition(); }
     Vector3 GetAimPoint() const override;
     Vector2 GetReticleScreen() const { return m_reticleScreen; }
     Vector3 GetAimDirectionFromReticle() const;
     Vector3 GetUp() const;
-	Vector3 GetLookTarget() const { return m_LookTarget; }
+	Vector3 GetLookTarget() const { return m_lookTarget; }
     Vector3 GetCachedAimPoint() const { return m_cachedAimPoint; }
     Vector3 GetCachedAimDir() const { return m_cachedAimDir; }
     bool GetHasCachedAim() const { return m_hasCachedAim; }
@@ -53,18 +53,18 @@ public:
     Vector3 GetShootRayOrigin() const { return m_shootRayOrigin; }
     Vector3 GetShootRayDir() const { return m_shootRayDir; }
 
-    //-------ã‚«ãƒ¡ãƒ©æ¼”å‡º--------
+    //-------ƒJƒƒ‰‰‰o--------
     enum class ShakeMode
     {
-        Horizontal,   
-        Vertical,     
+        Horizontal,
+        Vertical,
         ALL
     };
-    
+
     void Shake(float magnitude, float duration, ShakeMode mode = ShakeMode::Horizontal);
 private:
 
-    //-------æ›´æ–°é–¢é€£é–¢æ•°--------
+    //-------XVŠÖ˜AŠÖ”--------
     void UpdateCameraPosition(float dt);
     void UpdateLookTarget(float dt,const Vector3& cameraPos);
     void UpdateAimPoint(float dt, const Vector3& cameraPos);
@@ -79,42 +79,42 @@ private:
                                         const Vector3& planeNormal) const;
     void UpdateShootCache();
 
-    //-------è¿½å¾“å¯¾è±¡é–¢é€£--------
-    GameObject* m_target = nullptr;           //è¿½å¾“å¯¾è±¡
-    PlayAreaComponent* m_playArea = nullptr;  //ãƒ—ãƒ¬ã‚¤ç¯„å›²
+    //-------’Ç]‘ÎÛŠÖ˜A--------
+    GameObject* m_target = nullptr;           //’Ç]‘ÎÛ
+    PlayAreaComponent* m_playArea = nullptr;  //ƒvƒŒƒC”ÍˆÍ
 
 
-    //--------------å°„æ’ƒç”¨ãƒ¬ã‚¤é–¢é€£------------------
+    //--------------ËŒ‚—pƒŒƒCŠÖ˜A------------------
     Vector3 m_shootRayOrigin = Vector3::Zero;
     Vector3 m_shootRayDir = Vector3::Forward;
 
-    //-------å…¥åŠ›/å›è»¢é–¢é€£--------
-    float m_yaw = 0.0f;               //å›è»¢è§’(ãƒ¨ãƒ¼)
-    float m_pitch = 0.0f;             //å›è»¢è§’(ãƒ”ãƒƒãƒ)
-    float m_sensitivity = 0.001f;     //å›ã‚‹é‡
+    //-------“ü—Í/‰ñ“]ŠÖ˜A--------
+    float m_yaw = 0.0f;               //‰ñ“]Šp(ƒˆ[)
+    float m_pitch = 0.0f;             //‰ñ“]Šp(ƒsƒbƒ`)
+    float m_sensitivity = 0.001f;     //‰ñ‚é—Ê
 
-    float m_pitchLimitMin = XMConvertToRadians(-15.0f); //ãƒ”ãƒƒãƒã®åˆ¶é™å€¤
-    float m_pitchLimitMax = XMConvertToRadians( 45.0f); //ãƒ”ãƒƒãƒã®åˆ¶é™å€¤
-    float m_yawLimit      = XMConvertToRadians(120.0f); //ãƒ¨ãƒ¼ã®åˆ¶é™å€¤
+    float m_pitchLimitMin = XMConvertToRadians(-15.0f); //ƒsƒbƒ`‚Ì§ŒÀ’l
+    float m_pitchLimitMax = XMConvertToRadians( 45.0f); //ƒsƒbƒ`‚Ì§ŒÀ’l
+    float m_yawLimit      = XMConvertToRadians(120.0f); //ƒˆ[‚Ì§ŒÀ’l
 
-    //-------ã‚«ãƒ¡ãƒ©è·é›¢/é«˜ã•é–¢é€£--------
-    float m_defaultDistance = 0.05f;    //è¿½å¾“å¯¾è±¡ã®å¾Œæ–¹ã«ã©ã®ãã‚‰ã„ã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
-    float m_defaultHeight   = 3.5f;     //è¿½å¾“å¯¾è±¡ã‹ã‚‰ã©ã®ãã‚‰ã„é«˜ã„æ‰€ã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
+    //-------ƒJƒƒ‰‹——£/‚‚³ŠÖ˜A--------
+    float m_defaultDistance = 0.05f;    //’Ç]‘ÎÛ‚ÌŒã•û‚É‚Ç‚Ì‚®‚ç‚¢‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
+    float m_defaultHeight   = 3.5f;     //’Ç]‘ÎÛ‚©‚ç‚Ç‚Ì‚®‚ç‚¢‚‚¢Š‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
 
-    float m_aimDistance = 0.004f;      //ã‚¨ã‚¤ãƒ ã—ãŸã¨ãã®å¾Œæ–¹ã©ã®ã‚ãŸã‚Šã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
-    float m_aimHeight   = 2.8f;         //ã‚¨ã‚¤ãƒ ã—ãŸã¨ãè¿½å¾“å¯¾è±¡ã‹ã‚‰ã©ã®ãã‚‰ã„é«˜ã„æ‰€ã«ã‚«ãƒ¡ãƒ©ãŒã„ã‚‹ã®ã‹
+    float m_aimDistance = 0.004f;      //ƒGƒCƒ€‚µ‚½‚Æ‚«‚ÌŒã•û‚Ç‚Ì‚ ‚½‚è‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
+    float m_aimHeight   = 2.8f;         //ƒGƒCƒ€‚µ‚½‚Æ‚«’Ç]‘ÎÛ‚©‚ç‚Ç‚Ì‚®‚ç‚¢‚‚¢Š‚ÉƒJƒƒ‰‚ª‚¢‚é‚Ì‚©
 
-    bool m_isAiming = false;          //ä»Šã‚¨ã‚¤ãƒ ã—ã¦ã„ã‚‹ã‹ã©ã†ã‹ã®boolå‹
+    bool m_isAiming = false;          //¡ƒGƒCƒ€‚µ‚Ä‚¢‚é‚©‚Ç‚¤‚©‚ÌboolŒ^
     bool m_isBoosting = false;
-    
-    //-------è¡Œåˆ—/ã‚¹ãƒ—ãƒªãƒ³ã‚°é–¢é€£-------
-    SpringVector3 m_spring;     //ã‚«ãƒ¡ãƒ©ä½ç½®ã‚’ã‚¹ãƒ—ãƒªãƒ³ã‚°ã§æ»‘ã‚‰ã‹ã«è¿½å¾“ã•ã›ã‚‹ãƒ©ãƒƒãƒ‘ãƒ¼
+
+    //-------s—ñ/ƒXƒvƒŠƒ“ƒOŠÖ˜A-------
+    SpringVector3 m_spring;     //ƒJƒƒ‰ˆÊ’u‚ğƒXƒvƒŠƒ“ƒO‚ÅŠŠ‚ç‚©‚É’Ç]‚³‚¹‚éƒ‰ƒbƒp[
 
     float m_normalFov = DirectX::XMConvertToRadians(50.0f);
     float m_boostFov  = DirectX::XMConvertToRadians(60.0f);
 
-    float m_fovInSpeed  = 12.0f; 
-    float m_fovOutSpeed =  1.0f; 
+    float m_fovInSpeed  = 12.0f;
+    float m_fovOutSpeed =  1.0f;
 
     float m_fovLerpSpeed = 8.0f;
 
@@ -124,56 +124,56 @@ private:
 
 
 
-    //-------ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«/æ³¨è¦–é–¢é€£--------
+    //-------ƒŒƒeƒBƒNƒ‹/’‹ŠÖ˜A--------
     Vector2 m_reticleScreen{ 440.0f, 160.0f };
 
-    Vector3 m_aimPoint = Vector3::Zero;            //ãƒ¬ãƒ†ã‚£ã‚¯ãƒ«ãŒæŒ‡ã™ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™
-    float   m_aimPlaneDistance = 300.0f;              //ãƒ¬ã‚¤ã¨äº¤å·®ã•ã›ã‚‹ã€Œã‚«ãƒ¡ãƒ©å‰æ–¹ã®å¹³é¢ã¾ã§ã®è·é›¢ã€
+    Vector3 m_aimPoint = Vector3::Zero;            //ƒŒƒeƒBƒNƒ‹‚ªw‚·ƒ[ƒ‹ƒhÀ•W
+    float   m_aimPlaneDistance = 300.0f;              //ƒŒƒC‚ÆŒğ·‚³‚¹‚éuƒJƒƒ‰‘O•û‚Ì•½–Ê‚Ü‚Å‚Ì‹——£v
 
     float   m_verticalAimScale = 0.85f;
 
     float m_normalLookAheadDistance = 8.0f;
     float m_boostLookAheadDistance  = 15.0f;
 
-    float m_lookAheadLerp     = 10.0f;   //lookTarget ã®ã‚¹ãƒ ãƒ¼ã‚ºåº¦åˆã„
-    float m_LookVerticalScale = 4.0f;    //å€¤ã‚’å¤§ããã™ã‚‹ã¨ä¸Šä¸‹ç§»å‹•ãŒæ´¾æ‰‹ã«ãªã‚‹
-    Vector3 m_LookTarget = Vector3::Zero;
+    float m_lookAheadLerp     = 10.0f;   //lookTarget ‚ÌƒXƒ€[ƒY“x‡‚¢
+    float m_lookVerticalScale = 4.0f;    //’l‚ğ‘å‚«‚­‚·‚é‚Æã‰ºˆÚ“®‚ª”hè‚É‚È‚é
+    Vector3 m_lookTarget = Vector3::Zero;
 
-    //-------ã‚¿ãƒ¼ãƒ³é–¢é€£--------
+    //-------ƒ^[ƒ“ŠÖ˜A--------
     float m_prevPlayerYaw   = 0.0f;
-    float m_turnOffsetScale = 8.0f;   // yawSpeed -> ãƒ¯ãƒ¼ãƒ«ãƒ‰æ¨ªã‚ªãƒ•ã‚»ãƒƒãƒˆæ›ç®—ï¼ˆèª¿æ•´ç”¨ï¼‰
-    float m_turnOffsetMax   = 12.0f;     // ã‚ªãƒ•ã‚»ãƒƒãƒˆæœ€å¤§å€¤ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ï¼‰
-    float m_turnOffsetLerp  = 6.0f;    // ã‚ªãƒ•ã‚»ãƒƒãƒˆãŒå¤‰åŒ–ã™ã‚‹ã¨ãã®æ»‘ã‚‰ã‹ã•ï¼ˆå¤§ãã„ã¨å³æ™‚ï¼‰
-    float m_currentTurnOffset = 0.0f; // ç¾åœ¨ã®æ¨ªã‚ªãƒ•ã‚»ãƒƒãƒˆï¼ˆæ»‘ã‚‰ã‹ã«æ›´æ–°ï¼‰
-    
-    float m_screenOffsetScale = 20.0f; // ç”»é¢å¹… 1.0 æ­£è¦åŒ–ã‚ãŸã‚Šã®ãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½æ›ç®—ï¼ˆèª¿æ•´å¯ï¼‰
-    float m_maxScreenOffset   = 24.0f;  // æœ€å¤§ã‚·ãƒ•ãƒˆï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ï¼‰
+    float m_turnOffsetScale = 8.0f;   // yawSpeed -> ƒ[ƒ‹ƒh‰¡ƒIƒtƒZƒbƒgŠ·Zi’²®—pj
+    float m_turnOffsetMax   = 12.0f;     // ƒIƒtƒZƒbƒgÅ‘å’liƒ[ƒ‹ƒh’PˆÊj
+    float m_turnOffsetLerp  = 6.0f;    // ƒIƒtƒZƒbƒg‚ª•Ï‰»‚·‚é‚Æ‚«‚ÌŠŠ‚ç‚©‚³i‘å‚«‚¢‚Æ‘¦j
+    float m_currentTurnOffset = 0.0f; // Œ»İ‚Ì‰¡ƒIƒtƒZƒbƒgiŠŠ‚ç‚©‚ÉXVj
 
-    //-------ãƒ–ãƒ¼ã‚¹ãƒˆé–¢é€£-------
-    bool m_boostRequested = false;   // ç¾åœ¨ãƒœã‚¿ãƒ³ã§ãƒ–ãƒ¼ã‚¹ãƒˆè¦æ±‚ä¸­ã‹ï¼ˆMoveComponent ã‹ã‚‰ SetBoostStateï¼‰
+    float m_screenOffsetScale = 20.0f; // ‰æ–Ê• 1.0 ³‹K‰»‚ ‚½‚è‚Ìƒ[ƒ‹ƒh’PˆÊŠ·Zi’²®‰Âj
+    float m_maxScreenOffset   = 24.0f;  // Å‘åƒVƒtƒgiƒ[ƒ‹ƒh’PˆÊj
 
-    //-------ãƒ–ãƒ¼ã‚¹ãƒˆæºã‚Œé–¢é€£-------
-    float m_boostShakeBlend = 0.0f;        // 0.0f:ç„¡ã— â†’ 1.0f:æœ€å¤§
-    float m_boostShakeInSpeed = 10.0f;      // ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¤ãƒ³é€Ÿåº¦
-    float m_boostShakeOutSpeed = 12.0f;    // ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¢ã‚¦ãƒˆé€Ÿåº¦
-    float m_boostShakeMagnitude = 0.1f;   // å¾®æŒ¯å‹•ã®æŒ¯å¹…ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ã€è¦èª¿æ•´ï¼‰
-    float m_boostShakeFrequency = 28.0f;   // å¾®æŒ¯å‹•å‘¨æ³¢æ•°ï¼ˆHzã€è¦èª¿æ•´ï¼‰
+    //-------ƒu[ƒXƒgŠÖ˜A-------
+    bool m_boostRequested = false;   // Œ»İƒ{ƒ^ƒ“‚Åƒu[ƒXƒg—v‹’†‚©iMoveComponent ‚©‚ç SetBoostStatej
+
+    //-------ƒu[ƒXƒg—h‚êŠÖ˜A-------
+    float m_boostShakeBlend = 0.0f;        // 0.0f:–³‚µ ¨ 1.0f:Å‘å
+    float m_boostShakeInSpeed = 10.0f;      // ƒtƒF[ƒhƒCƒ“‘¬“x
+    float m_boostShakeOutSpeed = 12.0f;    // ƒtƒF[ƒhƒAƒEƒg‘¬“x
+    float m_boostShakeMagnitude = 0.1f;   // ”÷U“®‚ÌU•iƒ[ƒ‹ƒh’PˆÊA—v’²®j
+    float m_boostShakeFrequency = 28.0f;   // ”÷U“®ü”g”iHzA—v’²®j
     float m_boostShakePhase = 0.0f;
 
-    //-------ã‚·ã‚§ã‚¤ã‚¯é–¢é€£--------
-    float m_shakeMagnitude = 0.0f;        //ç¾åœ¨ã®æŒ¯å¹…ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰å˜ä½ï¼‰
-    float m_shakeTimeRemaining = 0.0f;    //æ®‹ã‚Šæ™‚é–“ï¼ˆç§’ï¼‰
-    float m_shakeTotalDuration = 0.0f;    //æœ€åˆã«æŒ‡å®šã—ãŸæŒ¯å‹•æ™‚é–“ï¼ˆç§’ï¼‰
-    float m_shakePhase = 0.0f;            //æ³¢å½¢ãƒ•ã‚§ãƒ¼ã‚º
-    float m_shakeFrequency = 25.0f;       //æŒ¯å‹•ã®åŸºæº–å‘¨æ³¢æ•°(Hz) â€” ãƒãƒ¥ãƒ¼ãƒ‹ãƒ³ã‚°å¯
+    //-------ƒVƒFƒCƒNŠÖ˜A--------
+    float m_shakeMagnitude = 0.0f;        //Œ»İ‚ÌU•iƒ[ƒ‹ƒh’PˆÊj
+    float m_shakeTimeRemaining = 0.0f;    //c‚èŠÔi•bj
+    float m_shakeTotalDuration = 0.0f;    //Å‰‚Éw’è‚µ‚½U“®ŠÔi•bj
+    float m_shakePhase = 0.0f;            //”gŒ`ƒtƒF[ƒY
+    float m_shakeFrequency = 25.0f;       //U“®‚ÌŠî€ü”g”(Hz) ? ƒ`ƒ…[ƒjƒ“ƒO‰Â
 
     Vector3 m_shakeOffset = DirectX::SimpleMath::Vector3::Zero;
-    ShakeMode m_shakeMode = ShakeMode::Horizontal;  //ç¾åœ¨ã®æŒ¯å‹•æ–¹å‘ã‚’æ±ºã‚ã‚‹ãƒ¢ãƒ¼ãƒ‰
+    ShakeMode m_shakeMode = ShakeMode::Horizontal;  //Œ»İ‚ÌU“®•ûŒü‚ğŒˆ‚ß‚éƒ‚[ƒh
 
-    //--------------å°„æ’ƒç…§æº–ã‚­ãƒ£ãƒƒã‚·ãƒ¥é–¢é€£------------------
-    Vector3 m_cachedAimPoint = Vector3::Zero;   // æ¬¡ãƒ•ãƒ¬ãƒ¼ãƒ ã§å°„æ’ƒãŒä½¿ã†ç…§æº–ç‚¹
-    Vector3 m_cachedAimDir = Vector3::Forward;// æ¬¡ãƒ•ãƒ¬ãƒ¼ãƒ ã§å°„æ’ƒãŒä½¿ã†ç…§æº–æ–¹å‘ï¼ˆæ­£è¦åŒ–ï¼‰
-    bool    m_hasCachedAim = false;           // åˆæœŸåŒ–ç›´å¾Œãªã©ã®å®‰å…¨ç”¨
+    //--------------ËŒ‚Æ€ƒLƒƒƒbƒVƒ…ŠÖ˜A------------------
+    Vector3 m_cachedAimPoint = Vector3::Zero;   // ŸƒtƒŒ[ƒ€‚ÅËŒ‚‚ªg‚¤Æ€“_
+    Vector3 m_cachedAimDir = Vector3::Forward;// ŸƒtƒŒ[ƒ€‚ÅËŒ‚‚ªg‚¤Æ€•ûŒüi³‹K‰»j
+    bool    m_hasCachedAim = false;           // ‰Šú‰»’¼Œã‚È‚Ç‚ÌˆÀ‘S—p
 
     Vector3 m_cameraWorldPos = Vector3::Zero;
 };

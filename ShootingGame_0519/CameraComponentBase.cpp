@@ -12,12 +12,12 @@ void CameraComponentBase::UpdateProjectionIfNeeded()
     int h = Application::GetHeight();
     if (w <= 1 || h <= 1) { return; }
 
-    if (w == m_PrevScreenW && h == m_PrevScreenH && 
-        m_ProjectionMatrix.Determinant() != 0.0f){ return; }
+    if (w == m_prevScreenW && h == m_prevScreenH &&
+        m_projectionMatrix.Determinant() != 0.0f){ return; }
 
-    m_PrevScreenW = w;
-    m_PrevScreenH = h;
+    m_prevScreenW = w;
+    m_prevScreenH = h;
 
     float aspect = static_cast<float>(w) / static_cast<float>(h);
-    m_ProjectionMatrix = Matrix::CreatePerspectiveFieldOfView(m_Fov, aspect, m_NearZ, m_FarZ);
+    m_projectionMatrix = Matrix::CreatePerspectiveFieldOfView(m_fov, aspect, m_nearZ, m_farZ);
 }

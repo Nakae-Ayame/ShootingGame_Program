@@ -13,7 +13,7 @@ void ResultLooseScene::Init()
     AddObject(background01);
     //AddObject(background02);
 
-    for (auto& obj : m_AddObjects)
+    for (auto& obj : m_addObjects)
     {
         if (obj) obj->Initialize();
     }
@@ -32,7 +32,7 @@ void ResultLooseScene::Update(float deltatime)
     }
 
 
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj) obj->Update(deltatime);
     }
@@ -40,7 +40,7 @@ void ResultLooseScene::Update(float deltatime)
 
 void ResultLooseScene::Draw(float deltatime)
 {
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj) obj->Draw(deltatime);
     }
@@ -48,7 +48,7 @@ void ResultLooseScene::Draw(float deltatime)
 
 void ResultLooseScene::DrawWorld(float deltatime)
 {
-    for (auto& obj : m_GameObjects)
+    for (auto& obj : m_gameObjects)
     {
         if (obj) obj->Draw(deltatime);
     }
@@ -70,42 +70,42 @@ void ResultLooseScene::AddObject(std::shared_ptr<GameObject> obj)
     if (!obj) return;
     // シーン参照を GameObject に教えておく（後述）
     obj->SetScene(this);
-    m_AddObjects.push_back(obj);
+    m_addObjects.push_back(obj);
 }
 
 
 void ResultLooseScene::RemoveObject(std::shared_ptr<GameObject> obj)
 {
-    m_DeleteObjects.push_back(obj);
+    m_deleteObjects.push_back(obj);
 }
 
 void ResultLooseScene::RemoveObject(GameObject* obj)
 {
     //if (!obj) return;
     //// 重複追加を防ぎたい場合チェックしてから push_back してもよい
-    //m_DeleteObjects.push_back(obj);
+    //m_deleteObjects.push_back(obj);
 }
 
 void ResultLooseScene::FinishFrameCleanup()
 {
-    for (auto& p : m_DeleteObjects) // p は shared_ptr<GameObject>
+    for (auto& p : m_deleteObjects) // p は shared_ptr<GameObject>
     {
-        auto it = std::find_if(m_GameObjects.begin(), m_GameObjects.end(), [&](const std::shared_ptr<GameObject>& sp)
+        auto it = std::find_if(m_gameObjects.begin(), m_gameObjects.end(), [&](const std::shared_ptr<GameObject>& sp)
             {return sp == p; });
-        if (it != m_GameObjects.end()) m_GameObjects.erase(it);
+        if (it != m_gameObjects.end()) m_gameObjects.erase(it);
     }
-    m_DeleteObjects.clear();
+    m_deleteObjects.clear();
 }
 
 void ResultLooseScene::SetSceneObject()
 {
-    if (!m_AddObjects.empty())
+    if (!m_addObjects.empty())
     {
         // 一括追加（file-safe: reserve してから insert）
-        m_GameObjects.reserve(m_GameObjects.size() + m_AddObjects.size());
-        m_GameObjects.insert(m_GameObjects.end(),
-            std::make_move_iterator(m_AddObjects.begin()),
-            std::make_move_iterator(m_AddObjects.end()));
-        m_AddObjects.clear();
+        m_gameObjects.reserve(m_gameObjects.size() + m_addObjects.size());
+        m_gameObjects.insert(m_gameObjects.end(),
+            std::make_move_iterator(m_addObjects.begin()),
+            std::make_move_iterator(m_addObjects.end()));
+        m_addObjects.clear();
     }
 }

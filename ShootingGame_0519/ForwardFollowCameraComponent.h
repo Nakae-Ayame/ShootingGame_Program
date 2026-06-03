@@ -37,8 +37,8 @@ public:
 
     DirectX::SimpleMath::Vector2 GetReticleScreen() const override { return m_reticleScreen; }
 
-    DirectX::SimpleMath::Matrix GetView() const override { return m_ViewMatrix; }
-    DirectX::SimpleMath::Matrix GetProj() const override { return m_ProjectionMatrix; }
+    DirectX::SimpleMath::Matrix GetView() const override { return m_viewMatrix; }
+    DirectX::SimpleMath::Matrix GetProj() const override { return m_projectionMatrix; }
 
 private:
     //--------------TargetŠÖ˜A------------------

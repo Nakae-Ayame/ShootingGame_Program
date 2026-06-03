@@ -7,7 +7,7 @@
 #include <iostream>
 #include <algorithm>
 
-ID3D11ShaderResourceView* TransitionManager::m_TextureSRV;
+ID3D11ShaderResourceView* TransitionManager::m_textureSrv;
 bool  TransitionManager::m_isTransitioning;
 float TransitionManager::m_fadeSpeed;
 TransitionType TransitionManager::m_type = TransitionType::FADE;
@@ -24,7 +24,7 @@ std::function<void()> TransitionManager::m_preload;
 //--------------------------------------------------------
 void TransitionManager::Init()
 {
-    m_TextureSRV = nullptr;
+    m_textureSrv = nullptr;
     m_isTransitioning = false;
     m_timer = 0.0f;
     m_duration = 1.0f;
@@ -35,7 +35,7 @@ void TransitionManager::Init()
     m_nextScene.clear();
 	m_preload = nullptr;
 
-    m_TextureSRV = TextureManager::Load("Asset/Texture/Transition_Fade01.png");
+    m_textureSrv = TextureManager::Load("Asset/Texture/Transition_Fade01.png");
 }
 
 //--------------------------------------------------------
@@ -113,7 +113,7 @@ void TransitionManager::Draw(float deltaTime)
 {
     if (!m_isTransitioning){ return; }
 
-    if (!m_TextureSRV){ return; }
+    if (!m_textureSrv){ return; }
 
     Vector2 topLeft;
     topLeft.x = 0.0f;
@@ -131,7 +131,7 @@ void TransitionManager::Draw(float deltaTime)
     Renderer::SetTextureAlpha(m_alpha);
 
     //‰æ‘œ‚ð•`‰æ
-    Renderer::DrawTexture(m_TextureSRV, topLeft, size);
+    Renderer::DrawTexture(m_textureSrv, topLeft, size);
 
     Renderer::SetBlendState(BS_NONE);
     Renderer::SetDepthEnable(true);
@@ -139,7 +139,7 @@ void TransitionManager::Draw(float deltaTime)
 
 void TransitionManager::Uninit()
 {
-    m_TextureSRV = nullptr;
+    m_textureSrv = nullptr;
     m_isTransitioning = false;
     m_preload = nullptr;
 }

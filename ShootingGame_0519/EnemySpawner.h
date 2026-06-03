@@ -95,7 +95,7 @@ public:
 
 	void SetTurretPos(DirectX::SimpleMath::Vector3 Pos)
 	{
-		TurretPosSets.push_back(Pos);
+		turretPosSets.push_back(Pos);
 	}
 
 	void SetBranchPoints(const std::vector<BranchPointConfig>& branchPoints)
@@ -113,7 +113,7 @@ private:
 
 	//PatrolEnemyの移動中間地点の配列
 	std::vector<std::vector<DirectX::SimpleMath::Vector3>> patrolWaypointSets;
-	
+
 	//CirclePatrolEnemyの半径の配列
 	std::vector<float> circlePatrolRadiusSets;
 
@@ -121,7 +121,7 @@ private:
 	std::vector<DirectX::SimpleMath::Vector3> circlePatrolCenterSets;
 
 	//TurretPatrolEnemy中心座標の配列
-	std::vector<DirectX::SimpleMath::Vector3> TurretPosSets;
+	std::vector<DirectX::SimpleMath::Vector3> turretPosSets;
 
 	//生成した敵を管理（弱参照で持っておく）
 	std::vector<std::weak_ptr<GameObject>> m_spawnedPatrols;

@@ -10,7 +10,7 @@ class GameForwardScene : public IScene
 {
 public:
 	explicit GameForwardScene() {};
-	
+
 	void Update(float deltatime) override;
 	void Draw(float deltatime) override;
 	void DrawWorld(float deltatime) override;
@@ -28,11 +28,11 @@ private:
 	//-------------Imgui関連関数-------------
 
 	//------------Object用配列---------------
-	std::vector<std::shared_ptr<GameObject>> m_GameObjects;    //3Dオブジェクト用配列
-	std::vector<std::shared_ptr<GameObject>> m_TextureObjects; //2Dオブジェクト用配列
+	std::vector<std::shared_ptr<GameObject>> m_gameObjects;    //3Dオブジェクト用配列
+	std::vector<std::shared_ptr<GameObject>> m_textureObjects; //2Dオブジェクト用配列
 
-	std::vector<std::shared_ptr<GameObject>> m_DeleteObjects;  //削除予定オブジェクト用配列
-	std::vector<std::shared_ptr<GameObject>> m_AddObjects;     //追加予定オブジェクト用配列
+	std::vector<std::shared_ptr<GameObject>> m_deleteObjects;  //削除予定オブジェクト用配列
+	std::vector<std::shared_ptr<GameObject>> m_addObjects;     //追加予定オブジェクト用配列
 
 	std::shared_ptr<ForwardFollowCameraComponent> m_cameraComp; // カメラコンポーネントへのキャッシュ生ポインタ
 };

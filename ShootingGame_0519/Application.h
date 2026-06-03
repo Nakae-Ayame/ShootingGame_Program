@@ -10,8 +10,8 @@ class Application
 public:
     Application(uint32_t width, uint32_t height) //コンストラクタ
     {
-        m_Height = height;  //縦幅
-        m_Width = width;    //横幅
+        m_height = height;  //縦幅
+        m_width = width;    //横幅
 
         timeBeginPeriod(1);//
     }
@@ -25,12 +25,12 @@ public:
 
     static uint32_t GetWidth()//横幅を取得する
     {
-        return m_Width;
+        return m_width;
     }
 
     static uint32_t GetHeight()//縦幅を取得する
     {
-        return m_Height;
+        return m_height;
     }
 
     static HWND GetWindow()//ウィンドウハンドルを取得
@@ -45,7 +45,7 @@ public:
 
     static float GetDeltaTime()
     {
-        return m_DeltaTime; 
+        return m_deltaTime;
     }
 
     static void HideCursorAndClip();   // マウスカーソルを非表示＆固定
@@ -54,9 +54,9 @@ public:
 private:
     static HINSTANCE   m_hInst;    //インスタンスハンドル
     static HWND        m_hWnd;     //ウィンドウハンドル
-    static uint32_t    m_Width;    //ウィンドウの横幅
-    static uint32_t    m_Height;   //ウィンドウの縦幅 
-    static float       m_DeltaTime;
+    static uint32_t    m_width;    //ウィンドウの横幅
+    static uint32_t    m_height;   //ウィンドウの縦幅
+    static float       m_deltaTime;
 
     static bool InitApp();   //アプリケーションの初期化
     static void UninitApp(); //アプリケーションの終了処理

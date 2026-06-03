@@ -1,9 +1,9 @@
-ï»¿#include <iostream>
-#include <algorithm>    
+#include <iostream>
+#include <algorithm>
 #include <cmath>
-#include <cfloat>       
+#include <cfloat>
 #include <DirectXMath.h>
-#include <SimpleMath.h> 
+#include <SimpleMath.h>
 #include "Player.h"
 #include "CollisionManager.h"
 #include "Collision.h"
@@ -18,7 +18,7 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-std::vector<ColliderComponent*> CollisionManager::m_Colliders;
+std::vector<ColliderComponent*> CollisionManager::m_colliders;
 bool CollisionManager::m_hitThisFrame = false;
 
 void CollisionManager::RegisterCollider(ColliderComponent* collider)
@@ -27,15 +27,15 @@ void CollisionManager::RegisterCollider(ColliderComponent* collider)
 
     if (!collider->GetOwner())
     {
-        //ãƒ­ã‚°è¡¨ç¤º
-        std::cout << "ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã®æ‰€æŒè€…ãŒå­˜åœ¨ã—ã¾ã›ã‚“" << std::endl;
+        //ƒƒO•\¦
+        std::cout << "ƒRƒ‰ƒCƒ_[‚ÌŠÒ‚ª‘¶İ‚µ‚Ü‚¹‚ñ" << std::endl;
         return;
     }
 
-    //é‡è¤‡é˜²æ­¢
-    if (std::find(m_Colliders.begin(), m_Colliders.end(), collider) == m_Colliders.end())
+    //d•¡–h~
+    if (std::find(m_colliders.begin(), m_colliders.end(), collider) == m_colliders.end())
     {
-        m_Colliders.push_back(collider);
+        m_colliders.push_back(collider);
     }
 }
 
@@ -46,63 +46,63 @@ void CollisionManager::UnregisterCollider(ColliderComponent* collider)
         return;
     }
 
-    auto it = std::find(m_Colliders.begin(), m_Colliders.end(), collider);
-    if (it != m_Colliders.end())
+    auto it = std::find(m_colliders.begin(), m_colliders.end(), collider);
+    if (it != m_colliders.end())
     {
-        m_Colliders.erase(it);
+        m_colliders.erase(it);
     }
 }
 
 void CollisionManager::Clear()
 {
-    m_Colliders.clear();
+    m_colliders.clear();
 }
 
 void CollisionManager::CheckCollisions()
 {
-    //å…¨ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’æœªãƒ’ãƒƒãƒˆçŠ¶æ…‹ã«ã™ã‚‹
-    for (auto col : m_Colliders) 
+    //‘SƒRƒ‰ƒCƒ_[‚ğ–¢ƒqƒbƒgó‘Ô‚É‚·‚é
+    for (auto col : m_colliders)
     {
         col->SetHitThisFrame(false);
     }
 
-    //åˆ¤å®šã™ã‚‹ç‰©ã®åé›†ã‚’è¡Œã†
+    //”»’è‚·‚é•¨‚ÌûW‚ğs‚¤
     std::vector<CollisionInfoLite>  hitPairs;
 
-    //ã‚µã‚¤ã‚ºå–å¾—
-    size_t count = m_Colliders.size();
-       
-    //ã‚µã‚¤ã‚ºåˆ†å›ã™
+    //ƒTƒCƒYæ“¾
+    size_t count = m_colliders.size();
+
+    //ƒTƒCƒY•ª‰ñ‚·
     for (size_t i = 0; i < count; ++i)
     {
         //
-        ColliderComponent* colA = m_Colliders[i];
-        //ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ãŒä»˜ã„ã¦ã„ãªã‘ã‚Œã°
+        ColliderComponent* colA = m_colliders[i];
+        //ƒRƒ‰ƒCƒ_[‚ª•t‚¢‚Ä‚¢‚È‚¯‚ê‚Î
         if(!colA){ continue; }
 
         GameObject* ownerA = colA->GetOwner();
-        //æ‰€æœ‰è€…ãŒã„ãªã‘ã‚Œã°
+        //Š—LÒ‚ª‚¢‚È‚¯‚ê‚Î
         if(!ownerA){ continue; }
 
-        //ä»Šã®å½“ãŸã‚Šåˆ¤å®šã®ä¸€å€‹å…ˆã‹ã‚‰å›ã™
+        //¡‚Ì“–‚½‚è”»’è‚ÌˆêŒÂæ‚©‚ç‰ñ‚·
         for (size_t j = i + 1; j < count; ++j)
         {
-            ColliderComponent* colB = m_Colliders[j];
-            //ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ãŒä»˜ã„ã¦ã„ãªã‘ã‚Œã°
+            ColliderComponent* colB = m_colliders[j];
+            //ƒRƒ‰ƒCƒ_[‚ª•t‚¢‚Ä‚¢‚È‚¯‚ê‚Î
             if (!colB){ continue; }
 
             GameObject* ownerB = colB->GetOwner();
-            //æ‰€æœ‰è€…ãŒã„ãªã‘ã‚Œã°
+            //Š—LÒ‚ª‚¢‚È‚¯‚ê‚Î
             if (!ownerB){ continue; }
-            
+
             bool hit = false;
 
-            //ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã®ç¨®é¡(AABB or OBB)ã‚’å–å¾—
+            //ƒRƒ‰ƒCƒ_[‚Ìí—Ş(AABB or OBB)‚ğæ“¾
             auto typeA = colA->GetColliderType();
             auto typeB = colB->GetColliderType();
 
             //-----------------------------------------
-            // è¡çªåˆ¤å®š ï¼š AABB vs AABB
+            // Õ“Ë”»’è F AABB vs AABB
             //-----------------------------------------
             if (typeA == ColliderType::AABB && typeB == ColliderType::AABB)
             {
@@ -111,14 +111,14 @@ void CollisionManager::CheckCollisions()
                 hit = Collision::IsAABBHit(a->GetMin(), a->GetMax(), b->GetMin(), b->GetMax());
             }
             //-----------------------------------------
-            // è¡çªåˆ¤å®š ï¼š OBB vs OBB
+            // Õ“Ë”»’è F OBB vs OBB
             //-----------------------------------------
             else if (typeA == ColliderType::OBB && typeB == ColliderType::OBB)
             {
                 auto a = static_cast<OBBColliderComponent*>(colA);
                 auto b = static_cast<OBBColliderComponent*>(colB);
 
-                //å„ãƒ‡ãƒ¼ã‚¿ã‚’å–å¾—ã™ã‚‹
+                //Šeƒf[ƒ^‚ğæ“¾‚·‚é
                 Vector3 centerA = a->GetCenter();
                 Vector3 centerB = b->GetCenter();
                 Matrix  rotA = a->GetRotationMatrix();
@@ -146,7 +146,7 @@ void CollisionManager::CheckCollisions()
             }
 
             //-----------------------------------------
-            // è¡çªåˆ¤å®š ï¼š AABB vs OBB
+            // Õ“Ë”»’è F AABB vs OBB
             //-----------------------------------------
             else
             {
@@ -155,15 +155,15 @@ void CollisionManager::CheckCollisions()
                 if (typeA == ColliderType::AABB)
                 {
                     aabb = static_cast<AABBColliderComponent*>(colA);
-                    obb  = static_cast<OBBColliderComponent*>(colB); 
+                    obb  = static_cast<OBBColliderComponent*>(colB);
                 }
                 else
                 {
-                    aabb = static_cast<AABBColliderComponent*>(colB); 
+                    aabb = static_cast<AABBColliderComponent*>(colB);
                     obb  = static_cast<OBBColliderComponent*>(colA);
                 }
 
-                // AABB ã¨ OBB åŒæ–¹ã® Get* ã¯ null-safe å®Ÿè£…ã‚’æœŸå¾…
+                // AABB ‚Æ OBB ‘o•û‚Ì Get* ‚Í null-safe À‘•‚ğŠú‘Ò
                 hit = Collision::IsAABBvsOBBHit(
                     aabb->GetMin(), aabb->GetMax(),
                     obb->GetCenter(), obb->GetRotationMatrix(),
@@ -173,12 +173,12 @@ void CollisionManager::CheckCollisions()
 
 
             //-----------------------------------------
-            // çµæœã‚’é€ã‚‹(ãƒ­ã‚°ã‚‚å‡ºã™)
+            // Œ‹‰Ê‚ğ‘—‚é(ƒƒO‚ào‚·)
             //-----------------------------------------
             if (hit)
             {
-                //ã‚³ãƒªã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆé€šçŸ¥
-                //åˆ¤å®šãƒ•ã‚§ãƒ¼ã‚ºã§ã¯é€šçŸ¥ã—ãªã„ã§å…¥ã‚Œã¦ãŠãã€‚
+                //ƒRƒŠƒWƒ‡ƒ“ƒCƒxƒ“ƒg’Ê’m
+                //”»’èƒtƒF[ƒY‚Å‚Í’Ê’m‚µ‚È‚¢‚Å“ü‚ê‚Ä‚¨‚­B
                 CollisionInfoLite info;
                 info.a = colA;
                 info.b = colB;
@@ -186,13 +186,13 @@ void CollisionManager::CheckCollisions()
             }
             else
             {
-                //å½“ãŸã£ã¦ã„ãªã„å ´åˆã®ãƒ­ã‚°ï¼ˆãƒ‡ãƒãƒƒã‚°æ™‚ã®ã¿æœ‰åŠ¹ã«ã™ã‚‹ã¨ã„ã„ï¼‰
-                //std::cout << "å½“ãŸã£ã¦ã„ã¾ã›ã‚“ "<< std::endl;
+                //“–‚½‚Á‚Ä‚¢‚È‚¢ê‡‚ÌƒƒOiƒfƒoƒbƒO‚Ì‚İ—LŒø‚É‚·‚é‚Æ‚¢‚¢j
+                //std::cout << "“–‚½‚Á‚Ä‚¢‚Ü‚¹‚ñ "<< std::endl;
             }
-        
+
         }
     }
-    
+
     for (const auto& p : hitPairs)
     {
         //
@@ -208,27 +208,27 @@ void CollisionManager::CheckCollisions()
 
         if (!ownerA || !ownerB) { continue; }
 
-        //æŠ¼ã—å‡ºã—é‡ã‚’ä¿å­˜ã™ã‚‹ãŸã‚ã®å¤‰æ•°ã‚’ä½œã£ã¦ãŠã
+        //‰Ÿ‚µo‚µ—Ê‚ğ•Û‘¶‚·‚é‚½‚ß‚Ì•Ï”‚ğì‚Á‚Ä‚¨‚­
         Vector3 pushA = Vector3::Zero;
         Vector3 pushB = Vector3::Zero;
 
-        //å½“ãŸã£ãŸã©ã†ã‹ã®boolå‹
+        //“–‚½‚Á‚½‚Ç‚¤‚©‚ÌboolŒ^
         bool resolved = false;
 
-        //ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã®ç¨®é¡ã‚’å–å¾—ã™ã‚‹
+        //ƒRƒ‰ƒCƒ_[‚Ìí—Ş‚ğæ“¾‚·‚é
         ColliderType typeA = colA->GetColliderType();
         ColliderType typeB = colB->GetColliderType();
 
-        //-----------------MTV(æŠ¼ã—å‡ºã—é‡)è¨ˆç®—----------------------
-        //AABBåŒå£«ã®å½“ãŸã‚Šåˆ¤å®šãªã‚‰
+        //-----------------MTV(‰Ÿ‚µo‚µ—Ê)ŒvZ----------------------
+        //AABB“¯m‚Ì“–‚½‚è”»’è‚È‚ç
         if (typeA == ColliderType::AABB && typeB == ColliderType::AABB)
         {
             resolved = Collision::ComputeAABBMTV(static_cast<AABBColliderComponent*>(colA),
                                                  static_cast<AABBColliderComponent*>(colB),
-                                                 pushA, 
+                                                 pushA,
                                                  pushB);
         }
-        //AABBã¨OBBã®å½“ãŸã‚Šåˆ¤å®šãªã‚‰
+        //AABB‚ÆOBB‚Ì“–‚½‚è”»’è‚È‚ç
         if (typeA == ColliderType::AABB && typeB == ColliderType::OBB)
         {
             resolved = Collision::ComputeAABBvsOBBMTV_Simple(static_cast<AABBColliderComponent*>(colA),
@@ -241,7 +241,7 @@ void CollisionManager::CheckCollisions()
                                                              static_cast<OBBColliderComponent*>(colA),
                                                              pushB, pushA);
         }
-        //OBBåŒå£«ã®å½“ãŸã‚Šåˆ¤å®šãªã‚‰
+        //OBB“¯m‚Ì“–‚½‚è”»’è‚È‚ç
         else if (typeA == ColliderType::OBB && typeB == ColliderType::OBB)
         {
             resolved = Collision::ComputeOBBMTV(static_cast<OBBColliderComponent*>(colA),
@@ -267,13 +267,13 @@ void CollisionManager::CheckCollisions()
         }
         else
         {
-            //ãã‚Œä»¥å¤–ã®çµ„ã¿åˆã‚ã›ã¯MTVã‚’è¨ˆç®—ã—ãªã„
+            //‚»‚êˆÈŠO‚Ì‘g‚İ‡‚í‚¹‚ÍMTV‚ğŒvZ‚µ‚È‚¢
             resolved = false;
         }
 
-        //æŠ¼ã—å‡ºã—ãŒã„ã‚‰ãªã„ãªã‚‰
+        //‰Ÿ‚µo‚µ‚ª‚¢‚ç‚È‚¢‚È‚ç
         if (!resolved){ continue; }
-        
+
         if (resolved)
         {
             auto pushAComp = ownerA->GetComponent<PushOutComponent>();
@@ -288,7 +288,7 @@ void CollisionManager::CheckCollisions()
             {
                 massA = pushAComp->GetMass();
             }
-            
+
             float massB;
             if (colB->IsStatic())
             {
@@ -322,7 +322,7 @@ void CollisionManager::CheckCollisions()
             float sumInv = invA + invB;
             if (sumInv <= 1e-6f) { continue; }
 
-            Vector3 mtv = pushA; 
+            Vector3 mtv = pushA;
 
             Vector3 finalPushA = mtv * (invA / sumInv);
             Vector3 finalPushB = -mtv * (invB / sumInv);
@@ -372,18 +372,18 @@ void CollisionManager::CheckCollisions()
 
 void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)
 {
-    if (m_Colliders.empty()) 
+    if (m_colliders.empty())
     {
-        std::cout << "ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã«ä½•ã‚‚ç™»éŒ²ã•ã‚Œã¦ã„ã¾ã›ã‚“ " << std::endl;
+        std::cout << "ƒRƒ‰ƒCƒ_[‚É‰½‚à“o˜^‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ " << std::endl;
         return;
     }
 
-    // æ·±åº¦ã‚ªãƒ•ã«ã—ã¦ä¸¡é¢æç”»ã§è¦‹ã‚„ã™ã
-    //m_DeviceContextBackup... // ï¼ˆã‚‚ã—ä¿å­˜ã§ãã‚‹ãªã‚‰ä¿å­˜ã€ç„¡ã‘ã‚Œã° Renderer é–¢æ•°ã§åˆ‡ã‚Šæ›¿ãˆï¼‰
+    // [“xƒIƒt‚É‚µ‚Ä—¼–Ê•`‰æ‚ÅŒ©‚â‚·‚­
+    //m_deviceContextBackup... // i‚à‚µ•Û‘¶‚Å‚«‚é‚È‚ç•Û‘¶A–³‚¯‚ê‚Î Renderer ŠÖ”‚ÅØ‚è‘Ö‚¦j
     Renderer::SetDepthEnable(false);
     Renderer::DisableCulling(false);
 
-    for (auto* col : m_Colliders)
+    for (auto* col : m_colliders)
     {
         if (!col) continue;
         bool hit = col->IsHitThisFrame();
@@ -423,7 +423,7 @@ void CollisionManager::DebugDrawAllColliders(DebugRenderer& dr)
         }
     }
 
-    // å…ƒã«æˆ»ã™
+    // Œ³‚É–ß‚·
     Renderer::SetDepthEnable(true);
     Renderer::DisableCulling(true);
 }
@@ -434,14 +434,14 @@ void CollisionManager::KillInwardVelocity(GameObject* obj,
 {
     if (!obj){ return; }
 
-    // IMovable ã‚’æŒã¤ã‹ç¢ºèª
+    // IMovable ‚ğ‚Â‚©Šm”F
     auto movable = obj->GetComponent<IMovable>();
     if (!movable){ return; }
 
     Vector3 velocity = movable->GetVelocity();
     float dot = velocity.Dot(normal);
 
-    // å£ã®å†…å´ã¸å‘ã‹ã†æˆåˆ†ã ã‘æ¶ˆã™
+    // •Ç‚Ì“à‘¤‚ÖŒü‚©‚¤¬•ª‚¾‚¯Á‚·
     if (dot < 0.0f)
     {
         Vector3 corrected = velocity - normal * dot;
@@ -475,7 +475,7 @@ bool CollisionManager::RaycastWorld(
     RaycastHit bestHit;
     bestHit.distance = maxDistance;
 
-    for (auto* col : m_Colliders)
+    for (auto* col : m_colliders)
     {
         if (!col)
         {
